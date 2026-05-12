@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "time_unit": "seconds",
+  "thresholds": {
+    "axisymmetric_fem": {
+      "max_median_s": 15.0
+    },
+    "circular_loop_elliptic": {
+      "max_median_s": 10.0
+    },
+    "local_fem": {
+      "max_median_s": 5.0
+    },
+    "reduced_coil_green": {
+      "max_median_s": 10.0
+    },
+    "seed": {
+      "max_median_s": 15.0
+    }
+  }
+}

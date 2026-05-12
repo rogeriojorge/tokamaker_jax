@@ -3,8 +3,8 @@
     {
       "lane": "seed",
       "result": {
-        "best_s": 0.07374366599833593,
-        "median_s": 0.07374366599833593,
+        "best_s": 0.0873624590021791,
+        "median_s": 0.0873624590021791,
         "metadata": {
           "iterations": 20,
           "nr": 17,
@@ -13,14 +13,14 @@
         "name": "seed_fixed_boundary_equilibrium",
         "repeats": 1,
         "warmups": 0,
-        "worst_s": 0.07374366599833593
+        "worst_s": 0.0873624590021791
       }
     },
     {
       "lane": "local_fem",
       "result": {
-        "best_s": 0.0528937089984538,
-        "median_s": 0.0528937089984538,
+        "best_s": 0.060954749991651624,
+        "median_s": 0.060954749991651624,
         "metadata": {
           "element": "p1_triangle",
           "matrices": [
@@ -31,14 +31,14 @@
         "name": "local_p1_triangle_matrices",
         "repeats": 1,
         "warmups": 0,
-        "worst_s": 0.0528937089984538
+        "worst_s": 0.060954749991651624
       }
     },
     {
       "lane": "axisymmetric_fem",
       "result": {
-        "best_s": 0.12661254199338146,
-        "median_s": 0.12661254199338146,
+        "best_s": 0.15770374999556225,
+        "median_s": 0.15770374999556225,
         "metadata": {
           "operator": "grad_shafranov_weak",
           "subdivisions": 6
@@ -46,14 +46,14 @@
         "name": "axisymmetric_p1_fem_assembly_apply",
         "repeats": 1,
         "warmups": 0,
-        "worst_s": 0.12661254199338146
+        "worst_s": 0.15770374999556225
       }
     },
     {
       "lane": "reduced_coil_green",
       "result": {
-        "best_s": 0.025603749993024394,
-        "median_s": 0.025603749993024394,
+        "best_s": 0.028572167007951066,
+        "median_s": 0.028572167007951066,
         "metadata": {
           "n_coils": 3,
           "nr": 17,
@@ -62,14 +62,14 @@
         "name": "reduced_coil_green_response",
         "repeats": 1,
         "warmups": 0,
-        "worst_s": 0.025603749993024394
+        "worst_s": 0.028572167007951066
       }
     },
     {
       "lane": "circular_loop_elliptic",
       "result": {
-        "best_s": 0.04090449999785051,
-        "median_s": 0.04090449999785051,
+        "best_s": 0.05461300000024494,
+        "median_s": 0.05461300000024494,
         "metadata": {
           "kernel": "agm_elliptic",
           "n_coils": 3,
@@ -78,7 +78,7 @@
         "name": "circular_loop_elliptic_response",
         "repeats": 1,
         "warmups": 0,
-        "worst_s": 0.04090449999785051
+        "worst_s": 0.05461300000024494
       }
     }
   ],

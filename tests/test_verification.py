@@ -13,6 +13,7 @@ from tokamaker_jax.verification import (
     rectangular_triangles,
     run_circular_loop_green_function_validation,
     run_coil_green_function_validation,
+    run_free_boundary_profile_coupling_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
     sine_poisson_exact,
@@ -102,6 +103,24 @@ def test_circular_loop_green_function_validation_schema_and_tolerances():
     assert result.linearity_error < 1.0e-18
     assert result.gradient_error < 1.0e-14
     assert result.quadrature_gradient_relative_error < 1.0e-8
+
+
+def test_free_boundary_profile_coupling_validation_schema_and_tolerances():
+    result = run_free_boundary_profile_coupling_validation()
+    payload = result.to_dict()
+
+    assert json.loads(json.dumps(payload)) == payload
+    assert result.n_nodes == 25
+    assert result.n_cells == 32
+    assert result.n_coils == 3
+    assert result.boundary_error < 1.0e-18
+    assert result.coil_linearity_relative_error < 1.0e-14
+    assert result.current_gradient_error < 1.0e-22
+    assert np.isfinite(result.pressure_scale_gradient)
+    assert result.residual_final < 1.0
+    assert result.update_final < 1.0
+    assert result.psi_abs_max > 0.0
+    assert result.coil_flux_abs_max > 0.0
 
 
 def test_verification_validation_errors():

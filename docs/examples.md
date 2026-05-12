@@ -62,11 +62,25 @@ tokamaker-jax verify --gate profile-iteration
 :alt: Nonlinear p=1 FEM profile iteration contours
 ```
 
+The first coupled free-boundary/profile example uses circular-loop coil flux as
+the boundary condition for the nonlinear p=1 FEM profile iteration:
+
+```bash
+tokamaker-jax verify --gate free-boundary-profile
+```
+
+```{image} _static/free_boundary_profile_coupling.png
+:alt: Free-boundary coil response coupled to nonlinear profile iteration
+```
+
 Benchmark and literature-reproduction examples write JSON reports and figures
 that can be archived with a run:
 
 ```bash
-python examples/benchmark_report.py --output outputs/benchmark_report.json
+python examples/benchmark_report.py \
+  --output outputs/benchmark_report.json \
+  --thresholds docs/validation/benchmark_thresholds.json \
+  --comparison-output outputs/benchmark_threshold_report.json
 python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 ```
 

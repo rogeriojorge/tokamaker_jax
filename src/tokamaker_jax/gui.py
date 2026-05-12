@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import json
+from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 import jax.numpy as jnp
@@ -25,6 +27,12 @@ from tokamaker_jax.verification import (
 _DEFAULT_VALIDATION_SUBDIVISIONS = (4, 8, 16)
 _CONVERGENCE_RATE_THRESHOLDS = {"l2": 1.8, "h1": 0.85}
 _COIL_GREEN_ERROR_TOLERANCE = 1.0e-10
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_REPORT_ARTIFACTS = {
+    "validation": Path("outputs/verify.json"),
+    "openfusiontoolkit": Path("docs/_static/openfusiontoolkit_comparison_report.json"),
+    "benchmark": Path("docs/_static/benchmark_report.json"),
+}
 
 
 def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) -> None:
@@ -49,6 +57,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
         geometry_tab = ui.tab("Region geometry")
         validation_tab = ui.tab("Validation")
         coil_tab = ui.tab("Coil response")
+        reports_tab = ui.tab("Reports")
 
     with ui.tab_panels(tabs, value=workflow_tab).classes("w-full"):
         with ui.tab_panel(workflow_tab):
@@ -130,6 +139,29 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             ui.plotly(validation_convergence_figure("grad-shafranov")).classes("w-full h-[620px]")
         with ui.tab_panel(coil_tab):
             ui.plotly(coil_green_response_figure()).classes("w-full h-[620px]")
+        with ui.tab_panel(reports_tab):
+            artifacts = load_gui_report_artifacts()
+            ui.label("Validation reports").classes("text-subtitle2")
+            ui.table(
+                columns=[
+                    {"name": "gate", "label": "Gate", "field": "gate"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "metric", "label": "Metric", "field": "metric"},
+                    {"name": "source", "label": "Source", "field": "source"},
+                ],
+                rows=validation_report_rows(artifacts),
+            ).classes("w-full")
+            ui.label("Benchmark report").classes("text-subtitle2")
+            ui.table(
+                columns=[
+                    {"name": "lane", "label": "Lane", "field": "lane"},
+                    {"name": "median_ms", "label": "Median [ms]", "field": "median_ms"},
+                    {"name": "best_ms", "label": "Best [ms]", "field": "best_ms"},
+                    {"name": "worst_ms", "label": "Worst [ms]", "field": "worst_ms"},
+                    {"name": "metadata", "label": "Metadata", "field": "metadata"},
+                ],
+                rows=benchmark_report_rows(artifacts.get("benchmark")),
+            ).classes("w-full")
     ui.run(host=host, port=port, reload=reload, show=True)
 
 
@@ -427,6 +459,97 @@ def workflow_next_step_rows(dashboard: dict[str, Any]) -> list[dict[str, str]]:
         }
         for step in dashboard["next_steps"]
     ]
+
+
+def load_json_report(path: str | Path) -> dict[str, Any]:
+    """Load a JSON report for GUI display."""
+
+    report_path = Path(path)
+    return json.loads(report_path.read_text(encoding="utf-8"))
+
+
+def load_gui_report_artifacts(
+    root: str | Path = _PROJECT_ROOT,
+    artifacts: Mapping[str, str | Path] = _DEFAULT_REPORT_ARTIFACTS,
+) -> dict[str, Any]:
+    """Load known GUI report artifacts when they exist."""
+
+    root_path = Path(root)
+    reports: dict[str, Any] = {}
+    for key, relative_path in artifacts.items():
+        path = root_path / relative_path
+        if path.exists():
+            payload = load_json_report(path)
+            payload["_artifact_path"] = str(path)
+            reports[key] = payload
+        else:
+            reports[key] = {"status": "missing", "_artifact_path": str(path)}
+    return reports
+
+
+def validation_report_rows(reports: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Return compact rows for stored validation and comparison reports."""
+
+    rows: list[dict[str, str]] = []
+    validation = reports.get("validation")
+    if isinstance(validation, Mapping) and isinstance(validation.get("gates"), Mapping):
+        for gate_id, payload in validation["gates"].items():
+            rows.append(
+                {
+                    "gate": str(gate_id),
+                    "status": _stored_gate_status(gate_id, payload),
+                    "metric": _stored_gate_metric(gate_id, payload),
+                    "source": str(validation.get("_artifact_path", "")),
+                }
+            )
+    openfusiontoolkit = reports.get("openfusiontoolkit")
+    if isinstance(openfusiontoolkit, Mapping):
+        rows.append(
+            {
+                "gate": "openfusiontoolkit",
+                "status": str(openfusiontoolkit.get("status", "missing")),
+                "metric": _stored_gate_metric("openfusiontoolkit", openfusiontoolkit),
+                "source": str(openfusiontoolkit.get("_artifact_path", "")),
+            }
+        )
+    if not rows:
+        rows.append(
+            {
+                "gate": "validation",
+                "status": "missing",
+                "metric": "no stored validation report found",
+                "source": "",
+            }
+        )
+    return rows
+
+
+def benchmark_report_rows(report: Mapping[str, Any] | None) -> list[dict[str, str]]:
+    """Return compact rows for a stored benchmark report."""
+
+    if not isinstance(report, Mapping) or not isinstance(report.get("benchmarks"), list):
+        return [
+            {
+                "lane": "benchmark",
+                "median_ms": "",
+                "best_ms": "",
+                "worst_ms": "",
+                "metadata": "no stored benchmark report found",
+            }
+        ]
+    rows = []
+    for entry in report["benchmarks"]:
+        result = entry["result"]
+        rows.append(
+            {
+                "lane": str(entry["lane"]),
+                "median_ms": _format_number(1000.0 * float(result["median_s"])),
+                "best_ms": _format_number(1000.0 * float(result["best_s"])),
+                "worst_ms": _format_number(1000.0 * float(result["worst_s"])),
+                "metadata": json.dumps(result.get("metadata", {}), sort_keys=True),
+            }
+        )
+    return rows
 
 
 def seed_equilibrium_summary_rows(summary: dict[str, Any]) -> list[dict[str, str]]:
@@ -876,6 +999,56 @@ def _workflow_next_steps(dashboard: dict[str, Any]) -> list[dict[str, str]]:
         }
     )
     return steps
+
+
+def _stored_gate_status(gate_id: str, payload: Any) -> str:
+    if isinstance(payload, Mapping) and isinstance(payload.get("status"), str):
+        return str(payload["status"])
+    metric = _stored_gate_metric(gate_id, payload)
+    if "n/a" in metric or "missing" in metric:
+        return "missing"
+    return "recorded"
+
+
+def _stored_gate_metric(gate_id: str, payload: Any) -> str:
+    if not isinstance(payload, Mapping):
+        return "n/a"
+    if gate_id in {"poisson", "grad_shafranov"}:
+        l2_rates = payload.get("l2_rates", [])
+        h1_rates = payload.get("h1_rates", payload.get("weighted_h1_rates", []))
+        if l2_rates and h1_rates:
+            return (
+                f"min L2 rate {_format_number(min(l2_rates))}; "
+                f"min H1 rate {_format_number(min(h1_rates))}"
+            )
+    if gate_id in {"coil_green", "circular_loop"}:
+        error_values = [
+            float(value)
+            for key, value in payload.items()
+            if key.endswith("_error") and isinstance(value, int | float)
+        ]
+        if error_values:
+            return f"max error {_format_number(max(error_values))}"
+    if gate_id == "profile_iteration":
+        return (
+            f"residual {_format_number(payload.get('residual_initial'))} -> "
+            f"{_format_number(payload.get('residual_final'))}"
+        )
+    if gate_id == "free_boundary_profile":
+        return (
+            f"boundary {_format_number(payload.get('boundary_error'))}; "
+            f"residual {_format_number(payload.get('residual_final'))}"
+        )
+    if gate_id == "openfusiontoolkit":
+        status = payload.get("status", "missing")
+        relative_error = payload.get("relative_error")
+        if relative_error is None:
+            reason = payload.get("reason") or payload.get("probe", {}).get("reason")
+            return f"{status}: {reason or 'no numeric comparison'}"
+        return f"relative error {_format_number(relative_error)}"
+    if payload.get("status") == "missing":
+        return "missing artifact"
+    return "stored report"
 
 
 def _default_coil_response_inputs() -> tuple[RectangularGrid, tuple[CoilConfig, ...]]:

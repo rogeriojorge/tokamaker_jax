@@ -92,6 +92,7 @@ def _main_verify(argv: list[str]) -> int:
             "circular-loop",
             "oft-parity",
             "profile-iteration",
+            "free-boundary-profile",
         ),
         default="all",
         help="Manufactured validation gate to run.",
@@ -134,6 +135,7 @@ def run_verification_gates(
     from tokamaker_jax.verification import (
         run_circular_loop_green_function_validation,
         run_coil_green_function_validation,
+        run_free_boundary_profile_coupling_validation,
         run_grad_shafranov_convergence_study,
         run_poisson_convergence_study,
     )
@@ -154,10 +156,14 @@ def run_verification_gates(
         payload["gates"]["openfusiontoolkit"] = run_openfusiontoolkit_green_comparison().to_dict()
     if gate in {"all", "profile-iteration"}:
         payload["gates"]["profile_iteration"] = run_profile_iteration_validation().to_dict()
+    if gate in {"all", "free-boundary-profile"}:
+        payload["gates"]["free_boundary_profile"] = (
+            run_free_boundary_profile_coupling_validation().to_dict()
+        )
     if not payload["gates"]:
         raise ValueError(
             "gate must be one of: all, poisson, grad-shafranov, coil-green, "
-            "circular-loop, oft-parity, profile-iteration"
+            "circular-loop, oft-parity, profile-iteration, free-boundary-profile"
         )
     return payload
 

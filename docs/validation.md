@@ -314,17 +314,22 @@ tokamaker-jax verify --gate circular-loop
 
 ## OpenFUSIONToolkit Comparison Probe
 
-The original TokaMaker comparison gate is intentionally availability-aware.
-It probes the local checkout at `/Users/rogeriojorge/local/OpenFUSIONToolkit`,
-records the git commit and source/example inventory, and attempts to import the
-original Python interface. If the compiled OFT shared library is unavailable,
-the gate reports `skipped_unavailable` with the import error instead of making a
-false parity claim.
+The original TokaMaker comparison gate is intentionally availability-aware. It
+probes the local checkout at `/Users/rogeriojorge/local/OpenFUSIONToolkit`,
+prefers a built Python package such as
+`build_tokamaker_jax_mpi/python` when present, records the git commit and
+source/example inventory, and attempts to import the original Python interface.
+If the compiled OFT shared library is unavailable, the gate reports
+`skipped_unavailable` with the import error instead of making a false parity
+claim.
 
 When the original library is built, the same gate evaluates
 `OpenFUSIONToolkit.TokaMaker.util.eval_green` for a unit circular filament and
-compares it against `tokamaker_jax.circular_loop_elliptic_flux` with zero
-softening:
+compares it against the TokaMaker-sign convention
+`-tokamaker_jax.circular_loop_elliptic_flux` with zero softening. The sign is
+explicit because OFT's `axi_green.green` is written in the Grad-Shafranov
+Green's-function convention, while the JAX helper also exposes the positive
+vector-potential flux convention for plotting.
 
 ```bash
 tokamaker-jax verify --gate oft-parity
@@ -371,6 +376,35 @@ tokamaker-jax verify --gate profile-iteration
 
 ![Nonlinear profile iteration](_static/profile_iteration.png)
 
+## Free-Boundary/Profile Coupling Gate
+
+The first coupled free-boundary gate drives the nonlinear p=1 FEM profile
+iteration with circular-loop coil flux imposed on the boundary:
+
+$$
+\psi_\Gamma = \sum_i I_i G_i(R,Z), \qquad
+A\psi^{k+1}=b(\bar\psi^k), \qquad
+\psi^{k+1}|_\Gamma=\psi_\Gamma .
+$$
+
+It checks:
+
+- response-matrix superposition against direct circular-loop coil flux,
+- exact Dirichlet enforcement of the coil boundary flux,
+- automatic differentiation of a coil-current objective against the response
+  matrix oracle,
+- finite differentiability of the coupled profile solve with respect to the
+  pressure scale,
+- finite residual/update diagnostics.
+
+The executable command is:
+
+```bash
+tokamaker-jax verify --gate free-boundary-profile
+```
+
+![Free-boundary profile coupling](_static/free_boundary_profile_coupling.png)
+
 ## Differentiability Gates
 
 Differentiability gates compare JAX automatic differentiation with central
@@ -412,9 +446,23 @@ seed fixed-boundary solve, local p=1 FEM kernels, axisymmetric global FEM
 assembly/matrix-free apply, reduced coil Green's-function response, and
 closed-form circular-loop elliptic response.
 
+CI now writes both a timing artifact and a threshold-comparison artifact using
+`docs/validation/benchmark_thresholds.json`:
+
+```bash
+python examples/benchmark_report.py \
+  --repeats 1 \
+  --warmups 0 \
+  --output outputs/benchmark_report.json \
+  --thresholds docs/validation/benchmark_thresholds.json \
+  --comparison-output outputs/benchmark_threshold_report.json \
+  --fail-on-threshold
+```
+
 ![Benchmark summary](_static/benchmark_summary.png)
 
-Future gates should add CI baselines and full free-boundary solve timings.
+Future gates should add hardware-normalized historical baselines and full
+free-boundary solve timings.
 
 ## Literature-Anchored Figure Gates
 

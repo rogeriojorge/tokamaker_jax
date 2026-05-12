@@ -27,6 +27,8 @@ from tokamaker_jax.assembly import (
 )
 from tokamaker_jax.benchmarks import (
     BENCHMARK_REPORT_SCHEMA_VERSION,
+    BENCHMARK_THRESHOLD_SCHEMA_VERSION,
+    DEFAULT_BENCHMARK_THRESHOLDS,
     BenchmarkResult,
     benchmark_axisymmetric_fem_apply,
     benchmark_baseline_report,
@@ -36,6 +38,7 @@ from tokamaker_jax.benchmarks import (
     benchmark_local_fem_kernel,
     benchmark_report_to_json,
     benchmark_seed_equilibrium,
+    benchmark_threshold_report,
 )
 from tokamaker_jax.comparison import (
     OpenFUSIONToolkitComparison,
@@ -122,6 +125,7 @@ from tokamaker_jax.solver import (
 from tokamaker_jax.verification import (
     CircularLoopGreenFunctionValidation,
     CoilGreenFunctionValidation,
+    FreeBoundaryProfileCouplingValidation,
     GradShafranovConvergenceResult,
     GradShafranovConvergenceStudy,
     PoissonConvergenceResult,
@@ -134,6 +138,7 @@ from tokamaker_jax.verification import (
     rectangular_triangles,
     run_circular_loop_green_function_validation,
     run_coil_green_function_validation,
+    run_free_boundary_profile_coupling_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
     sine_poisson_exact,
@@ -146,6 +151,7 @@ from tokamaker_jax.verification import (
 __all__ = [
     "BenchmarkResult",
     "BENCHMARK_REPORT_SCHEMA_VERSION",
+    "BENCHMARK_THRESHOLD_SCHEMA_VERSION",
     "CoilConfig",
     "CoilGreenFunctionResponse",
     "CoilGreenFunctionValidation",
@@ -154,9 +160,11 @@ __all__ = [
     "EquilibriumSolution",
     "FemProfileIterationSolution",
     "FigureRecipe",
+    "FreeBoundaryProfileCouplingValidation",
     "GradShafranovConvergenceResult",
     "GradShafranovConvergenceStudy",
     "GridConfig",
+    "DEFAULT_BENCHMARK_THRESHOLDS",
     "MU0",
     "NonlinearProfileParameters",
     "OpenFUSIONToolkitComparison",
@@ -203,6 +211,7 @@ __all__ = [
     "benchmark_local_fem_kernel",
     "benchmark_report_to_json",
     "benchmark_seed_equilibrium",
+    "benchmark_threshold_report",
     "circular_loop_coil_flux",
     "circular_loop_coil_flux_gradient",
     "circular_loop_elliptic_coil_flux",
@@ -253,6 +262,7 @@ __all__ = [
     "regularized_log_green_gradient",
     "run_coil_green_function_validation",
     "run_circular_loop_green_function_validation",
+    "run_free_boundary_profile_coupling_validation",
     "run_grad_shafranov_convergence_study",
     "run_openfusiontoolkit_green_comparison",
     "run_profile_iteration_validation",

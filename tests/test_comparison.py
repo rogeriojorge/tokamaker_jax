@@ -33,6 +33,7 @@ def test_openfusiontoolkit_comparison_is_json_ready_for_current_environment():
     assert comparison.n_points == 3
     assert comparison.status in {"passed", "failed", "skipped_unavailable"}
     assert len(comparison.jax_flux) == 3
+    assert len(comparison.tokamaker_convention_jax_flux) == 3
     if comparison.status == "passed":
         assert comparison.relative_error is not None
         assert comparison.relative_error < 1.0e-10
@@ -108,6 +109,7 @@ def test_openfusiontoolkit_green_comparison_passes_with_matching_oft_flux(monkey
         exists=True,
         commit="abc123",
         python_path="/tmp/oft/src/python",
+        library_path="/tmp/oft/bin/liboftpy.dylib",
         import_ok=True,
         tokamaker_import_ok=True,
         reason=None,
@@ -122,7 +124,7 @@ def test_openfusiontoolkit_green_comparison_passes_with_matching_oft_flux(monkey
         lambda python_path, code: subprocess.CompletedProcess(
             args=["python"],
             returncode=0,
-            stdout=json.dumps({"flux": [float(value) for value in expected_flux]}) + "\n",
+            stdout=json.dumps({"flux": [float(value) for value in -expected_flux]}) + "\n",
             stderr="",
         ),
     )
@@ -130,7 +132,7 @@ def test_openfusiontoolkit_green_comparison_passes_with_matching_oft_flux(monkey
     result = run_openfusiontoolkit_green_comparison("/tmp/oft")
 
     assert result.status == "passed"
-    assert result.oft_flux == result.jax_flux
+    assert result.oft_flux == result.tokamaker_convention_jax_flux
     assert result.relative_error == 0.0
     assert result.max_abs_error == 0.0
 
@@ -141,6 +143,7 @@ def test_openfusiontoolkit_green_comparison_fails_on_subprocess_error(monkeypatc
         exists=True,
         commit="abc123",
         python_path="/tmp/oft/src/python",
+        library_path="/tmp/oft/bin/liboftpy.dylib",
         import_ok=True,
         tokamaker_import_ok=True,
         reason=None,
@@ -168,6 +171,7 @@ def test_openfusiontoolkit_green_comparison_fails_on_numeric_mismatch(monkeypatc
         exists=True,
         commit="abc123",
         python_path="/tmp/oft/src/python",
+        library_path="/tmp/oft/bin/liboftpy.dylib",
         import_ok=True,
         tokamaker_import_ok=True,
         reason=None,

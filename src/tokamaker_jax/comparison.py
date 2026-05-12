@@ -25,6 +25,7 @@ class OpenFUSIONToolkitProbe:
     exists: bool
     commit: str | None
     python_path: str | None
+    library_path: str | None
     import_ok: bool
     tokamaker_import_ok: bool
     reason: str | None
@@ -38,6 +39,7 @@ class OpenFUSIONToolkitProbe:
             "exists": self.exists,
             "commit": self.commit,
             "python_path": self.python_path,
+            "library_path": self.library_path,
             "import_ok": self.import_ok,
             "tokamaker_import_ok": self.tokamaker_import_ok,
             "reason": self.reason,
@@ -56,6 +58,7 @@ class OpenFUSIONToolkitComparison:
     relative_error: float | None
     max_abs_error: float | None
     jax_flux: list[float]
+    tokamaker_convention_jax_flux: list[float]
     oft_flux: list[float] | None
     notes: tuple[str, ...]
 
@@ -70,6 +73,7 @@ class OpenFUSIONToolkitComparison:
             "relative_error": self.relative_error,
             "max_abs_error": self.max_abs_error,
             "jax_flux": self.jax_flux,
+            "tokamaker_convention_jax_flux": self.tokamaker_convention_jax_flux,
             "oft_flux": self.oft_flux,
             "notes": list(self.notes),
         }
@@ -81,7 +85,6 @@ def probe_openfusiontoolkit(
     """Probe whether the original OpenFUSIONToolkit/TokaMaker can run locally."""
 
     checkout = Path(checkout_path)
-    python_path = checkout / "src" / "python"
     exists = checkout.exists()
     if not exists:
         return OpenFUSIONToolkitProbe(
@@ -89,6 +92,7 @@ def probe_openfusiontoolkit(
             exists=False,
             commit=None,
             python_path=None,
+            library_path=None,
             import_ok=False,
             tokamaker_import_ok=False,
             reason="checkout_missing",
@@ -97,18 +101,22 @@ def probe_openfusiontoolkit(
 
     commit = _git_commit(checkout)
     inventory = _source_inventory(checkout)
-    if not python_path.exists():
+    candidates = _candidate_python_paths(checkout)
+    if not candidates:
         return OpenFUSIONToolkitProbe(
             checkout_path=str(checkout),
             exists=True,
             commit=commit,
-            python_path=str(python_path),
+            python_path=str(checkout / "src" / "python"),
+            library_path=None,
             import_ok=False,
             tokamaker_import_ok=False,
             reason="python_package_missing",
             source_inventory=inventory,
         )
 
+    python_path = candidates[0]
+    library_path = _shared_library_path(python_path)
     import_probe = _run_oft_python(
         python_path,
         """
@@ -131,6 +139,7 @@ print(json.dumps(payload, sort_keys=True))
             exists=True,
             commit=commit,
             python_path=str(python_path),
+            library_path=None if library_path is None else str(library_path),
             import_ok=False,
             tokamaker_import_ok=False,
             reason=reason,
@@ -151,6 +160,7 @@ print(json.dumps(payload, sort_keys=True))
         exists=True,
         commit=commit,
         python_path=str(python_path),
+        library_path=None if library_path is None else str(library_path),
         import_ok=bool(payload["import_ok"]),
         tokamaker_import_ok=bool(payload["tokamaker_import_ok"]),
         reason=payload["reason"],
@@ -166,10 +176,13 @@ def run_openfusiontoolkit_green_comparison(
     points = jnp.asarray([[1.72, 0.18], [2.05, -0.22], [1.35, 0.31]], dtype=jnp.float64)
     coil = (1.52, 0.03)
     jax_flux = circular_loop_elliptic_flux(points, coil[0], coil[1], core_radius=0.0)
+    tokamaker_convention_jax_flux = -jax_flux
     probe = probe_openfusiontoolkit(checkout_path)
     notes = (
         "Compares the JAX closed-form circular filament with "
         "OpenFUSIONToolkit.TokaMaker.util.eval_green for unit current.",
+        "OpenFUSIONToolkit eval_green uses the TokaMaker Grad-Shafranov Green's-function "
+        "sign convention, so the comparison uses -circular_loop_elliptic_flux.",
         "The local OpenFUSIONToolkit shared library must be built for the numeric comparison to run.",
     )
     if not probe.tokamaker_import_ok or probe.python_path is None:
@@ -181,6 +194,7 @@ def run_openfusiontoolkit_green_comparison(
             relative_error=None,
             max_abs_error=None,
             jax_flux=[float(value) for value in jax_flux],
+            tokamaker_convention_jax_flux=[float(value) for value in tokamaker_convention_jax_flux],
             oft_flux=None,
             notes=notes,
         )
@@ -208,13 +222,14 @@ print(json.dumps({{"flux": eval_green(points, coil).tolist()}}, sort_keys=True))
             relative_error=None,
             max_abs_error=None,
             jax_flux=[float(value) for value in jax_flux],
+            tokamaker_convention_jax_flux=[float(value) for value in tokamaker_convention_jax_flux],
             oft_flux=None,
             notes=notes + (result.stderr.strip() or result.stdout.strip(),),
         )
 
     oft_payload = json.loads(result.stdout.strip().splitlines()[-1])
     oft_flux = jnp.asarray(oft_payload["flux"], dtype=jnp.float64)
-    difference = jax_flux - oft_flux
+    difference = tokamaker_convention_jax_flux - oft_flux
     relative_error = jnp.linalg.norm(difference) / jnp.linalg.norm(oft_flux)
     max_abs_error = jnp.max(jnp.abs(difference))
     return OpenFUSIONToolkitComparison(
@@ -225,9 +240,33 @@ print(json.dumps({{"flux": eval_green(points, coil).tolist()}}, sort_keys=True))
         relative_error=float(relative_error),
         max_abs_error=float(max_abs_error),
         jax_flux=[float(value) for value in jax_flux],
+        tokamaker_convention_jax_flux=[float(value) for value in tokamaker_convention_jax_flux],
         oft_flux=[float(value) for value in oft_flux],
         notes=notes,
     )
+
+
+def _candidate_python_paths(checkout: Path) -> tuple[Path, ...]:
+    paths = [
+        path
+        for path in sorted(checkout.glob("build*/python"))
+        if (path / "OpenFUSIONToolkit").exists()
+    ]
+    source_path = checkout / "src" / "python"
+    if source_path.exists():
+        paths.append(source_path)
+    return tuple(sorted(paths, key=lambda path: _shared_library_path(path) is None))
+
+
+def _shared_library_path(python_path: Path) -> Path | None:
+    suffix = ".dylib" if sys.platform == "darwin" else ".so"
+    for candidate in (
+        python_path / "OpenFUSIONToolkit" / f"liboftpy{suffix}",
+        python_path.parent / "bin" / f"liboftpy{suffix}",
+    ):
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _run_oft_python(python_path: Path, code: str) -> subprocess.CompletedProcess[str]:

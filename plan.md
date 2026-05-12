@@ -49,6 +49,19 @@ This file is both the engineering plan and the running implementation log for a 
 - Added region geometry plotting and a generated docs asset at `docs/_static/region_geometry_seed.png`.
 - Added focused geometry tests for serialization, containment, annular holes, validation failures, region-set uniqueness, and plot export.
 
+### 2026-05-12 22:51 WEST
+
+- Built OpenFUSIONToolkit locally with MPI enabled and serial build execution so the native Python TokaMaker `eval_green` path is available for code-to-code validation.
+- Added automatic OpenFUSIONToolkit build discovery, shared-library reporting, and a sign-convention-aware parity comparison for circular-loop Green's-function flux.
+- Upgraded the OFT parity gate from "skipped until build exists" to a numeric pass on this machine: relative error `6.13e-11`, maximum absolute error `5.32e-17`, using upstream commit `729a5f9`.
+- Added a free-boundary/profile-coupling validation gate that checks coil-response linearity, exact Dirichlet boundary enforcement, gradients with respect to coil currents, differentiability with respect to pressure scale, and nonlinear residual/update diagnostics.
+- Added benchmark threshold reports, a versioned threshold file, and a CI benchmark job that uploads benchmark JSON artifacts after the test matrix passes.
+- Added stored validation and benchmark report tables to the GUI Reports tab so the GUI can inspect generated research artifacts without rerunning every expensive gate.
+- Regenerated documentation assets including `free_boundary_profile_coupling.png`, `validation_dashboard.png`, `benchmark_summary.png`, `openfusiontoolkit_comparison_report.json`, `benchmark_report.json`, and `benchmark_threshold_report.json`.
+- Updated README, examples, validation docs, progress docs, and the physics-gate manifest with the new gates, equations, artifact paths, and CI benchmark workflow.
+- Local verification passed: focused test suite `54 passed`, full suite with coverage `137 passed` at `95.44%`, `tokamaker-jax verify --gate all --subdivisions 4 8 16` passed, Sphinx docs passed with warnings treated as errors, and JSON/diff hygiene passed.
+- Updated completion accounting to 90% overall for the current scoped milestone, with remaining work concentrated in full-equilibrium OFT fixtures, GUI TOML editing, richer literature gallery cases, and hardware-normalized benchmark history.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>

@@ -9,7 +9,13 @@ from jax import config as jax_config
 from matplotlib.animation import FuncAnimation, PillowWriter
 from reproduce_cpc_seed_family import generate_cpc_seed_family_artifacts
 
-from tokamaker_jax.benchmarks import benchmark_baseline_report, benchmark_report_to_json
+from tokamaker_jax.assembly import boundary_nodes_from_coordinates
+from tokamaker_jax.benchmarks import (
+    DEFAULT_BENCHMARK_THRESHOLDS,
+    benchmark_baseline_report,
+    benchmark_report_to_json,
+    benchmark_threshold_report,
+)
 from tokamaker_jax.cli import run_verification_gates
 from tokamaker_jax.comparison import run_openfusiontoolkit_green_comparison
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
@@ -17,6 +23,7 @@ from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem_equilibrium import (
     NonlinearProfileParameters,
     PowerProfile,
+    solve_profile_iteration,
     solve_profile_iteration_on_rectangle,
 )
 from tokamaker_jax.free_boundary import circular_loop_elliptic_coil_flux
@@ -29,6 +36,7 @@ from tokamaker_jax.plotting import (
 )
 from tokamaker_jax.solver import solve_from_config
 from tokamaker_jax.verification import (
+    rectangular_triangles,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
 )
@@ -52,6 +60,7 @@ def main() -> None:
     write_coil_green_response()
     write_circular_loop_elliptic_response()
     write_profile_iteration()
+    write_free_boundary_profile_coupling()
     write_validation_dashboard()
     write_benchmark_summary()
     write_openfusiontoolkit_comparison_report()
@@ -189,20 +198,92 @@ def write_profile_iteration() -> None:
     plt.close(fig)
 
 
+def write_free_boundary_profile_coupling() -> None:
+    nodes, triangles = rectangular_triangles(1.0, 2.0, -0.5, 0.5, 16)
+    coils = (
+        CoilConfig(name="PF_U", r=2.28, z=0.72, current=1.25e5, sigma=0.05),
+        CoilConfig(name="PF_L", r=2.28, z=-0.72, current=1.25e5, sigma=0.05),
+        CoilConfig(name="PF_C", r=0.72, z=0.0, current=-0.75e5, sigma=0.06),
+    )
+    coil_flux = circular_loop_elliptic_coil_flux(nodes, coils)
+    boundary_nodes = boundary_nodes_from_coordinates(nodes)
+    solution = solve_profile_iteration(
+        nodes,
+        triangles,
+        NonlinearProfileParameters(
+            pressure=PowerProfile(scale=2.5, alpha=1.0, gamma=1.0),
+            ffprime=PowerProfile(scale=-0.05, alpha=1.0, gamma=1.0),
+        ),
+        iterations=4,
+        relaxation=0.75,
+        initial_psi=coil_flux,
+        dirichlet_nodes=boundary_nodes,
+        dirichlet_values=coil_flux[boundary_nodes],
+    )
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.2), constrained_layout=True)
+    for ax, values, title in (
+        (axes[0], np.asarray(coil_flux), "coil boundary flux"),
+        (axes[1], np.asarray(solution.psi), "profile-coupled solution"),
+    ):
+        contour = ax.tricontourf(
+            np.asarray(nodes[:, 0]),
+            np.asarray(nodes[:, 1]),
+            np.asarray(triangles),
+            values,
+            levels=24,
+            cmap="viridis",
+        )
+        ax.tricontour(
+            np.asarray(nodes[:, 0]),
+            np.asarray(nodes[:, 1]),
+            np.asarray(triangles),
+            values,
+            levels=10,
+            colors="black",
+            linewidths=0.38,
+        )
+        ax.scatter(
+            [coil.r for coil in coils],
+            [coil.z for coil in coils],
+            c=["tab:red" if coil.current >= 0.0 else "tab:blue" for coil in coils],
+            marker="s",
+            edgecolor="black",
+            linewidth=0.7,
+            clip_on=False,
+        )
+        ax.set_xlabel("R [m]")
+        ax.set_ylabel("Z [m]")
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_title(title)
+        fig.colorbar(contour, ax=ax, label="psi")
+    fig.suptitle("free-boundary coil response coupled to nonlinear profile iteration")
+    fig.savefig(ASSET_DIR / "free_boundary_profile_coupling.png", dpi=180)
+    plt.close(fig)
+
+
 def write_validation_dashboard() -> None:
     report = run_verification_gates("all", (4, 8, 16))
     gates = report["gates"]
+    oft_relative_error = gates["openfusiontoolkit"]["relative_error"]
+    oft_margin = -np.log10(oft_relative_error) if oft_relative_error is not None else 0.0
+    free_boundary_errors = [
+        gates["free_boundary_profile"]["boundary_error"],
+        gates["free_boundary_profile"]["coil_linearity_relative_error"],
+        gates["free_boundary_profile"]["current_gradient_error"],
+    ]
     values = {
         "Poisson L2 rate": min(gates["poisson"]["l2_rates"]),
         "GS L2 rate": min(gates["grad_shafranov"]["l2_rates"]),
         "Circular loop": -np.log10(gates["circular_loop"]["elliptic_quadrature_relative_error"]),
+        "OFT parity": oft_margin,
         "Coil Green": -np.log10(max(gates["coil_green"]["log_ratio_error"], 1.0e-30)),
+        "Free-boundary": -np.log10(max(free_boundary_errors + [1.0e-30])),
         "Profile residual drop": gates["profile_iteration"]["residual_initial"]
         / gates["profile_iteration"]["residual_final"],
     }
     labels = list(values)
     metric_values = np.asarray([values[label] for label in labels], dtype=float)
-    targets = np.asarray([1.8, 1.8, 10.0, 10.0, 10.0], dtype=float)
+    targets = np.asarray([1.8, 1.8, 10.0, 10.0, 10.0, 10.0, 10.0], dtype=float)
     normalized = np.minimum(metric_values / targets, 1.35)
     colors = ["#2ca25f" if value >= 1.0 else "#de2d26" for value in normalized]
 
@@ -238,6 +319,11 @@ def write_benchmark_summary() -> None:
     )
     (ASSET_DIR / "benchmark_report.json").write_text(
         benchmark_report_to_json(report),
+        encoding="utf-8",
+    )
+    threshold_report = benchmark_threshold_report(report, DEFAULT_BENCHMARK_THRESHOLDS)
+    (ASSET_DIR / "benchmark_threshold_report.json").write_text(
+        benchmark_report_to_json(threshold_report),
         encoding="utf-8",
     )
     labels = [entry["lane"].replace("_", " ") for entry in report["benchmarks"]]

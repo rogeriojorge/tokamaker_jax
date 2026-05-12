@@ -5,13 +5,17 @@ import pytest
 import tokamaker_jax.geometry as geometry
 from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.gui import (
+    benchmark_report_rows,
     coil_green_response_figure,
+    load_gui_report_artifacts,
+    load_json_report,
     region_geometry_figure,
     region_table_rows,
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
     validation_convergence_figure,
     validation_gate_rows,
+    validation_report_rows,
     workflow_dashboard_data,
     workflow_next_step_rows,
     workflow_status_rows,
@@ -191,3 +195,79 @@ def test_workflow_dashboard_data_schema_and_key_values():
 def test_workflow_dashboard_data_validates_subdivisions():
     with pytest.raises(ValueError, match="validation_subdivisions"):
         workflow_dashboard_data(iterations=1, validation_subdivisions=(4,))
+
+
+def test_gui_report_helpers_load_validation_and_benchmark_rows(tmp_path):
+    validation_path = tmp_path / "verify.json"
+    validation_path.write_text(
+        json.dumps(
+            {
+                "gates": {
+                    "poisson": {"l2_rates": [1.9], "h1_rates": [0.95]},
+                    "free_boundary_profile": {
+                        "boundary_error": 0.0,
+                        "residual_final": 0.02,
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    benchmark_path = tmp_path / "benchmark.json"
+    benchmark_path.write_text(
+        json.dumps(
+            {
+                "benchmarks": [
+                    {
+                        "lane": "seed",
+                        "result": {
+                            "median_s": 0.002,
+                            "best_s": 0.001,
+                            "worst_s": 0.003,
+                            "metadata": {"nr": 9},
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_json_report(validation_path)["gates"]["poisson"]["l2_rates"] == [1.9]
+    reports = load_gui_report_artifacts(
+        root=tmp_path,
+        artifacts={
+            "validation": "verify.json",
+            "benchmark": "benchmark.json",
+            "openfusiontoolkit": "missing.json",
+        },
+    )
+    validation_rows = validation_report_rows(reports)
+    benchmark_rows = benchmark_report_rows(reports["benchmark"])
+
+    assert validation_rows[0]["gate"] == "poisson"
+    assert validation_rows[0]["status"] == "recorded"
+    assert "min L2 rate" in validation_rows[0]["metric"]
+    assert validation_rows[1]["gate"] == "free_boundary_profile"
+    assert validation_rows[-1]["status"] == "missing"
+    assert benchmark_rows == [
+        {
+            "lane": "seed",
+            "median_ms": "2",
+            "best_ms": "1",
+            "worst_ms": "3",
+            "metadata": '{"nr": 9}',
+        }
+    ]
+
+
+def test_benchmark_report_rows_reports_missing_artifact():
+    assert benchmark_report_rows(None) == [
+        {
+            "lane": "benchmark",
+            "median_ms": "",
+            "best_ms": "",
+            "worst_ms": "",
+            "metadata": "no stored benchmark report found",
+        }
+    ]

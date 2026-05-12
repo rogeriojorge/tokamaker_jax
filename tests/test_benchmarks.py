@@ -4,6 +4,8 @@ import pytest
 
 from tokamaker_jax.benchmarks import (
     BENCHMARK_REPORT_SCHEMA_VERSION,
+    BENCHMARK_THRESHOLD_SCHEMA_VERSION,
+    DEFAULT_BENCHMARK_THRESHOLDS,
     _block_until_ready,
     benchmark_axisymmetric_fem_apply,
     benchmark_baseline_report,
@@ -13,6 +15,7 @@ from tokamaker_jax.benchmarks import (
     benchmark_local_fem_kernel,
     benchmark_report_to_json,
     benchmark_seed_equilibrium,
+    benchmark_threshold_report,
 )
 
 
@@ -137,6 +140,49 @@ def test_baseline_report_runs_all_lanes_and_roundtrips_json():
         assert isinstance(result["median_s"], float)
         assert isinstance(result["worst_s"], float)
         assert isinstance(result["metadata"], dict)
+
+
+def test_benchmark_threshold_report_passes_and_fails_lanes():
+    report = benchmark_baseline_report(
+        repeats=1,
+        warmups=0,
+        seed_equilibrium={"nr": 9, "nz": 9, "iterations": 3},
+        axisymmetric_fem={"subdivisions": 3},
+        coil_green={"nr": 7, "nz": 7},
+        circular_loop={"n_points": 8},
+    )
+    passing = benchmark_threshold_report(report, DEFAULT_BENCHMARK_THRESHOLDS)
+    failing = benchmark_threshold_report(
+        report,
+        {entry["lane"]: {"max_median_s": 1.0e-30} for entry in report["benchmarks"]},
+    )
+
+    assert json.loads(json.dumps(passing)) == passing
+    assert json.loads(benchmark_report_to_json(passing)) == passing
+    assert passing["schema_version"] == BENCHMARK_THRESHOLD_SCHEMA_VERSION
+    assert passing["passed"] is True
+    assert [entry["status"] for entry in passing["comparisons"]] == ["pass"] * 5
+    assert failing["passed"] is False
+    assert {entry["status"] for entry in failing["comparisons"]} == {"fail"}
+
+
+def test_benchmark_threshold_report_validates_schema():
+    with pytest.raises(ValueError, match="benchmarks list"):
+        benchmark_threshold_report({})
+    with pytest.raises(ValueError, match="missing benchmark threshold"):
+        benchmark_threshold_report(
+            {"benchmarks": [{"lane": "seed", "result": {"median_s": 1.0}}]}, {}
+        )
+    with pytest.raises(ValueError, match="max_median_s"):
+        benchmark_threshold_report(
+            {"benchmarks": [{"lane": "seed", "result": {"median_s": 1.0}}]},
+            {"seed": {}},
+        )
+    with pytest.raises(ValueError, match="positive"):
+        benchmark_threshold_report(
+            {"benchmarks": [{"lane": "seed", "result": {"median_s": 1.0}}]},
+            {"seed": {"max_median_s": 0.0}},
+        )
 
 
 def test_block_until_ready_accepts_nested_python_containers():

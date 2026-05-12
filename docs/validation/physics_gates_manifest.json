@@ -113,11 +113,15 @@
       "command": "python -m pytest tests/test_benchmarks.py",
       "artifact": "docs/_static/benchmark_summary.png",
       "report": "docs/_static/benchmark_report.json",
+      "threshold_report": "docs/_static/benchmark_threshold_report.json",
+      "thresholds": "docs/validation/benchmark_thresholds.json",
       "required_checks": [
         "benchmark_result_json_roundtrip",
         "aggregate_benchmark_report_json",
         "benchmark_report_example_script",
         "benchmark_validation_errors",
+        "benchmark_threshold_report",
+        "ci_benchmark_artifact_upload",
         "small_seed_solve_timing",
         "jitted_local_fem_kernel_timing",
         "jitted_axisymmetric_global_assembly_apply_timing",
@@ -125,8 +129,8 @@
         "jitted_circular_loop_elliptic_response_timing"
       ],
       "pass_rule": {
-        "type": "executable_schema",
-        "tolerance_source": "not_applicable"
+        "type": "executable_schema_and_threshold_sanity",
+        "tolerance_source": "docs/validation/benchmark_thresholds.json"
       }
     },
     {
@@ -240,6 +244,27 @@
       "pass_rule": {
         "type": "analytic_oracle_and_residual_bound",
         "tolerance_source": "tests/test_fem_equilibrium.py"
+      }
+    },
+    {
+      "id": "free-boundary-profile-coupling",
+      "category": "free_boundary",
+      "status": "implemented",
+      "description": "Validate the first coupled circular-loop coil boundary response plus nonlinear p=1 FEM profile iteration.",
+      "command": "tokamaker-jax verify --gate free-boundary-profile",
+      "artifact": "docs/_static/free_boundary_profile_coupling.png",
+      "required_checks": [
+        "circular_loop_response_matrix_linearity",
+        "coil_flux_dirichlet_boundary_enforcement",
+        "free_node_profile_residual",
+        "coil_current_gradient_oracle",
+        "finite_coupled_pressure_scale_gradient",
+        "json_ready_validation_report",
+        "matplotlib_coupling_artifact"
+      ],
+      "pass_rule": {
+        "type": "coupled_oracle_and_residual_bound",
+        "tolerance_source": "tests/test_verification.py and tests/test_cli_validate.py"
       }
     },
     {

@@ -1,0 +1,43 @@
+{
+  "comparisons": [
+    {
+      "lane": "seed",
+      "max_median_s": 15.0,
+      "median_s": 0.0873624590021791,
+      "ratio": 0.005824163933478606,
+      "status": "pass"
+    },
+    {
+      "lane": "local_fem",
+      "max_median_s": 5.0,
+      "median_s": 0.060954749991651624,
+      "ratio": 0.012190949998330324,
+      "status": "pass"
+    },
+    {
+      "lane": "axisymmetric_fem",
+      "max_median_s": 15.0,
+      "median_s": 0.15770374999556225,
+      "ratio": 0.010513583333037483,
+      "status": "pass"
+    },
+    {
+      "lane": "reduced_coil_green",
+      "max_median_s": 10.0,
+      "median_s": 0.028572167007951066,
+      "ratio": 0.0028572167007951065,
+      "status": "pass"
+    },
+    {
+      "lane": "circular_loop_elliptic",
+      "max_median_s": 10.0,
+      "median_s": 0.05461300000024494,
+      "ratio": 0.005461300000024494,
+      "status": "pass"
+    }
+  ],
+  "passed": true,
+  "schema_version": 1,
+  "suite": "tokamaker_jax_baseline_benchmarks",
+  "time_unit": "seconds"
+}

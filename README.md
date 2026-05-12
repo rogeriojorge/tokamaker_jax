@@ -20,6 +20,8 @@ This repository currently contains the project scaffold, CI/docs infrastructure,
 
 ![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
 
+![Free-boundary profile coupling](docs/_static/free_boundary_profile_coupling.png)
+
 ![Coil current sweep](docs/_static/coil_current_sweep.gif)
 
 ![Benchmark summary](docs/_static/benchmark_summary.png)
@@ -72,6 +74,7 @@ tokamaker-jax verify --gate coil-green
 tokamaker-jax verify --gate circular-loop
 tokamaker-jax verify --gate oft-parity
 tokamaker-jax verify --gate profile-iteration
+tokamaker-jax verify --gate free-boundary-profile
 ```
 
 Generate benchmark and literature-reproduction artifacts:
@@ -87,13 +90,14 @@ python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 - p=1 triangular FEM reference kernels, dense/sparse/matrix-free assembly, weighted axisymmetric Grad-Shafranov weak-form assembly, profile source loads, and manufactured convergence gates.
 - Nonlinear p=1 profile iteration with pressure and FF' source terms, residual checks, and differentiability tests.
 - Reduced large-aspect-ratio coil Green's-function fixture plus a closed-form circular-loop elliptic Green's-function kernel checked against high-resolution quadrature.
+- Free-boundary/profile coupling gate that drives the nonlinear FEM iteration from circular-loop coil boundary flux and checks coil-current/profile-scale differentiability.
 - OpenFUSIONToolkit/TokaMaker comparison probe that records local upstream availability and runs numeric `eval_green` parity when the original compiled library is available.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
-- NiceGUI workflow dashboard summaries for solver, validation, plotting, benchmark, and reproduction lanes.
+- NiceGUI workflow dashboard summaries and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
 - Sphinx and Read the Docs setup.
-- GitHub Actions for linting, testing with coverage, docs, and release publishing.
+- GitHub Actions for linting, testing with coverage, benchmark artifact upload, docs, and release publishing.
 
 ## Porting Target
 

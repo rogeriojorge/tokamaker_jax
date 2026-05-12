@@ -173,6 +173,40 @@ class CircularLoopGreenFunctionValidation:
         }
 
 
+@dataclass(frozen=True)
+class FreeBoundaryProfileCouplingValidation:
+    """Validation metrics for coupling coil Green functions to profile iteration."""
+
+    n_nodes: int
+    n_cells: int
+    n_coils: int
+    boundary_error: float
+    coil_linearity_relative_error: float
+    current_gradient_error: float
+    pressure_scale_gradient: float
+    residual_final: float
+    update_final: float
+    psi_abs_max: float
+    coil_flux_abs_max: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly representation."""
+
+        return {
+            "n_nodes": self.n_nodes,
+            "n_cells": self.n_cells,
+            "n_coils": self.n_coils,
+            "boundary_error": self.boundary_error,
+            "coil_linearity_relative_error": self.coil_linearity_relative_error,
+            "current_gradient_error": self.current_gradient_error,
+            "pressure_scale_gradient": self.pressure_scale_gradient,
+            "residual_final": self.residual_final,
+            "update_final": self.update_final,
+            "psi_abs_max": self.psi_abs_max,
+            "coil_flux_abs_max": self.coil_flux_abs_max,
+        }
+
+
 def unit_square_triangles(subdivisions: int) -> tuple[jnp.ndarray, jnp.ndarray]:
     """Return a uniform right-triangle mesh on the unit square."""
 
@@ -570,6 +604,91 @@ def run_circular_loop_green_function_validation() -> CircularLoopGreenFunctionVa
         linearity_error=linearity_error,
         gradient_error=gradient_error,
         quadrature_gradient_relative_error=quadrature_gradient_relative_error,
+    )
+
+
+def run_free_boundary_profile_coupling_validation() -> FreeBoundaryProfileCouplingValidation:
+    """Run a compact coil-boundary plus nonlinear-profile coupling gate."""
+
+    from tokamaker_jax.fem_equilibrium import (
+        NonlinearProfileParameters,
+        PowerProfile,
+        solve_profile_iteration,
+    )
+
+    nodes, triangles = rectangular_triangles(1.0, 2.0, -0.5, 0.5, 4)
+    coils = (
+        CoilConfig(name="PF_U", r=2.28, z=0.72, current=1.25e5, sigma=0.05),
+        CoilConfig(name="PF_L", r=2.28, z=-0.72, current=1.25e5, sigma=0.05),
+        CoilConfig(name="PF_C", r=0.72, z=0.0, current=-0.75e5, sigma=0.06),
+    )
+    response = circular_loop_elliptic_response_matrix(nodes, coils)
+    currents = jnp.asarray([coil.current for coil in coils], dtype=jnp.float64)
+    coil_flux_from_response = response @ currents
+    coil_flux_direct = circular_loop_elliptic_coil_flux(nodes, coils)
+    coil_linearity_relative_error = jnp.linalg.norm(coil_flux_from_response - coil_flux_direct) / (
+        jnp.linalg.norm(coil_flux_direct) + 1.0e-30
+    )
+
+    boundary_nodes = boundary_nodes_from_coordinates(nodes)
+    boundary_values = coil_flux_direct[boundary_nodes]
+    parameters = NonlinearProfileParameters(
+        pressure=PowerProfile(scale=2.5, alpha=1.0, gamma=1.0),
+        ffprime=PowerProfile(scale=-0.05, alpha=1.0, gamma=1.0),
+    )
+    solution = solve_profile_iteration(
+        nodes,
+        triangles,
+        parameters,
+        iterations=3,
+        relaxation=0.75,
+        initial_psi=coil_flux_direct,
+        dirichlet_nodes=boundary_nodes,
+        dirichlet_values=boundary_values,
+    )
+    boundary_error = jnp.max(jnp.abs(solution.psi[boundary_nodes] - boundary_values))
+
+    def current_objective(current_vector: jnp.ndarray) -> jnp.ndarray:
+        flux = response @ current_vector
+        return jnp.mean(flux**2)
+
+    current_gradient = jax.grad(current_objective)(currents)
+    current_gradient_oracle = 2.0 * response.T @ (response @ currents) / nodes.shape[0]
+    current_gradient_error = jnp.linalg.norm(current_gradient - current_gradient_oracle)
+
+    def pressure_objective(scale: jnp.ndarray) -> jnp.ndarray:
+        pressure_parameters = NonlinearProfileParameters(
+            pressure=PowerProfile(scale=scale, alpha=1.0, gamma=1.0),
+            ffprime=PowerProfile(scale=-0.05, alpha=1.0, gamma=1.0),
+        )
+        return jnp.mean(
+            solve_profile_iteration(
+                nodes,
+                triangles,
+                pressure_parameters,
+                iterations=2,
+                relaxation=0.75,
+                initial_psi=coil_flux_direct,
+                dirichlet_nodes=boundary_nodes,
+                dirichlet_values=boundary_values,
+            ).psi
+            ** 2
+        )
+
+    pressure_scale_gradient = jax.grad(pressure_objective)(jnp.asarray(2.5, dtype=jnp.float64))
+
+    return FreeBoundaryProfileCouplingValidation(
+        n_nodes=int(nodes.shape[0]),
+        n_cells=int(triangles.shape[0]),
+        n_coils=len(coils),
+        boundary_error=float(boundary_error),
+        coil_linearity_relative_error=float(coil_linearity_relative_error),
+        current_gradient_error=float(current_gradient_error),
+        pressure_scale_gradient=float(pressure_scale_gradient),
+        residual_final=float(solution.residual_history[-1]),
+        update_final=float(solution.update_history[-1]),
+        psi_abs_max=float(jnp.max(jnp.abs(solution.psi))),
+        coil_flux_abs_max=float(jnp.max(jnp.abs(coil_flux_direct))),
     )
 
 

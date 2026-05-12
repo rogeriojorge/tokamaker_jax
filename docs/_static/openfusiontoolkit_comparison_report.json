@@ -5,20 +5,26 @@
     4.379990104518703e-07,
     4.544967639448762e-07
   ],
-  "max_abs_error": null,
+  "max_abs_error": 5.322045650452698e-17,
   "n_points": 3,
   "notes": [
     "Compares the JAX closed-form circular filament with OpenFUSIONToolkit.TokaMaker.util.eval_green for unit current.",
+    "OpenFUSIONToolkit eval_green uses the TokaMaker Grad-Shafranov Green's-function sign convention, so the comparison uses -circular_loop_elliptic_flux.",
     "The local OpenFUSIONToolkit shared library must be built for the numeric comparison to run."
   ],
-  "oft_flux": null,
+  "oft_flux": [
+    -6.346126569031976e-07,
+    -4.379990104558003e-07,
+    -4.544967639576542e-07
+  ],
   "probe": {
     "checkout_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit",
     "commit": "729a5f9f00723a610f5e13948a15e9dd21011c46",
     "exists": true,
-    "import_ok": false,
-    "python_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit/src/python",
-    "reason": "FileNotFoundError: Unable to load OFT shared library",
+    "import_ok": true,
+    "library_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit/build_tokamaker_jax_mpi/bin/liboftpy.dylib",
+    "python_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit/build_tokamaker_jax_mpi/python",
+    "reason": null,
     "source_inventory": {
       "grad_shaf_source": "src/physics/grad_shaf.F90",
       "test_tokamaker_py": "src/tests/physics/test_TokaMaker.py",
@@ -36,8 +42,13 @@
         "src/examples/TokaMaker/test_examples.sh.in"
       ]
     },
-    "tokamaker_import_ok": false
+    "tokamaker_import_ok": true
   },
-  "relative_error": null,
-  "status": "skipped_unavailable"
+  "relative_error": 6.130701013753447e-11,
+  "status": "passed",
+  "tokamaker_convention_jax_flux": [
+    -6.346126568499771e-07,
+    -4.379990104518703e-07,
+    -4.544967639448762e-07
+  ]
 }

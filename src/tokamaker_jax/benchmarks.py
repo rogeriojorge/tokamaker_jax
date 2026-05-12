@@ -27,6 +27,14 @@ from tokamaker_jax.verification import rectangular_triangles
 T = TypeVar("T")
 
 BENCHMARK_REPORT_SCHEMA_VERSION = 1
+BENCHMARK_THRESHOLD_SCHEMA_VERSION = 1
+DEFAULT_BENCHMARK_THRESHOLDS = {
+    "seed": {"max_median_s": 15.0},
+    "local_fem": {"max_median_s": 5.0},
+    "axisymmetric_fem": {"max_median_s": 15.0},
+    "reduced_coil_green": {"max_median_s": 10.0},
+    "circular_loop_elliptic": {"max_median_s": 10.0},
+}
 
 
 @dataclass(frozen=True)
@@ -294,6 +302,45 @@ def benchmark_report_to_json(report: Mapping[str, Any], *, indent: int = 2) -> s
     return json.dumps(report, indent=indent, sort_keys=True) + "\n"
 
 
+def benchmark_threshold_report(
+    report: Mapping[str, Any],
+    thresholds: Mapping[str, Any] = DEFAULT_BENCHMARK_THRESHOLDS,
+) -> dict[str, Any]:
+    """Compare benchmark medians against explicit per-lane thresholds."""
+
+    entries = report.get("benchmarks")
+    if not isinstance(entries, list):
+        raise ValueError("benchmark report must contain a benchmarks list")
+
+    comparisons = []
+    for entry in entries:
+        lane = str(entry["lane"])
+        threshold = _lane_threshold(lane, thresholds)
+        result = entry["result"]
+        median_s = float(result["median_s"])
+        max_median_s = float(threshold["max_median_s"])
+        if max_median_s <= 0.0:
+            raise ValueError(f"threshold for {lane!r} must be positive")
+        ratio = median_s / max_median_s
+        comparisons.append(
+            {
+                "lane": lane,
+                "median_s": median_s,
+                "max_median_s": max_median_s,
+                "ratio": ratio,
+                "status": "pass" if median_s <= max_median_s else "fail",
+            }
+        )
+
+    return {
+        "schema_version": BENCHMARK_THRESHOLD_SCHEMA_VERSION,
+        "suite": report.get("suite", "tokamaker_jax_baseline_benchmarks"),
+        "time_unit": report.get("time_unit", "seconds"),
+        "passed": all(comparison["status"] == "pass" for comparison in comparisons),
+        "comparisons": comparisons,
+    }
+
+
 def _block_until_ready(value: Any) -> None:
     if hasattr(value, "block_until_ready"):
         value.block_until_ready()
@@ -327,3 +374,16 @@ def _benchmark_report_entry(lane: str, result: BenchmarkResult) -> dict[str, Any
         "lane": lane,
         "result": result.to_dict(),
     }
+
+
+def _lane_threshold(lane: str, thresholds: Mapping[str, Any]) -> Mapping[str, Any]:
+    if "thresholds" in thresholds:
+        thresholds = thresholds["thresholds"]
+    if lane not in thresholds:
+        raise ValueError(f"missing benchmark threshold for lane {lane!r}")
+    threshold = thresholds[lane]
+    if isinstance(threshold, int | float):
+        return {"max_median_s": float(threshold)}
+    if not isinstance(threshold, Mapping) or "max_median_s" not in threshold:
+        raise ValueError(f"threshold for lane {lane!r} must define max_median_s")
+    return threshold
