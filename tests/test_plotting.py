@@ -5,13 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from tokamaker_jax.config import CoilConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.mesh import mesh_from_arrays
 from tokamaker_jax.plotting import (
+    coil_response_figure_data,
     equilibrium_figure_data,
     equilibrium_metadata_summary,
     mesh_figure_data,
+    plot_coil_green_response,
     plot_equilibrium,
     plot_mesh,
     region_figure_data,
@@ -134,6 +137,23 @@ def test_mesh_figure_data_exports_structured_numeric_payloads():
     assert payload["metadata"]["summary"]["n_cells"] == 2
 
 
+def test_coil_response_figure_data_exports_green_response_payload():
+    grid = RectangularGrid(1.0, 2.5, -0.5, 0.5, 7, 5)
+    coils = (
+        CoilConfig(name="PF_A", r=1.3, z=0.2, current=2.0, sigma=0.05),
+        CoilConfig(name="PF_B", r=2.1, z=-0.2, current=-1.0, sigma=0.05),
+    )
+
+    payload = coil_response_figure_data(grid, coils, command="tokamaker-jax verify").to_dict()
+
+    assert json.loads(json.dumps(payload)) == payload
+    assert payload["metadata"]["plot_type"] == "reduced_coil_green_response"
+    assert payload["metadata"]["n_coils"] == 2
+    assert payload["data"]["coils"][0]["name"] == "PF_A"
+    assert payload["data"]["coil_flux"]["shape"] == [7, 5]
+    assert payload["data"]["coil_flux"]["range"]["all_finite"] is True
+
+
 def test_equilibrium_figure_data_exports_axes_fields_and_solution_ranges():
     grid = RectangularGrid(0.8, 1.2, -0.2, 0.2, 9, 9)
     source = solovev_source(grid, dtype=jnp.float32)
@@ -197,4 +217,16 @@ def test_plot_equilibrium_and_mesh_can_disable_optional_layers():
     fig, ax = plot_mesh(mesh, show_regions=False, show_edges=False)
     assert not ax.collections
     assert not ax.lines
+    plt.close(fig)
+
+
+def test_plot_coil_green_response_shows_coils_and_contours():
+    grid = RectangularGrid(1.0, 2.5, -0.5, 0.5, 9, 7)
+    coils = (CoilConfig(name="PF", r=1.5, z=0.0, current=2.0, sigma=0.05),)
+
+    fig, ax = plot_coil_green_response(grid, coils, levels=5)
+
+    assert ax.get_title() == "reduced free-boundary coil Green's response"
+    assert ax.collections
+    assert ax.get_legend() is not None
     plt.close(fig)

@@ -3,6 +3,7 @@ import pytest
 import tokamaker_jax.geometry as geometry
 from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.gui import (
+    coil_green_response_figure,
     region_geometry_figure,
     region_table_rows,
     seed_equilibrium_figure,
@@ -119,3 +120,12 @@ def test_validation_convergence_figure_attaches_rates_metadata():
 
     with pytest.raises(ValueError, match="poisson"):
         validation_convergence_figure("bad")
+
+
+def test_coil_green_response_figure_attaches_metadata():
+    fig = coil_green_response_figure()
+
+    assert "coil Green" in fig.layout.title.text
+    assert fig.layout.meta["n_coils"] == 3
+    assert len(fig.data) == 2
+    assert fig.data[1].name == "PF coils"

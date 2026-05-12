@@ -13,6 +13,9 @@ import matplotlib.tri as mtri
 import numpy as np
 from matplotlib.patches import Polygon as PolygonPatch
 
+from tokamaker_jax.config import CoilConfig
+from tokamaker_jax.domain import RectangularGrid
+from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.geometry import Region, RegionSet
 from tokamaker_jax.mesh import TriMesh
 from tokamaker_jax.solver import EquilibriumSolution
@@ -280,6 +283,58 @@ def region_figure_data(
     )
 
 
+def coil_response_figure_data(
+    grid: RectangularGrid,
+    coils: tuple[CoilConfig, ...],
+    *,
+    name: str = "reduced_coil_green_response",
+    source: str | None = None,
+    citation: str | None = None,
+    command: str | None = None,
+) -> FigureRecipe:
+    """Return structured figure data for reduced coil Green's response plots."""
+
+    r, z = grid.mesh()
+    flux = coil_flux_on_grid(grid, coils)
+    return FigureRecipe(
+        name=name,
+        source=source,
+        citation=citation,
+        command=command,
+        axes=dict(RZ_AXES),
+        data={
+            "R": _array_payload(r, label="R", units="m"),
+            "Z": _array_payload(z, label="Z", units="m"),
+            "coil_flux": _array_payload(
+                flux,
+                label="Reduced free-boundary coil flux",
+                convention="Large-aspect-ratio logarithmic Green's-function fixture.",
+            ),
+            "coils": [
+                {
+                    "name": coil.name,
+                    "r": coil.r,
+                    "z": coil.z,
+                    "current": coil.current,
+                    "core_radius": coil.sigma,
+                }
+                for coil in coils
+            ],
+        },
+        metadata={
+            "plot_type": "reduced_coil_green_response",
+            "n_coils": len(coils),
+            "grid": {
+                "nr": grid.nr,
+                "nz": grid.nz,
+                "dr": grid.dr,
+                "dz": grid.dz,
+            },
+            "flux": _field_summary(flux),
+        },
+    )
+
+
 def plot_equilibrium(
     solution: EquilibriumSolution,
     *,
@@ -309,6 +364,75 @@ def plot_equilibrium(
     if show_metadata:
         _annotate_equilibrium_metadata(ax, equilibrium_metadata_summary(solution))
     return fig, ax
+
+
+def plot_coil_green_response(
+    grid: RectangularGrid,
+    coils: tuple[CoilConfig, ...],
+    *,
+    levels: int = 28,
+    ax: plt.Axes | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """Plot the reduced free-boundary coil Green's-function response."""
+
+    r, z = grid.mesh()
+    flux = np.asarray(coil_flux_on_grid(grid, coils))
+    fig, ax = (
+        plt.subplots(figsize=(6.5, 5.2), constrained_layout=True) if ax is None else (ax.figure, ax)
+    )
+    filled = ax.contourf(np.asarray(r), np.asarray(z), flux, levels=levels, cmap="viridis")
+    fig.colorbar(filled, ax=ax, label="coil flux")
+    contours = ax.contour(
+        np.asarray(r), np.asarray(z), flux, levels=levels, colors="black", linewidths=0.55
+    )
+    ax.clabel(contours, inline=True, fontsize=7)
+    if coils:
+        ax.scatter(
+            [coil.r for coil in coils],
+            [coil.z for coil in coils],
+            c=["tab:red" if coil.current >= 0.0 else "tab:blue" for coil in coils],
+            marker="s",
+            edgecolor="black",
+            linewidth=0.7,
+            zorder=4,
+            label="PF coils",
+        )
+        for coil in coils:
+            ax.text(
+                coil.r + 0.055,
+                coil.z,
+                coil.name,
+                va="center",
+                fontsize=8,
+                bbox={
+                    "boxstyle": "round,pad=0.12",
+                    "facecolor": "white",
+                    "alpha": 0.72,
+                    "linewidth": 0.0,
+                },
+                zorder=5,
+            )
+        ax.legend(loc="upper right")
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("reduced free-boundary coil Green's response")
+    return fig, ax
+
+
+def save_coil_green_response_plot(
+    grid: RectangularGrid,
+    coils: tuple[CoilConfig, ...],
+    path: str | Path,
+) -> Path:
+    """Save a reduced coil Green's-function response plot."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig, _ = plot_coil_green_response(grid, coils)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+    return path.resolve()
 
 
 def save_equilibrium_plot(solution: EquilibriumSolution, path: str | Path) -> Path:

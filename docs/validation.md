@@ -25,6 +25,8 @@ triangular FEM path:
 - coefficient-weighted p=1 mass/stiffness assembly, sparse and matrix-free
   weighted stiffness paths, axisymmetric Grad-Shafranov weak-form assembly,
   profile-source load vectors, and a cylindrical manufactured-solution gate.
+- a reduced free-boundary coil Green's-function fixture with analytic symmetry,
+  linearity, derivative, and radial log-ratio checks.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -206,6 +208,54 @@ tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
 
 ![Manufactured Grad-Shafranov convergence](_static/manufactured_grad_shafranov_convergence.png)
 
+## Reduced Free-Boundary Coil Gate
+
+The first free-boundary fixture is deliberately smaller than the full
+TokaMaker circular-filament Green's function. It uses the large-aspect-ratio
+two-dimensional free-space Green's function with a small regularization radius
+for each coil:
+
+$$
+G(R,Z;R_c,Z_c,\epsilon)=
+-\frac{\mu_0}{4\pi}
+\log\left(
+\frac{(R-R_c)^2+(Z-Z_c)^2+\epsilon^2}{a_\mathrm{ref}^2}
+\right).
+$$
+
+For coil currents $I_c$, the reduced boundary flux is
+
+$$
+\psi_c(R,Z)=\sum_c G(R,Z;R_c,Z_c,\epsilon_c) I_c.
+$$
+
+The analytic gradient used by the differentiability gate is
+
+$$
+\nabla G =
+-\frac{\mu_0}{2\pi}
+\frac{(R-R_c,\;Z-Z_c)}
+{(R-R_c)^2+(Z-Z_c)^2+\epsilon^2}.
+$$
+
+The fixture verifies exact superposition, symmetry about a centered coil,
+automatic differentiation against the analytic gradient, and the radial
+Green's-function difference
+
+$$
+G(\rho_2)-G(\rho_1)=
+-\frac{\mu_0}{4\pi}
+\log\left(\frac{\rho_2^2+\epsilon^2}{\rho_1^2+\epsilon^2}\right).
+$$
+
+The executable command is:
+
+```bash
+tokamaker-jax verify --gate coil-green
+```
+
+![Reduced coil Green response](_static/coil_green_response.png)
+
 ## Differentiability Gates
 
 Differentiability gates compare JAX automatic differentiation with central
@@ -243,9 +293,9 @@ $$
 $$
 
 The current benchmark helpers produce JSON-friendly timing dictionaries for the
-seed fixed-boundary solve, local p=1 FEM kernels, and axisymmetric global FEM
-assembly/matrix-free apply. Future gates should add CI baselines and
-free-boundary solve timings.
+seed fixed-boundary solve, local p=1 FEM kernels, axisymmetric global FEM
+assembly/matrix-free apply, and reduced coil Green's-function response. Future
+gates should add CI baselines and full free-boundary solve timings.
 
 ## Literature-Anchored Figure Gates
 

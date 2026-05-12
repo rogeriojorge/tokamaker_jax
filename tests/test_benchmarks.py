@@ -6,6 +6,7 @@ from tokamaker_jax.benchmarks import (
     _block_until_ready,
     benchmark_axisymmetric_fem_apply,
     benchmark_callable,
+    benchmark_coil_green_response,
     benchmark_local_fem_kernel,
     benchmark_seed_equilibrium,
 )
@@ -56,6 +57,14 @@ def test_axisymmetric_fem_benchmark_runs_small_case():
 
     assert result.name == "axisymmetric_p1_fem_assembly_apply"
     assert result.metadata == {"subdivisions": 3, "operator": "grad_shafranov_weak"}
+    assert result.best_s >= 0.0
+
+
+def test_coil_green_response_benchmark_runs_small_case():
+    result = benchmark_coil_green_response(nr=7, nz=7, repeats=1, warmups=0)
+
+    assert result.name == "reduced_coil_green_response"
+    assert result.metadata == {"nr": 7, "nz": 7, "n_coils": 3}
     assert result.best_s >= 0.0
 
 

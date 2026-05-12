@@ -8,7 +8,9 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 
-from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConfig
+from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
+from tokamaker_jax.domain import RectangularGrid
+from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.plotting import equilibrium_metadata_summary, region_table_data
 from tokamaker_jax.solver import solve_from_config
@@ -40,6 +42,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
         equilibrium_tab = ui.tab("Seed equilibrium")
         geometry_tab = ui.tab("Region geometry")
         validation_tab = ui.tab("Validation")
+        coil_tab = ui.tab("Coil response")
 
     with ui.tab_panels(tabs, value=equilibrium_tab).classes("w-full"):
         with ui.tab_panel(equilibrium_tab):
@@ -88,6 +91,8 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             ).classes("w-full")
         with ui.tab_panel(validation_tab):
             ui.plotly(validation_convergence_figure("grad-shafranov")).classes("w-full h-[620px]")
+        with ui.tab_panel(coil_tab):
+            ui.plotly(coil_green_response_figure()).classes("w-full h-[620px]")
     ui.run(host=host, port=port, reload=reload, show=True)
 
 
@@ -200,6 +205,64 @@ def validation_convergence_figure(gate: str = "grad-shafranov"):
             h1_rates=study.weighted_h1_rates,
         )
     raise ValueError("gate must be 'poisson' or 'grad-shafranov'")
+
+
+def coil_green_response_figure():
+    """Return a Plotly figure for the reduced free-boundary coil response."""
+
+    import plotly.graph_objects as go
+
+    grid = RectangularGrid(1.0, 2.8, -0.9, 0.9, 75, 75)
+    coils = (
+        CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
+    )
+    r, z = grid.mesh()
+    flux = coil_flux_on_grid(grid, coils)
+    fig = go.Figure(
+        data=[
+            go.Contour(
+                x=np.asarray(r[:, 0]),
+                y=np.asarray(z[0, :]),
+                z=np.asarray(flux).T,
+                contours_coloring="heatmap",
+                colorbar={"title": "coil flux"},
+                hovertemplate="R=%{x:.3f} m<br>Z=%{y:.3f} m<br>psi=%{z:.3e}<extra></extra>",
+            ),
+            go.Scatter(
+                x=[coil.r for coil in coils],
+                y=[coil.z for coil in coils],
+                mode="markers+text",
+                text=[coil.name for coil in coils],
+                textposition="middle right",
+                marker={
+                    "symbol": "square",
+                    "size": 12,
+                    "color": ["#d62728" if coil.current >= 0.0 else "#1f77b4" for coil in coils],
+                    "line": {"color": "black", "width": 1},
+                },
+                name="PF coils",
+                hovertemplate="coil %{text}<br>R=%{x:.3f} m<br>Z=%{y:.3f} m<extra></extra>",
+            ),
+        ]
+    )
+    fig.update_layout(
+        title="reduced free-boundary coil Green's response",
+        xaxis_title="R [m]",
+        yaxis_title="Z [m]",
+        yaxis_scaleanchor="x",
+        template="plotly_white",
+        margin={"l": 44, "r": 20, "t": 48, "b": 42},
+        meta={
+            "n_coils": len(coils),
+            "coils": [
+                {"name": coil.name, "r": coil.r, "z": coil.z, "current": coil.current}
+                for coil in coils
+            ],
+        },
+    )
+    return fig
 
 
 def seed_equilibrium_summary_rows(summary: dict[str, Any]) -> list[dict[str, str]]:

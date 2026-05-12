@@ -29,6 +29,7 @@ from tokamaker_jax.benchmarks import (
     BenchmarkResult,
     benchmark_axisymmetric_fem_apply,
     benchmark_callable,
+    benchmark_coil_green_response,
     benchmark_local_fem_kernel,
     benchmark_seed_equilibrium,
 )
@@ -46,6 +47,17 @@ from tokamaker_jax.fem import (
     triangle_area,
     triangle_jacobian,
     triangle_quadrature,
+)
+from tokamaker_jax.free_boundary import (
+    CoilGreenFunctionResponse,
+    coil_field,
+    coil_flux,
+    coil_flux_gradient,
+    coil_flux_on_grid,
+    coil_response_matrix,
+    evaluate_coil_green_response,
+    regularized_log_green_function,
+    regularized_log_green_gradient,
 )
 from tokamaker_jax.geometry import (
     Region,
@@ -71,6 +83,7 @@ from tokamaker_jax.solver import (
     solve_from_config,
 )
 from tokamaker_jax.verification import (
+    CoilGreenFunctionValidation,
     GradShafranovConvergenceResult,
     GradShafranovConvergenceStudy,
     PoissonConvergenceResult,
@@ -81,6 +94,7 @@ from tokamaker_jax.verification import (
     observed_rates,
     poisson_error_metrics,
     rectangular_triangles,
+    run_coil_green_function_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
     sine_poisson_exact,
@@ -93,6 +107,8 @@ from tokamaker_jax.verification import (
 __all__ = [
     "BenchmarkResult",
     "CoilConfig",
+    "CoilGreenFunctionResponse",
+    "CoilGreenFunctionValidation",
     "DirichletSystem",
     "EquilibriumSolution",
     "FigureRecipe",
@@ -133,8 +149,15 @@ __all__ = [
     "boundary_nodes_from_coordinates",
     "benchmark_callable",
     "benchmark_axisymmetric_fem_apply",
+    "benchmark_coil_green_response",
     "benchmark_local_fem_kernel",
     "benchmark_seed_equilibrium",
+    "coil_field",
+    "coil_flux",
+    "coil_flux_gradient",
+    "coil_flux_on_grid",
+    "coil_response_matrix",
+    "evaluate_coil_green_response",
     "gaussian_coil_source",
     "grad_shafranov_weak_source_density",
     "linear_basis",
@@ -157,6 +180,9 @@ __all__ = [
     "rectangular_triangles",
     "rectangle_region",
     "reference_triangle_nodes",
+    "regularized_log_green_function",
+    "regularized_log_green_gradient",
+    "run_coil_green_function_validation",
     "run_grad_shafranov_convergence_study",
     "save_gs_mesh",
     "sample_regions",

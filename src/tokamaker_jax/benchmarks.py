@@ -15,8 +15,10 @@ from tokamaker_jax.assembly import (
     apply_grad_shafranov_stiffness_matrix,
     assemble_grad_shafranov_stiffness_matrix,
 )
+from tokamaker_jax.config import CoilConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem import linear_mass_matrix, linear_stiffness_matrix
+from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.profiles import solovev_source
 from tokamaker_jax.solver import EquilibriumSolution, solve_fixed_boundary
 from tokamaker_jax.verification import rectangular_triangles
@@ -161,6 +163,35 @@ def benchmark_axisymmetric_fem_apply(
         repeats=repeats,
         warmups=warmups,
         metadata={"subdivisions": subdivisions, "operator": "grad_shafranov_weak"},
+    )
+
+
+def benchmark_coil_green_response(
+    *,
+    nr: int = 65,
+    nz: int = 65,
+    repeats: int = 5,
+    warmups: int = 1,
+) -> BenchmarkResult:
+    """Benchmark reduced free-boundary coil Green's response on a grid."""
+
+    grid = RectangularGrid(1.0, 2.8, -0.9, 0.9, nr, nz)
+    coils = (
+        CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
+    )
+
+    @jax.jit
+    def run() -> jnp.ndarray:
+        return coil_flux_on_grid(grid, coils)
+
+    return benchmark_callable(
+        "reduced_coil_green_response",
+        run,
+        repeats=repeats,
+        warmups=warmups,
+        metadata={"nr": nr, "nz": nz, "n_coils": len(coils)},
     )
 
 

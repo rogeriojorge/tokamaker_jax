@@ -2050,3 +2050,44 @@ Numerical validation snapshot for the implemented manufactured gates:
 Generated artifact:
 
 - `docs/_static/manufactured_grad_shafranov_convergence.png`
+
+### 2026-05-12 21:07 WEST
+
+Completed the fifth implementation pass and raised the tracked overall
+completion marker from 50% to 58%.
+
+Implemented lanes:
+
+- Reduced free-boundary coupling: added `tokamaker_jax.free_boundary` with a
+  large-aspect-ratio regularized logarithmic Green's function, point-by-coil
+  response matrices, total coil flux, analytic flux gradients, reduced poloidal
+  field components, grid evaluation, and JSON-ready response reports.
+- Physics validation: added `tokamaker-jax verify --gate coil-green`, which
+  checks exact coil-response linearity, symmetry about a centered coil,
+  automatic differentiation against the analytic Green's-function gradient, and
+  the radial logarithmic Green's-function ratio identity.
+- GUI/plotting: added Matplotlib and Plotly reduced coil-response figures,
+  figure metadata exports, coil markers, and a NiceGUI "Coil response" tab.
+- Performance: added a JSON-friendly benchmark for jitted reduced coil
+  Green's-function response on a rectangular grid.
+- Docs/artifacts: documented the reduced free-boundary equations and gate,
+  added the gate to the machine-readable validation manifest, updated API docs,
+  README, progress accounting, and generated the coil-response artifact.
+
+Validation completed during the pass:
+
+- `python -m pytest tests/test_free_boundary.py tests/test_verification.py tests/test_cli_validate.py tests/test_plotting.py tests/test_gui.py tests/test_benchmarks.py`:
+  43 passed.
+- `tokamaker-jax verify --gate coil-green`: symmetry error `0.0`, linearity
+  error `0.0`, gradient error `0.0`, log-ratio error `5.29e-23`.
+- `python -m ruff format . && python -m ruff check .`: passed after import
+  ordering fixes.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 98 passed,
+  95.31% coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed. The local
+  Sphinx 9 build still reports upstream `sphinx-autodoc-typehints` deprecation
+  notices, but they did not fail the docs gate.
+
+Generated artifact:
+
+- `docs/_static/coil_green_response.png`

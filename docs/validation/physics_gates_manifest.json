@@ -117,7 +117,8 @@
         "benchmark_validation_errors",
         "small_seed_solve_timing",
         "jitted_local_fem_kernel_timing",
-        "jitted_axisymmetric_global_assembly_apply_timing"
+        "jitted_axisymmetric_global_assembly_apply_timing",
+        "jitted_reduced_coil_green_response_timing"
       ],
       "pass_rule": {
         "type": "executable_schema",
@@ -169,6 +170,28 @@
         "weighted_h1_expected_order": 1,
         "l2_expected_order": 2,
         "tolerance_source": "tests/test_verification.py and tests/test_assembly.py"
+      }
+    },
+    {
+      "id": "reduced-free-boundary-coil-green",
+      "category": "free_boundary",
+      "status": "implemented",
+      "description": "Validate the reduced large-aspect-ratio coil Green's-function fixture before full TokaMaker circular-filament parity.",
+      "command": "tokamaker-jax verify --gate coil-green",
+      "artifact": "docs/_static/coil_green_response.png",
+      "required_checks": [
+        "regularized_log_green_function",
+        "coil_response_matrix_linearity",
+        "coil_symmetry_about_centerline",
+        "analytic_gradient_matches_jax_autodiff",
+        "radial_log_ratio_identity",
+        "json_ready_response_report",
+        "gui_plot_metadata",
+        "matplotlib_artifact"
+      ],
+      "pass_rule": {
+        "type": "analytic_identity",
+        "tolerance_source": "tests/test_free_boundary.py and tests/test_verification.py"
       }
     },
     {

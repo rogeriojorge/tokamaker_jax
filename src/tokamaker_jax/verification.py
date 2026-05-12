@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import jax
 import jax.numpy as jnp
 
 from tokamaker_jax.assembly import (
@@ -15,6 +16,7 @@ from tokamaker_jax.assembly import (
     boundary_nodes_from_coordinates,
     solve_dirichlet_system,
 )
+from tokamaker_jax.config import CoilConfig
 from tokamaker_jax.fem import (
     linear_basis,
     map_to_physical,
@@ -22,6 +24,13 @@ from tokamaker_jax.fem import (
     triangle_jacobian,
     triangle_quadrature,
 )
+from tokamaker_jax.free_boundary import (
+    coil_flux,
+    coil_flux_gradient,
+    coil_response_matrix,
+    regularized_log_green_function,
+)
+from tokamaker_jax.profiles import MU0
 
 
 @dataclass(frozen=True)
@@ -107,6 +116,30 @@ class GradShafranovConvergenceStudy:
             "results": [result.to_dict() for result in self.results],
             "l2_rates": list(self.l2_rates),
             "weighted_h1_rates": list(self.weighted_h1_rates),
+        }
+
+
+@dataclass(frozen=True)
+class CoilGreenFunctionValidation:
+    """Validation metrics for the reduced free-boundary coil response."""
+
+    n_points: int
+    n_coils: int
+    symmetry_error: float
+    linearity_error: float
+    gradient_error: float
+    log_ratio_error: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly representation."""
+
+        return {
+            "n_points": self.n_points,
+            "n_coils": self.n_coils,
+            "symmetry_error": self.symmetry_error,
+            "linearity_error": self.linearity_error,
+            "gradient_error": self.gradient_error,
+            "log_ratio_error": self.log_ratio_error,
         }
 
 
@@ -400,6 +433,52 @@ def run_grad_shafranov_convergence_study(
         weighted_h1_rates=observed_rates(
             [result.weighted_h1_error for result in results], mesh_sizes
         ),
+    )
+
+
+def run_coil_green_function_validation() -> CoilGreenFunctionValidation:
+    """Run analytic checks for the reduced free-boundary coil Green's function."""
+
+    coils = (
+        CoilConfig(name="PF_A", r=1.5, z=0.0, current=2.0, sigma=0.05),
+        CoilConfig(name="PF_B", r=2.2, z=0.35, current=-0.75, sigma=0.08),
+    )
+    points = jnp.asarray([[1.8, 0.2], [1.8, -0.2], [2.4, 0.1], [1.2, -0.35]], dtype=jnp.float64)
+    symmetric_coil = (CoilConfig(name="PF", r=1.5, z=0.0, current=1.0, sigma=0.05),)
+    symmetric_flux = coil_flux(points[:2], symmetric_coil)
+    symmetry_error = float(jnp.abs(symmetric_flux[0] - symmetric_flux[1]))
+
+    response = coil_response_matrix(points, coils)
+    currents = jnp.asarray([coil.current for coil in coils], dtype=jnp.float64)
+    linearity_error = float(jnp.linalg.norm(response @ currents - coil_flux(points, coils)))
+
+    derivative_point = jnp.asarray([1.85, 0.18], dtype=jnp.float64)
+    ad_gradient = jax.grad(lambda point: coil_flux(point[None, :], symmetric_coil)[0])(
+        derivative_point
+    )
+    analytic_gradient = coil_flux_gradient(derivative_point[None, :], symmetric_coil)[0]
+    gradient_error = float(jnp.linalg.norm(ad_gradient - analytic_gradient))
+
+    d1 = 0.3
+    d2 = 0.6
+    core = symmetric_coil[0].sigma
+    ratio_points = jnp.asarray([[1.5 + d1, 0.0], [1.5 + d2, 0.0]], dtype=jnp.float64)
+    values = regularized_log_green_function(
+        ratio_points,
+        symmetric_coil[0].r,
+        symmetric_coil[0].z,
+        core_radius=core,
+    )
+    expected_difference = -MU0 / (4.0 * jnp.pi) * jnp.log((d2**2 + core**2) / (d1**2 + core**2))
+    log_ratio_error = float(jnp.abs((values[1] - values[0]) - expected_difference))
+
+    return CoilGreenFunctionValidation(
+        n_points=int(points.shape[0]),
+        n_coils=len(coils),
+        symmetry_error=symmetry_error,
+        linearity_error=linearity_error,
+        gradient_error=gradient_error,
+        log_ratio_error=log_ratio_error,
     )
 
 

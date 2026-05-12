@@ -16,6 +16,9 @@
 .. automodule:: tokamaker_jax.fem
    :members:
 
+.. automodule:: tokamaker_jax.free_boundary
+   :members:
+
 .. automodule:: tokamaker_jax.geometry
    :members:
 

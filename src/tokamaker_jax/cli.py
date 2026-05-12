@@ -84,7 +84,7 @@ def _main_verify(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="tokamaker-jax verify")
     parser.add_argument(
         "--gate",
-        choices=("all", "poisson", "grad-shafranov"),
+        choices=("all", "poisson", "grad-shafranov", "coil-green"),
         default="all",
         help="Manufactured validation gate to run.",
     )
@@ -122,6 +122,7 @@ def run_verification_gates(
     from jax import config as jax_config
 
     from tokamaker_jax.verification import (
+        run_coil_green_function_validation,
         run_grad_shafranov_convergence_study,
         run_poisson_convergence_study,
     )
@@ -134,8 +135,10 @@ def run_verification_gates(
         payload["gates"]["grad_shafranov"] = run_grad_shafranov_convergence_study(
             subdivisions
         ).to_dict()
+    if gate in {"all", "coil-green"}:
+        payload["gates"]["coil_green"] = run_coil_green_function_validation().to_dict()
     if not payload["gates"]:
-        raise ValueError("gate must be one of: all, poisson, grad-shafranov")
+        raise ValueError("gate must be one of: all, poisson, grad-shafranov, coil-green")
     return payload
 
 

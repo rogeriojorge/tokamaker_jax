@@ -75,6 +75,15 @@ def test_main_verify_runs_manufactured_gate_and_writes_json(capsys, tmp_path: Pa
     assert "weighted_h1_rates" in output.read_text(encoding="utf-8")
 
 
+def test_main_verify_runs_reduced_coil_green_gate(capsys):
+    exit_code = main(["verify", "--gate", "coil-green"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "coil_green" in captured.out
+    assert "gradient_error" in captured.out
+
+
 def test_run_verification_gates_validates_subdivisions():
     with pytest.raises(ValueError, match="at least two"):
         run_verification_gates("poisson", (4,))

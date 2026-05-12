@@ -7,9 +7,15 @@ import numpy as np
 from jax import config as jax_config
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConfig
+from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
+from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.geometry import sample_regions
-from tokamaker_jax.plotting import plot_equilibrium, save_equilibrium_plot, save_region_plot
+from tokamaker_jax.plotting import (
+    plot_equilibrium,
+    save_coil_green_response_plot,
+    save_equilibrium_plot,
+    save_region_plot,
+)
 from tokamaker_jax.solver import solve_from_config
 from tokamaker_jax.verification import (
     run_grad_shafranov_convergence_study,
@@ -32,6 +38,7 @@ def main() -> None:
     write_region_geometry_preview()
     write_manufactured_poisson_convergence()
     write_grad_shafranov_convergence()
+    write_coil_green_response()
     write_pressure_sweep()
 
 
@@ -79,6 +86,16 @@ def write_grad_shafranov_convergence() -> None:
     ax.legend()
     fig.savefig(ASSET_DIR / "manufactured_grad_shafranov_convergence.png", dpi=180)
     plt.close(fig)
+
+
+def write_coil_green_response() -> None:
+    grid = RectangularGrid(1.0, 2.8, -0.9, 0.9, 101, 101)
+    coils = (
+        CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
+    )
+    save_coil_green_response_plot(grid, coils, ASSET_DIR / "coil_green_response.png")
 
 
 def write_pressure_sweep() -> None:

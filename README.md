@@ -14,6 +14,8 @@ This repository currently contains the project scaffold, CI/docs infrastructure,
 
 ![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
 
+![Reduced free-boundary coil Green response](docs/_static/coil_green_response.png)
+
 ![Pressure sweep animation](docs/_static/pressure_sweep.gif)
 
 ## Install
@@ -54,12 +56,14 @@ Run manufactured validation gates:
 
 ```bash
 tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
+tokamaker-jax verify --gate coil-green
 ```
 
 ## Current Scope
 
 - JAX differentiable fixed-boundary seed solver for the Grad-Shafranov operator on a rectangular grid.
 - p=1 triangular FEM reference kernels, dense/sparse/matrix-free assembly, weighted axisymmetric Grad-Shafranov weak-form assembly, profile source loads, and manufactured convergence gates.
+- Reduced large-aspect-ratio coil Green's-function fixture for early free-boundary coupling tests.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Matplotlib plotting utilities.
