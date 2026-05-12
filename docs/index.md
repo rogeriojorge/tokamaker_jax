@@ -9,6 +9,7 @@ getting_started
 architecture
 porting_map
 progress
+validation
 examples
 api
 references

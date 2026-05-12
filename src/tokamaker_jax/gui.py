@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 import jax.numpy as jnp
 import numpy as np
 
 from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConfig
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
+from tokamaker_jax.plotting import equilibrium_metadata_summary, region_table_data
 from tokamaker_jax.solver import solve_from_config
 
 
@@ -39,21 +41,44 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ffp = ui.number("dF2/dpsi scale", value=-0.35, step=0.05)
                 iterations = ui.number("iterations", value=450, min=1, max=3000, step=50)
 
-            plot = ui.plotly(
-                _figure(float(pressure.value), float(ffp.value), int(iterations.value))
-            ).classes("w-full h-[620px]")
+            figure, summary = _seed_equilibrium_payload(
+                float(pressure.value), float(ffp.value), int(iterations.value)
+            )
+            plot = ui.plotly(figure).classes("w-full h-[620px]")
+            summary_table = ui.table(
+                columns=[
+                    {"name": "metric", "label": "Metric", "field": "metric"},
+                    {"name": "value", "label": "Value", "field": "value"},
+                ],
+                rows=seed_equilibrium_summary_rows(summary),
+            ).classes("w-full")
 
             def update() -> None:
-                plot.figure = _figure(
+                figure, summary = _seed_equilibrium_payload(
                     float(pressure.value), float(ffp.value), int(iterations.value)
                 )
+                plot.figure = figure
                 plot.update()
+                summary_table.rows = seed_equilibrium_summary_rows(summary)
+                summary_table.update()
 
             ui.button("Run", on_click=update)
 
         with ui.tab_panel(geometry_tab):
             ui.label("Sample machine regions").classes("text-subtitle2")
-            ui.plotly(region_geometry_figure()).classes("w-full h-[620px]")
+            regions = _sample_regions()
+            ui.plotly(region_geometry_figure(regions)).classes("w-full h-[620px]")
+            ui.table(
+                columns=[
+                    {"name": "id", "label": "ID", "field": "id"},
+                    {"name": "name", "label": "Name", "field": "name"},
+                    {"name": "kind", "label": "Kind", "field": "kind"},
+                    {"name": "area", "label": "Area", "field": "area"},
+                    {"name": "centroid", "label": "Centroid (R,Z)", "field": "centroid"},
+                    {"name": "target_size", "label": "Target size", "field": "target_size"},
+                ],
+                rows=region_table_rows(regions),
+            ).classes("w-full")
     ui.run(host=host, port=port, reload=reload, show=True)
 
 
@@ -124,11 +149,70 @@ def region_geometry_figure(
         template="plotly_white",
         margin={"l": 40, "r": 20, "t": 45, "b": 40},
         legend_title_text="Regions",
+        meta={"regions": region_table_data(region_tuple)},
     )
     return fig
 
 
-def _figure(pressure_scale: float, ffp_scale: float, iterations: int):
+def seed_equilibrium_figure(
+    pressure_scale: float,
+    ffp_scale: float,
+    iterations: int,
+):
+    """Return a Plotly seed-equilibrium figure with validation metadata attached."""
+
+    figure, _ = _seed_equilibrium_payload(pressure_scale, ffp_scale, iterations)
+    return figure
+
+
+def seed_equilibrium_summary_rows(summary: dict[str, Any]) -> list[dict[str, str]]:
+    """Return GUI-ready rows for an equilibrium metadata summary."""
+
+    psi_range = summary["psi"]["range"]
+    source_range = summary["source"]["range"]
+    residual = summary["residual"]
+    grid = summary["grid"]
+    return [
+        {"metric": "grid", "value": f"{grid['nr']} x {grid['nz']}"},
+        {"metric": "spacing", "value": f"dR={grid['dr']:.4g} m, dZ={grid['dz']:.4g} m"},
+        {"metric": "iterations", "value": str(summary["iterations"])},
+        {
+            "metric": "psi range",
+            "value": f"{_format_number(psi_range['min'])} to {_format_number(psi_range['max'])}",
+        },
+        {
+            "metric": "source range",
+            "value": f"{_format_number(source_range['min'])} to "
+            f"{_format_number(source_range['max'])}",
+        },
+        {"metric": "final residual", "value": _format_number(residual["final"])},
+    ]
+
+
+def region_table_rows(regions: RegionSet | Sequence[Region]) -> list[dict[str, Any]]:
+    """Return GUI-ready region table rows with rounded display fields."""
+
+    rows = []
+    for row in region_table_data(regions):
+        rows.append(
+            {
+                **row,
+                "area": _format_number(row["area"]),
+                "centroid": f"({_format_number(row['centroid_r'])}, "
+                f"{_format_number(row['centroid_z'])})",
+                "target_size": ""
+                if row["target_size"] is None
+                else _format_number(row["target_size"]),
+            }
+        )
+    return rows
+
+
+def _seed_equilibrium_payload(
+    pressure_scale: float,
+    ffp_scale: float,
+    iterations: int,
+):
     import plotly.graph_objects as go
 
     config = RunConfig(
@@ -137,6 +221,7 @@ def _figure(pressure_scale: float, ffp_scale: float, iterations: int):
         solver=SolverConfig(iterations=iterations, relaxation=0.75, dtype="float64"),
     )
     solution = solve_from_config(config)
+    summary = equilibrium_metadata_summary(solution)
     r, z = solution.grid.mesh(dtype=solution.psi.dtype)
     fig = go.Figure(
         data=[
@@ -146,6 +231,7 @@ def _figure(pressure_scale: float, ffp_scale: float, iterations: int):
                 z=jnp.asarray(solution.psi).T,
                 contours_coloring="heatmap",
                 colorbar={"title": "psi"},
+                hovertemplate="R=%{x:.3f} m<br>Z=%{y:.3f} m<br>psi=%{z:.3e}<extra></extra>",
             )
         ]
     )
@@ -155,8 +241,22 @@ def _figure(pressure_scale: float, ffp_scale: float, iterations: int):
         yaxis_scaleanchor="x",
         template="plotly_white",
         margin={"l": 40, "r": 20, "t": 30, "b": 40},
+        meta={"summary": summary},
     )
-    return fig
+    fig.add_annotation(
+        x=0.02,
+        y=0.98,
+        xref="paper",
+        yref="paper",
+        text=_seed_summary_annotation(summary),
+        showarrow=False,
+        align="left",
+        bgcolor="rgba(255,255,255,0.84)",
+        bordercolor="rgba(0,0,0,0.22)",
+        borderwidth=1,
+        font={"size": 12},
+    )
+    return fig, summary
 
 
 def _region_tuple(regions: RegionSet | Sequence[Region]) -> tuple[Region, ...]:
@@ -243,3 +343,22 @@ def _region_label_position(region: Region) -> tuple[float, float]:
     outer_max_r = float(np.max(region.points[:, 0]))
     _, center_z = region.centroid
     return 0.5 * (inner_max_r + outer_max_r), center_z
+
+
+def _seed_summary_annotation(summary: dict[str, Any]) -> str:
+    psi_range = summary["psi"]["range"]
+    residual = summary["residual"]
+    return "<br>".join(
+        (
+            f"grid {summary['grid']['nr']} x {summary['grid']['nz']}",
+            f"iterations {summary['iterations']}",
+            f"psi {_format_number(psi_range['min'])} to {_format_number(psi_range['max'])}",
+            f"residual {_format_number(residual['final'])}",
+        )
+    )
+
+
+def _format_number(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.3g}"

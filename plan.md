@@ -1912,3 +1912,48 @@ The current generated plot artifact inspected in this pass is
 vacuum-vessel, and PF-coil regions used by the new region plotting and GUI
 paths. No new literature reproduction plot was generated in this pass; that
 waits on the validation-manifest and physics-gate lane.
+
+### 2026-05-12 18:21 WEST
+
+Completed the second multi-lane implementation pass and raised the tracked
+overall completion marker from 6% to 15%.
+
+Implemented lanes:
+
+- Global FEM assembly: added dense p=1 global mass and Laplace stiffness
+  assembly for `TriMesh` or fixed-connectivity `(nodes, triangles)` arrays,
+  plus exact two-triangle unit-square tests, JIT checks, and coordinate-gradient
+  finiteness checks.
+- CLI validation: added `tokamaker-jax validate case.toml`, which validates
+  TOML parsing, region geometry, grid dimensions, source controls, solver
+  controls, coils, and output paths without running the solver.
+- Validation docs: added `docs/validation.md` with equations for p=1 FEM,
+  global assembly, manufactured-solution gates, differentiability gates,
+  performance gates, and literature figure gates. Added the first machine-
+  readable validation manifest at
+  `docs/validation/physics_gates_manifest.json`.
+- GUI/plot usability: added JSON figure export, equilibrium metadata summaries,
+  region table data, annotated seed plots, GUI region tables, and Plotly figure
+  metadata.
+- Geometry/examples: added canonical `sample_regions()` and regenerated docs
+  visual assets from the shared sample geometry and annotated seed plot.
+- Benchmarks: added JSON-friendly benchmark helpers for the seed fixed-boundary
+  solve and local p=1 FEM kernels.
+
+Validation results:
+
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 70 passed,
+  97.01% coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+
+Generated/updated artifacts:
+
+- `docs/_static/fixed_boundary_seed.png`
+- `docs/_static/region_geometry_seed.png`
+- `docs/_static/pressure_sweep.gif`
+
+Important limitation: assembly is dense and p=1 only. The next physics step is
+not free-boundary equilibrium yet; it should be p=1 load-vector assembly,
+Dirichlet boundary conditions, and manufactured Poisson convergence before
+moving to sparse `BCOO`, Grad-Shafranov weak forms, and OFT parity fixtures.

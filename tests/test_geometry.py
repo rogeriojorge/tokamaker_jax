@@ -14,6 +14,7 @@ from tokamaker_jax.geometry import (
     polygon_centroid,
     polygon_region,
     rectangle_region,
+    sample_regions,
 )
 from tokamaker_jax.plotting import plot_regions, save_region_plot
 
@@ -114,6 +115,16 @@ def test_region_set_and_plot(tmp_path: Path):
 
     with pytest.raises(ValueError, match="at least one"):
         plot_regions(())
+
+
+def test_sample_regions_are_canonical_and_serializable():
+    regions = sample_regions()
+
+    assert [region.name for region in regions.regions] == ["VV", "PLASMA", "PF"]
+    assert [region.name for region in regions.by_kind("plasma")] == ["PLASMA"]
+    assert [region.name for region in regions.by_kind("coil")] == ["PF"]
+    assert RegionSet.from_dicts(regions.to_dicts()).to_dicts() == regions.to_dicts()
+    assert regions.regions[0].metadata["role"] == "vacuum_vessel"
 
 
 def test_geometry_validation_errors():

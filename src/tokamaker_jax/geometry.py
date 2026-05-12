@@ -235,6 +235,49 @@ def annulus_region(
     )
 
 
+def sample_regions() -> RegionSet:
+    """Return a small canonical region set used by examples, tests, and the GUI."""
+
+    return RegionSet(
+        (
+            annulus_region(
+                id=2,
+                name="VV",
+                kind="conductor",
+                center_r=2.0,
+                center_z=0.0,
+                inner_radius=1.05,
+                outer_radius=1.25,
+                n=96,
+                target_size=0.05,
+                metadata={"role": "vacuum_vessel"},
+            ),
+            rectangle_region(
+                id=1,
+                name="PLASMA",
+                kind="plasma",
+                r_min=1.35,
+                r_max=2.65,
+                z_min=-0.75,
+                z_max=0.75,
+                target_size=0.08,
+                metadata={"role": "seed_plasma_domain"},
+            ),
+            rectangle_region(
+                id=3,
+                name="PF",
+                kind="coil",
+                r_min=3.25,
+                r_max=3.55,
+                z_min=-0.25,
+                z_max=0.25,
+                target_size=0.04,
+                metadata={"role": "seed_pf_coil"},
+            ),
+        )
+    )
+
+
 def polygon_area(points: ArrayLike) -> float:
     """Return signed polygon area by the shoelace formula."""
 

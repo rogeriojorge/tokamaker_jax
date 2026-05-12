@@ -10,15 +10,16 @@ TokaMaker-equivalent triangular FEM stack is ported.
 
 | Lane | Approx. status | Current state |
 | --- | ---: | --- |
-| M1 mesh/geometry | 68% | `TriMesh`, OFT-style mesh I/O, region primitives, TOML region parsing, and geometry previews exist; region-aware mesh generation and full FEM coupling remain open. |
-| M2 FEM core | 8% | p=1 reference-triangle nodes, basis functions, gradients, quadrature, and local mass/stiffness matrices now have exactness tests; global sparse assembly and Grad-Shafranov weak forms are pending. |
-| Plotting | 22% | Seed equilibrium plots, mesh/region plots, animation outputs, and `FigureRecipe` metadata exports exist; literature figure reproduction and validation manifests remain pending. |
-| Docs/examples | 18% | Installation, architecture, porting map, API, seed examples, and this progress page are present; full equation derivations, validation reports, and broad tutorials remain pending. |
-| Config/CLI | 18% | TOML runs support solver/grid/source/coil/output settings plus region geometry; schema validation commands and production examples are pending. |
-| Test infra | 20% | Pytest, coverage, lint, docs, seed differentiability tests, geometry tests, plotting tests, and first FEM precision tests exist; OpenFUSIONToolkit parity, literature gates, and performance gates remain pending. |
-| Differentiability | 6% | Seed solver paths and local FEM kernels are JAX-compatible; sparse assembly, implicit solver VJPs, topology policies, and optimization workflows remain open. |
-| GUI | 10% | NiceGUI seed equilibrium controls and region-geometry preview exist; case browser, TOML editor, literature gallery, and validation dashboards remain pending. |
-| Overall | 6% | Repository scaffolding, seed solver, mesh/geometry foundation, p=1 local FEM kernels, examples, docs, and infrastructure are in place; the project is not yet TokaMaker feature complete. |
+| M1 mesh/geometry | 74% | `TriMesh`, OFT-style mesh I/O, region primitives, TOML region parsing, canonical sample regions, and geometry previews exist; region-aware mesh generation and production FEM coupling remain open. |
+| M2 FEM core | 22% | p=1 reference-triangle kernels and dense global p=1 mass/stiffness assembly now have exact analytic tests; sparse assembly, boundary conditions, load vectors, axisymmetric weights, and Grad-Shafranov weak forms are pending. |
+| Plotting | 35% | Seed equilibrium plots, mesh/region plots, animation outputs, `FigureRecipe`, JSON metadata, region tables, and annotated seed plots exist; literature figure reproduction scripts remain pending. |
+| Docs/examples | 30% | Installation, architecture, porting map, API, examples, progress, validation equations, and the first validation manifest are present; full derivation atlas and broad tutorials remain pending. |
+| Config/CLI | 42% | TOML runs support solver/grid/source/coil/output settings plus region geometry, and `tokamaker-jax validate` checks configs without solving; production schema export and richer examples are pending. |
+| Test infra | 34% | Pytest, coverage, lint, docs, 70 tests, 97% coverage, first FEM precision tests, validation CLI tests, GUI metadata tests, and benchmark schema tests exist; OpenFUSIONToolkit parity and literature figure gates remain pending. |
+| Differentiability | 14% | Seed solver paths, local FEM kernels, and dense assembly are JAX-compatible with focused gradient tests; sparse assembly, implicit solver VJPs, topology policies, and optimization workflows remain open. |
+| GUI | 22% | NiceGUI seed equilibrium controls, region-geometry preview, metadata summaries, and region tables exist; case browser, TOML editor, literature gallery, and validation dashboards remain pending. |
+| Performance | 12% | JSON-friendly benchmark helpers exist for the seed fixed-boundary solve and local p=1 FEM kernels; CI baselines, sparse assembly benchmarks, and free-boundary benchmarks remain pending. |
+| Overall | 15% | Repository scaffolding, seed solver, mesh/geometry foundation, p=1 local and dense global FEM kernels, validation CLI, docs, examples, tests, GUI previews, plotting metadata, and benchmark helpers are in place; the project is not yet TokaMaker feature complete. |
 
 Percentages are approximate planning markers, not validation metrics.
 
@@ -26,12 +27,13 @@ Percentages are approximate planning markers, not validation metrics.
 
 The next implementation milestone should keep the scope narrow and measurable:
 
-1. Assemble global sparse mass/stiffness operators for triangular cells.
+1. Add p=1 load-vector assembly and Dirichlet boundary-condition handling.
 2. Add manufactured-solution tests that verify operator convergence before
    expanding to TokaMaker-specific source terms and free-boundary behavior.
-3. Wire TOML-defined region geometry into meshing examples and CLI validation.
-4. Add the first validation manifest with figure recipes, numeric tolerances,
-   citation metadata, and generated docs artifacts.
+3. Replace dense global matrices with sparse `BCOO` assembly and matrix-free
+   operator paths while preserving dense tests as analytic oracles.
+4. Add the first literature-anchored figure reproduction script and artifact
+   with a manifest entry, command, tolerance, and generated docs output.
 
 After those pieces pass focused tests, the seed rectangular-grid solver can be
 replaced incrementally by the triangular FEM path described in the architecture

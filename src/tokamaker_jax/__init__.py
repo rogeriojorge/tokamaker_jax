@@ -1,5 +1,16 @@
 """JAX-native TokaMaker port scaffold."""
 
+from tokamaker_jax.assembly import (
+    assemble_global_matrix,
+    assemble_laplace_stiffness_matrix,
+    assemble_mass_matrix,
+)
+from tokamaker_jax.benchmarks import (
+    BenchmarkResult,
+    benchmark_callable,
+    benchmark_local_fem_kernel,
+    benchmark_seed_equilibrium,
+)
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, load_config
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem import (
@@ -19,6 +30,7 @@ from tokamaker_jax.geometry import (
     annulus_region,
     polygon_region,
     rectangle_region,
+    sample_regions,
 )
 from tokamaker_jax.mesh import TriMesh, load_gs_mesh, mesh_from_arrays, save_gs_mesh
 from tokamaker_jax.plotting import FigureRecipe
@@ -31,6 +43,7 @@ from tokamaker_jax.solver import (
 )
 
 __all__ = [
+    "BenchmarkResult",
     "CoilConfig",
     "EquilibriumSolution",
     "FigureRecipe",
@@ -45,6 +58,12 @@ __all__ = [
     "TriangleQuadrature",
     "annulus_region",
     "apply_operator",
+    "assemble_global_matrix",
+    "assemble_laplace_stiffness_matrix",
+    "assemble_mass_matrix",
+    "benchmark_callable",
+    "benchmark_local_fem_kernel",
+    "benchmark_seed_equilibrium",
     "gaussian_coil_source",
     "linear_basis",
     "linear_basis_gradients",
@@ -58,6 +77,7 @@ __all__ = [
     "rectangle_region",
     "reference_triangle_nodes",
     "save_gs_mesh",
+    "sample_regions",
     "solve_fixed_boundary",
     "solve_from_config",
     "solovev_source",

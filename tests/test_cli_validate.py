@@ -1,0 +1,212 @@
+from pathlib import Path
+
+import pytest
+from conftest import REPO_ROOT
+
+from tokamaker_jax import cli
+from tokamaker_jax.cli import ConfigValidationError, main, validate_config
+
+
+def test_validate_config_accepts_example():
+    report = validate_config(REPO_ROOT / "examples" / "fixed_boundary.toml")
+
+    assert report.grid_shape == (65, 65)
+    assert report.region_count == 0
+    assert [label for label, _ in report.output_paths] == ["npz", "plot"]
+
+
+def test_main_validate_succeeds_without_solving_or_writing(monkeypatch, capsys, tmp_path: Path):
+    def fail_solve(*args, **kwargs):
+        raise AssertionError("validate must not run the solver")
+
+    output = tmp_path / "solution.npz"
+    monkeypatch.setattr(cli, "solve_from_config", fail_solve)
+
+    exit_code = main(
+        ["validate", str(REPO_ROOT / "examples" / "fixed_boundary.toml"), "--output", str(output)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Validation succeeded" in captured.out
+    assert "grid: nr=65, nz=65" in captured.out
+    assert not output.exists()
+
+
+def test_main_validate_reports_invalid_grid(capsys, tmp_path: Path):
+    config_path = tmp_path / "bad_grid.toml"
+    config_path.write_text(
+        """
+[grid]
+nr = 2
+nz = 9
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["validate", str(config_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Validation failed" in captured.err
+    assert "grid.nr must be at least 3" in captured.err
+
+
+def test_validate_config_reports_physical_and_solver_errors(tmp_path: Path):
+    config_path = tmp_path / "bad_controls.toml"
+    config_path.write_text(
+        """
+[grid]
+r_min = 1.0
+r_max = 0.5
+nr = 9
+nz = 9
+
+[source]
+profile = "unsupported"
+pressure_scale = "bad"
+ffp_scale = 1.0
+
+[solver]
+iterations = "many"
+relaxation = 2.0
+dtype = "float16"
+
+[[coil]]
+name = "PF"
+r = 1.0
+z = 0.0
+current = 1.0
+sigma = 0.1
+
+[[coil]]
+name = "PF"
+r = 1.0
+z = 0.0
+current = 1.0
+sigma = -0.1
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError) as exc_info:
+        validate_config(config_path)
+
+    message = str(exc_info.value)
+    assert "grid: r_max must be greater than r_min" in message
+    assert "source.profile must be 'solovev'" in message
+    assert "source.pressure_scale must be a finite number" in message
+    assert "solver.iterations must be an integer" in message
+    assert "solver.relaxation must satisfy" in message
+    assert "solver.dtype must be 'float32' or 'float64'" in message
+    assert "duplicated" in message
+    assert "coil[1].sigma must be positive" in message
+
+
+def test_validate_config_rejects_empty_and_bad_coil_fields(tmp_path: Path):
+    config_path = tmp_path / "bad_coil.toml"
+    config_path.write_text(
+        """
+[grid]
+nr = 9
+nz = 9
+
+[[coil]]
+name = ""
+r = "bad"
+z = 0.0
+current = 1.0
+sigma = 0.1
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError) as exc_info:
+        validate_config(config_path)
+
+    message = str(exc_info.value)
+    assert "coil[0].name must be nonempty" in message
+    assert "coil[0].r must be a finite number" in message
+
+
+def test_validate_config_rejects_invalid_region_geometry(tmp_path: Path):
+    config_path = tmp_path / "bad_region.toml"
+    config_path.write_text(
+        """
+[[region]]
+shape = "rectangle"
+id = 1
+name = "BAD"
+r_min = 2.0
+r_max = 1.0
+z_min = -0.5
+z_max = 0.5
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError, match=r"TOML/config parse error"):
+        validate_config(config_path)
+
+
+def test_validate_config_rejects_output_parent_file(tmp_path: Path):
+    config_path = tmp_path / "bad_output.toml"
+    parent_file = tmp_path / "not_a_directory"
+    parent_file.write_text("content", encoding="utf-8")
+    config_path.write_text(
+        f"""
+[grid]
+nr = 9
+nz = 9
+
+[output]
+npz = "{parent_file / "solution.npz"}"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError, match="parent is not a directory"):
+        validate_config(config_path)
+
+
+def test_validate_config_rejects_output_directory_and_non_path(tmp_path: Path):
+    directory_config = tmp_path / "output_directory.toml"
+    directory_config.write_text(
+        f"""
+[grid]
+nr = 9
+nz = 9
+
+[output]
+plot = "{tmp_path}"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError, match="points to a directory"):
+        validate_config(directory_config)
+
+    non_path_config = tmp_path / "output_non_path.toml"
+    non_path_config.write_text(
+        """
+[grid]
+nr = 9
+nz = 9
+
+[output]
+plot = [1, 2]
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError, match="must be a filesystem path"):
+        validate_config(non_path_config)
+
+
+def test_validate_output_path_reports_unwritable_ancestor(monkeypatch, tmp_path: Path):
+    errors: list[str] = []
+    monkeypatch.setattr(cli.os, "access", lambda *_args: False)
+
+    cli._validate_output_path("plot", tmp_path / "figure.png", errors)
+
+    assert any("ancestor is not writable" in error for error in errors)

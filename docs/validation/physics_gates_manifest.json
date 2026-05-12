@@ -1,0 +1,182 @@
+{
+  "schema_version": "0.1.0",
+  "project": "tokamaker-jax",
+  "manifest_type": "physics_validation_gates",
+  "global_requirements": {
+    "no_unimplemented_parity_claims": true,
+    "record_fixture_paths": true,
+    "record_command": true,
+    "record_artifact_paths": true,
+    "record_dtype_and_backend": true,
+    "record_tolerance": true,
+    "record_hardware_for_performance": true
+  },
+  "gates": [
+    {
+      "id": "fem-p1-reference-kernels",
+      "category": "finite_element",
+      "status": "implemented",
+      "description": "Validate p=1 reference-triangle nodes, basis functions, gradients, affine maps, degree-2 quadrature, and local mass/stiffness matrices.",
+      "command": "python -m pytest tests/test_fem.py",
+      "artifact": null,
+      "required_checks": [
+        "partition_of_unity",
+        "kronecker_delta_at_vertices",
+        "degree_two_quadrature_exactness",
+        "affine_mapping_consistency",
+        "physical_gradient_sum_zero",
+        "mass_matrix_symmetry",
+        "mass_matrix_positive_definite",
+        "stiffness_matrix_symmetry",
+        "stiffness_constant_nullspace"
+      ],
+      "pass_rule": {
+        "type": "analytic_identity",
+        "tolerance_source": "tests/test_fem.py"
+      }
+    },
+    {
+      "id": "fem-p1-dense-global-assembly",
+      "category": "finite_element",
+      "status": "implemented",
+      "description": "Validate dense global mass and Laplace stiffness assembly on a two-triangle unit-square mesh.",
+      "command": "python -m pytest tests/test_assembly.py",
+      "artifact": null,
+      "required_checks": [
+        "exact_unit_square_mass_matrix",
+        "exact_unit_square_stiffness_matrix",
+        "symmetry",
+        "mass_total",
+        "positive_mass_eigenvalues",
+        "stiffness_positive_semidefinite",
+        "stiffness_row_sum_zero",
+        "jit_compatibility",
+        "coordinate_gradient_finiteness"
+      ],
+      "pass_rule": {
+        "type": "analytic_identity",
+        "tolerance_source": "tests/test_assembly.py"
+      }
+    },
+    {
+      "id": "config-toml-validation",
+      "category": "configuration",
+      "status": "implemented",
+      "description": "Validate TOML parsing, region geometry, grid dimensions, solver controls, coil controls, and output paths without solving.",
+      "command": "python -m pytest tests/test_cli_validate.py tests/test_config.py",
+      "artifact": null,
+      "required_checks": [
+        "valid_example_config",
+        "validate_does_not_solve",
+        "invalid_grid_rejected",
+        "invalid_region_geometry_rejected",
+        "invalid_output_path_rejected"
+      ],
+      "pass_rule": {
+        "type": "schema_and_runtime_validation",
+        "tolerance_source": "not_applicable"
+      }
+    },
+    {
+      "id": "figure-metadata-and-gui-summaries",
+      "category": "plotting_gui",
+      "status": "implemented",
+      "description": "Validate JSON-ready figure recipes, region table data, and GUI metadata summaries for seed equilibrium and region views.",
+      "command": "python -m pytest tests/test_plotting.py tests/test_gui.py",
+      "artifact": "docs/_static/region_geometry_seed.png",
+      "required_checks": [
+        "figure_recipe_json_roundtrip",
+        "region_table_json_roundtrip",
+        "equilibrium_metadata_summary",
+        "plot_metadata_annotation",
+        "plotly_region_metadata",
+        "gui_table_rows"
+      ],
+      "pass_rule": {
+        "type": "metadata_schema_and_artifact_presence",
+        "tolerance_source": "tests/test_plotting.py and tests/test_gui.py"
+      }
+    },
+    {
+      "id": "seed-and-local-fem-benchmarks",
+      "category": "performance",
+      "status": "implemented",
+      "description": "Validate executable benchmark helpers and JSON-friendly timing outputs without asserting hardware-independent speed.",
+      "command": "python -m pytest tests/test_benchmarks.py",
+      "artifact": null,
+      "required_checks": [
+        "benchmark_result_json_roundtrip",
+        "benchmark_validation_errors",
+        "small_seed_solve_timing",
+        "jitted_local_fem_kernel_timing"
+      ],
+      "pass_rule": {
+        "type": "executable_schema",
+        "tolerance_source": "not_applicable"
+      }
+    },
+    {
+      "id": "manufactured-p1-poisson-convergence",
+      "category": "manufactured_solution",
+      "status": "planned",
+      "description": "Validate triangular p=1 Poisson convergence with H1 order one and L2 order two on shape-regular refinements.",
+      "command": null,
+      "artifact": null,
+      "required_checks": [
+        "load_vector_assembly",
+        "dirichlet_boundary_conditions",
+        "refinement_sequence",
+        "observed_h1_rate",
+        "observed_l2_rate",
+        "roundoff_floor_detection"
+      ],
+      "pass_rule": {
+        "type": "observed_rate",
+        "h1_expected_order": 1,
+        "l2_expected_order": 2
+      }
+    },
+    {
+      "id": "free-boundary-tokamaker-parity",
+      "category": "physics_parity",
+      "status": "planned",
+      "description": "Compare selected free-boundary equilibria against OpenFUSIONToolkit/TokaMaker fixtures with documented tolerances.",
+      "command": null,
+      "artifact": null,
+      "required_checks": [
+        "oft_fixture_import",
+        "coil_response",
+        "conductor_regions",
+        "boundary_flux_error",
+        "psi_axis_error",
+        "xpoint_or_limiter_policy"
+      ],
+      "pass_rule": {
+        "type": "code_to_code_fixture_specific",
+        "tolerance_source": "future validation report"
+      }
+    }
+  ],
+  "literature_anchored_figures": [
+    {
+      "id": "tokamaker-cpc-seed-equilibrium-family",
+      "status": "planned",
+      "source": "Hansen et al., Computer Physics Communications 298, 109111 (2024)",
+      "figure_id": "selected TokaMaker equilibrium/validation figure",
+      "reproduction_goal": "Reproduce a documented equilibrium family with case TOML, generated figure, and scalar diagnostics.",
+      "command": null,
+      "artifact": null,
+      "comparison_rule": "fixture-specific scalar diagnostics plus visual artifact"
+    },
+    {
+      "id": "openfusiontoolkit-example-parity",
+      "status": "planned",
+      "source": "OpenFUSIONToolkit examples and documentation",
+      "figure_id": "selected public TokaMaker example output",
+      "reproduction_goal": "Reproduce the selected public example with source links, inputs, output image, and numerical comparison table.",
+      "command": null,
+      "artifact": null,
+      "comparison_rule": "code-to-code fixture comparison"
+    }
+  ]
+}

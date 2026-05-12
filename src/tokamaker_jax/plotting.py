@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -58,6 +60,70 @@ class FigureRecipe:
             recipe["command"] = self.command
         return recipe
 
+    def to_json(self, *, indent: int | None = 2) -> str:
+        """Return the recipe as a deterministic JSON document."""
+
+        return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
+
+
+def equilibrium_metadata_summary(solution: EquilibriumSolution) -> dict[str, Any]:
+    """Return compact validation metadata for an equilibrium solution."""
+
+    residual = np.asarray(solution.residual_history)
+    return {
+        "iterations": int(solution.iterations),
+        "grid": {
+            "nr": int(solution.grid.nr),
+            "nz": int(solution.grid.nz),
+            "r_min": float(solution.grid.r_min),
+            "r_max": float(solution.grid.r_max),
+            "z_min": float(solution.grid.z_min),
+            "z_max": float(solution.grid.z_max),
+            "dr": float(solution.grid.dr),
+            "dz": float(solution.grid.dz),
+        },
+        "psi": _field_summary(solution.psi),
+        "source": _field_summary(solution.source),
+        "residual": {
+            "shape": list(residual.shape),
+            "dtype": str(residual.dtype),
+            "initial": _finite_scalar(residual[0]) if residual.size else None,
+            "final": _finite_scalar(residual[-1]) if residual.size else None,
+            "range": _finite_range(residual),
+        },
+    }
+
+
+def region_table_data(regions: RegionSet | Sequence[Region]) -> list[dict[str, Any]]:
+    """Return flat JSON-ready rows for displaying or exporting region metadata."""
+
+    region_tuple = _region_tuple(regions)
+    if not region_tuple:
+        raise ValueError("regions must contain at least one region")
+    rows = []
+    for region in region_tuple:
+        r_min, r_max, z_min, z_max = region.bounds
+        centroid_r, centroid_z = region.centroid
+        rows.append(
+            {
+                "id": int(region.id),
+                "name": region.name,
+                "kind": region.kind,
+                "area": float(region.area),
+                "centroid_r": float(centroid_r),
+                "centroid_z": float(centroid_z),
+                "r_min": float(r_min),
+                "r_max": float(r_max),
+                "z_min": float(z_min),
+                "z_max": float(z_max),
+                "n_points": int(region.points.shape[0]),
+                "n_holes": int(len(region.holes)),
+                "target_size": None if region.target_size is None else float(region.target_size),
+                "metadata": _json_ready(region.metadata),
+            }
+        )
+    return rows
+
 
 def equilibrium_figure_data(
     solution: EquilibriumSolution,
@@ -104,6 +170,7 @@ def equilibrium_figure_data(
                 "dz": solution.grid.dz,
             },
             "iterations": solution.iterations,
+            "summary": equilibrium_metadata_summary(solution),
         },
     )
 
@@ -162,7 +229,7 @@ def region_figure_data(
 ) -> FigureRecipe:
     """Return structured figure data for :func:`plot_regions`."""
 
-    region_tuple = regions.regions if isinstance(regions, RegionSet) else tuple(regions)
+    region_tuple = _region_tuple(regions)
     if not region_tuple:
         raise ValueError("regions must contain at least one region")
     all_points = np.vstack([region.points for region in region_tuple])
@@ -208,6 +275,7 @@ def region_figure_data(
                 "R": _finite_range(all_points[:, 0]),
                 "Z": _finite_range(all_points[:, 1]),
             },
+            "table": region_table_data(region_tuple),
         },
     )
 
@@ -218,6 +286,7 @@ def plot_equilibrium(
     levels: int = 24,
     ax: plt.Axes | None = None,
     show_source: bool = False,
+    show_metadata: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot flux contours, optionally with the source term as a background."""
 
@@ -237,6 +306,8 @@ def plot_equilibrium(
     ax.set_ylabel("Z [m]")
     ax.set_aspect("equal", adjustable="box")
     ax.set_title("tokamaker-jax fixed-boundary seed equilibrium")
+    if show_metadata:
+        _annotate_equilibrium_metadata(ax, equilibrium_metadata_summary(solution))
     return fig, ax
 
 
@@ -302,7 +373,7 @@ def plot_regions(
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot region geometry loops for machine-definition previews."""
 
-    region_tuple = regions.regions if isinstance(regions, RegionSet) else tuple(regions)
+    region_tuple = _region_tuple(regions)
     if not region_tuple:
         raise ValueError("regions must contain at least one region")
     fig, ax = (
@@ -365,6 +436,34 @@ def _region_label_position(region: Region) -> tuple[float, float]:
     return 0.5 * (inner_max_r + outer_max_r), center_z
 
 
+def _region_tuple(regions: RegionSet | Sequence[Region]) -> tuple[Region, ...]:
+    return regions.regions if isinstance(regions, RegionSet) else tuple(regions)
+
+
+def _annotate_equilibrium_metadata(ax: plt.Axes, summary: dict[str, Any]) -> None:
+    psi_range = summary["psi"]["range"]
+    residual = summary["residual"]
+    text = "\n".join(
+        (
+            f"grid {summary['grid']['nr']}x{summary['grid']['nz']}",
+            f"iterations {summary['iterations']}",
+            f"psi [{_format_range_endpoint(psi_range['min'])}, "
+            f"{_format_range_endpoint(psi_range['max'])}]",
+            f"residual {_format_range_endpoint(residual['final'])}",
+        )
+    )
+    ax.text(
+        0.02,
+        0.98,
+        text,
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=8,
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "alpha": 0.82, "linewidth": 0.5},
+    )
+
+
 def _array_payload(
     values: Any,
     *,
@@ -391,6 +490,15 @@ def _array_payload(
     return payload
 
 
+def _field_summary(values: Any) -> dict[str, Any]:
+    array = np.asarray(values)
+    return {
+        "shape": list(array.shape),
+        "dtype": str(array.dtype),
+        "range": _finite_range(array),
+    }
+
+
 def _finite_range(values: Any) -> dict[str, float | bool | None]:
     array = np.asarray(values, dtype=np.float64)
     finite = array[np.isfinite(array)]
@@ -401,6 +509,17 @@ def _finite_range(values: Any) -> dict[str, float | bool | None]:
         "max": float(np.max(finite)),
         "all_finite": bool(finite.size == array.size),
     }
+
+
+def _finite_scalar(value: Any) -> float | None:
+    scalar = float(np.asarray(value))
+    return scalar if np.isfinite(scalar) else None
+
+
+def _format_range_endpoint(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.3e}"
 
 
 def _json_ready(value: Any) -> Any:
