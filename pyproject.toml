@@ -28,6 +28,7 @@ dependencies = [
   "jax>=0.4.28",
   "numpy>=1.26",
   "scipy>=1.11",
+  "h5py>=3.11",
   "matplotlib>=3.8",
   "tomli>=2.0.1; python_version < '3.11'",
 ]
@@ -79,4 +80,3 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-

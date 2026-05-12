@@ -5,8 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 import numpy as np
 
+from tokamaker_jax.mesh import TriMesh
 from tokamaker_jax.solver import EquilibriumSolution
 
 
@@ -44,6 +46,49 @@ def save_equilibrium_plot(solution: EquilibriumSolution, path: str | Path) -> Pa
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fig, _ = plot_equilibrium(solution, show_source=True)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+    return path.resolve()
+
+
+def plot_mesh(
+    mesh: TriMesh,
+    *,
+    ax: plt.Axes | None = None,
+    show_regions: bool = True,
+    show_edges: bool = True,
+    linewidth: float = 0.35,
+) -> tuple[plt.Figure, plt.Axes]:
+    """Plot a triangular mesh with optional region coloring."""
+
+    fig, ax = (
+        plt.subplots(figsize=(6.5, 5.2), constrained_layout=True) if ax is None else (ax.figure, ax)
+    )
+    triangulation = mtri.Triangulation(mesh.nodes[:, 0], mesh.nodes[:, 1], mesh.triangles)
+    if show_regions:
+        region_plot = ax.tripcolor(
+            triangulation,
+            mesh.regions.astype(float),
+            shading="flat",
+            cmap="tab20",
+            alpha=0.75,
+        )
+        fig.colorbar(region_plot, ax=ax, label="region id")
+    if show_edges:
+        ax.triplot(triangulation, color="black", linewidth=linewidth, alpha=0.45)
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("tokamaker-jax triangular mesh")
+    return fig, ax
+
+
+def save_mesh_plot(mesh: TriMesh, path: str | Path) -> Path:
+    """Save a mesh preview plot and return the resolved path."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig, _ = plot_mesh(mesh)
     fig.savefig(path, dpi=180)
     plt.close(fig)
     return path.resolve()

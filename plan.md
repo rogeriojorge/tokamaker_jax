@@ -36,6 +36,13 @@ This file is both the engineering plan and the running implementation log for a 
 - Added a figure-reproduction program targeting TokaMaker paper figures, analytic equilibrium literature, EFIT/FreeGS/FreeGSNKE comparisons, bootstrap formulas, and pulse-design workflows.
 - Added planned GUI/plotting files, figure manifests, and acceptance gates for data-level reproduction of literature plots.
 
+### 2026-05-12 17:30 WEST
+
+- Started M1 implementation with a concrete `TriMesh` container for TokaMaker-style triangular meshes.
+- Added native TokaMaker mesh HDF5/JSON load-save helpers for `mesh/r`, `mesh/lc`, `mesh/reg`, `mesh/coil_dict`, and `mesh/cond_dict`.
+- Added deterministic mesh summaries, region area/count helpers, boundary-edge extraction, conductor/vacuum metadata helpers, and mesh plotting.
+- Added tests covering validation errors, HDF5/JSON round trips, plotting output, and local upstream ITER mesh import when the OFT checkout is present.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>
