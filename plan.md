@@ -29,6 +29,13 @@ This file is both the engineering plan and the running implementation log for a 
 - Added documentation deliverables for full equations, derivations, references, source links, validation reports, and tutorials.
 - Added equation-id validation contracts, fixture schemas, package API ownership, test markers, and explicit citation/source-link documentation rules.
 
+### 2026-05-12 17:05 WEST
+
+- Added a final literature deep-dive pass for equations, models, derivations, code features, and plots.
+- Added explicit GUI requirements for beginner usability, research-grade inspection, provenance, technical controls, and headless reproducibility.
+- Added a figure-reproduction program targeting TokaMaker paper figures, analytic equilibrium literature, EFIT/FreeGS/FreeGSNKE comparisons, bootstrap formulas, and pulse-design workflows.
+- Added planned GUI/plotting files, figure manifests, and acceptance gates for data-level reproduction of literature plots.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>
@@ -162,6 +169,96 @@ This plan uses the following external sources as design constraints and comparis
 - Cerfon and Freidberg provide analytic Solov'ev-family equilibria with realistic tokamak, spherical tokamak, spheromak, field-reversed-configuration, and X-point shapes: DOI <https://doi.org/10.1063/1.3328818>.
 - Redl et al. provide a modern analytic bootstrap/neoclassical conductivity model and compare it to Sauter-style formulas and NEO results: DOI <https://doi.org/10.1063/5.0012664>.
 - Lao et al./EFIT and later EFIT workflows are reconstruction references for magnetic diagnostics, constraints, and reconstruction validation: <https://www.osti.gov/biblio/20854274>.
+- Grad and Rubin are the original hydromagnetic equilibrium reference for force-free/equilibrium fields: DOI <https://doi.org/10.1016/0891-3919(58)90139-6>.
+- Lao et al. 1985 is the core EFIT reconstruction reference for current-profile and shape reconstruction: DOI <https://doi.org/10.1088/0029-5515/25/11/007>.
+- Lackner's free-boundary equilibrium work is a key reference for boundary-condition strategy: DOI <https://doi.org/10.1016/0010-4655(76)90008-4>.
+- FBT, CHEASE, CORSICA, CRONOS, FEEQS/CEDRES, NICE, and CREATE-NL+ provide comparison points for free-boundary, integrated-modeling, FEM, dynamic-equilibrium, and scenario-design workflows.
+- Spectral-element, mimetic, and C0/C1 FEM Grad-Shafranov papers are useful numerical references for convergence, element choices, and future higher-order extensions.
+- CAKE and modern kinetic equilibrium reconstruction work provide references for richer reconstruction plots and residual diagnostics.
+- Multilevel Monte Carlo and surrogate-equilibrium papers are useful later-stage references for uncertainty propagation, reduced-order models, and performance/accuracy tradeoffs.
+
+## Literature Deep-Dive: Equations, Models, Features, and Plots
+
+This pass turns the literature review into implementation requirements. Every cited idea must land in one of four places: an equation page, a model/source module, a validation fixture, or a figure recipe.
+
+### Source-to-Implementation Matrix
+
+| Source family | Main lesson for `tokamaker_jax` | Required code/docs/tests/plots |
+| --- | --- | --- |
+| Grad-Rubin, Shafranov, standard GS derivations | Start from axisymmetric force balance, define `psi`, `F`, pressure, `Delta*`, and sign conventions before discretization. | `equations/grad_shafranov.md`, `physics/grad_shafranov.py`, manufactured residual tests, convention diagrams. |
+| Lackner, Albanese/Blum infinite-domain boundary conditions, virtual-casing references | Free-boundary solves must separate interior FEM residuals from boundary/infinite-domain corrections. | `equations/free_boundary.md`, `physics/greens.py`, `solvers/free_boundary.py`, vacuum-coil convergence plots. |
+| TokaMaker paper and OFT source | Match static, free-boundary, reconstruction, time-dependent, wall-mode, bootstrap, mesh, IO, and example workflows. | OFT parity fixtures, compatibility API, TokaMaker figure-reproduction recipes, migration docs. |
+| FBT, CHEASE, CORSICA, CRONOS | Support research expectations around shape control, integrated-modeling IO, kinetic-profile coupling, and equilibrium exchange. | IO roadmap, profile interfaces, future IMAS/OMAS notes, comparison feature table in docs. |
+| FEEQS/CEDRES, NICE, CREATE-NL+ | Dynamic free-boundary equilibrium and current diffusion workflows need explicit conductor/circuit models and robust Newton-like solvers. | `physics/conductors.py`, `solvers/time_dependent.py`, pulse-design examples, conductor-current plots. |
+| Spectral/mimetic/C0/C1 FEM papers | Document why the initial port uses C0 triangular Lagrange FEM and how future element families can be added. | FEM derivation docs, element abstraction boundaries, convergence benchmark tables. |
+| Spheromak, Solov'ev, Zheng-Wootton-Solano, Xu-Fitzpatrick, Cerfon-Freidberg | Analytic equilibria are the strongest validation and plot targets for topology, O/X points, separatrices, and convergence. | analytic fixture generators, shape gallery, O/X marker tests, convergence plots. |
+| FreeGS and FreeGSNKE | Usability should expose static forward, static inverse, evolutive forward, passive structures, probes, and simple coil constraints. | example gallery, TOML templates, GUI case wizard, LCFS comparison plots. |
+| EFIT/Lao and CAKE | Reconstruction must show residuals, diagnostics, fitted profiles, uncertainty/error maps, and boundary errors, not just final flux contours. | reconstruction objective docs, synthetic diagnostics, residual dashboard, EFIT-style boundary error plots. |
+| Sauter and Redl bootstrap formulas | Bootstrap implementation must be formula-auditable with coefficient-chain plots and branch/limit tests. | bootstrap derivation page, coefficient tables, ITER H-mode bootstrap plots. |
+| JAX-FEM and TORAX | Differentiability is a product feature, not an implementation detail; expose gradients, sensitivities, batching, and performance. | autodiff docs, gradient-check GUI panel, sensitivity plots, benchmark reports. |
+| GSPD/scenario-design literature | Pulse and scenario design need target traces, waveform editors, objective histories, and reproducible optimization records. | pulse TOML schema, time-slider GUI, waveform plots, optimization trace exports. |
+| MLMC/UQ/surrogate equilibrium papers | Future generalization should support uncertainty ensembles, surrogate comparisons, and accuracy/cost plots. | benchmark schema extensions, ensemble plotting, optional surrogate validation docs. |
+
+### Literature Figure Reproduction Program
+
+The project should reproduce the data and visual content of literature figures with generated outputs, not copied images. Each target gets a TOML case, Python script, expected numeric diagnostics, and a generated figure stored under docs assets.
+
+Planned files:
+
+```text
+examples/literature_reproduction/
+  tokamaker_fig01_iter_equilibrium.toml
+  tokamaker_fig02_iter_mesh_regions.toml
+  tokamaker_fig04_iter_wall_mode.toml
+  tokamaker_fig05_spheromak_flux_error.toml
+  tokamaker_fig06_spheromak_convergence.toml
+  tokamaker_fig07_solovev_flux_error.toml
+  tokamaker_fig08_solovev_convergence.toml
+  tokamaker_fig09_vacuum_coil_flux_error.toml
+  tokamaker_fig10_vacuum_coil_convergence.toml
+  tokamaker_fig11_freegs_lcfs.toml
+  tokamaker_fig12_efit_boundary_error.toml
+  cerfon_freidberg_shape_gallery.toml
+  sauter_redl_bootstrap_coefficients.toml
+  freegsnke_static_inverse_comparison.toml
+  pulse_design_waveform_trace.toml
+scripts/
+  reproduce_literature_figures.py
+  compare_figure_data.py
+docs/validation/figures/
+  manifest.yml
+  README.md
+```
+
+Target figure families:
+
+| Figure target | Source anchor | Generated outputs | Data-level acceptance gate |
+| --- | --- | --- | --- |
+| ITER equilibrium region/flux view | TokaMaker paper Fig. 1 and ITER example | region-colored flux plot, LCFS, dashed exterior contours, coil current colorbar | region ids match fixture; contour levels and scalar diagnostics match OFT within parity tolerance. |
+| ITER mesh by region | TokaMaker paper Fig. 2 | four-panel mesh view for vacuum, coils, structures, plasma | element counts, region areas, boundary lengths, and coil labels match imported mesh metadata. |
+| X-point constraint view | TokaMaker paper Fig. 3 | zoomed constraint overlay with isoflux/saddle markers | target residuals before/after solve stored and below configured tolerance. |
+| ITER eddy-current decay mode | TokaMaker paper Fig. 4 | conductor-current mode plot and decay-time annotation | first wall-mode eigenvalue/decay time within wall-mode parity tolerance. |
+| Spheromak analytic flux/error | TokaMaker paper Fig. 5 and spheromak references | flux overlay and local error heatmap | L2 error and pointwise max error match analytic fixture thresholds. |
+| Spheromak convergence | TokaMaker paper Fig. 6 | log-log convergence curve by order | fitted convergence slopes meet expected order gates. |
+| Solov'ev analytic flux/error | TokaMaker paper Fig. 7, Solov'ev, Cerfon-Freidberg | flux overlay, local error, O/X markers | O/X locations and local residuals meet analytic thresholds. |
+| Solov'ev convergence | TokaMaker paper Fig. 8 | psi error and O/X error convergence curves | slope and final-error gates pass for p=2/3/4 where applicable. |
+| Vacuum coil Green's-function solution | TokaMaker paper Fig. 9 | flux overlay and local error outside coil | Green's function and boundary-condition errors pass vacuum-coil gates. |
+| Vacuum coil convergence | TokaMaker paper Fig. 10 | boundary-flux convergence curves | boundary-only convergence slopes and documented p=4 floor are reproduced. |
+| FreeGS LCFS comparison | TokaMaker paper Fig. 11 and FreeGS examples | LCFS overlay for matched profiles/currents | signed LCFS distance distribution and scalar diagnostics within fixture tolerance. |
+| EFIT reconstruction boundary errors | TokaMaker paper Fig. 12 and EFIT/Lao references | boundary-error scatter/colormap, eddy-current annotations | boundary error metrics and reconstruction residuals match synthetic EFIT fixture. |
+| Cerfon-Freidberg shape gallery | Cerfon-Freidberg analytic solutions | limiter, single-null, double-null, spherical tokamak, spheromak, FRC panels | boundary RMS, axis, X-point, and separatrix tests pass. |
+| Bootstrap coefficient curves | Sauter/Redl references | trapped fraction, collisionality, coefficient, and j_BS profile plots | coefficient tables pass formula tests within `5e-4` relative. |
+| FreeGSNKE evolutive workflow | FreeGSNKE docs/paper | time slider, passive currents, probes, LCFS time traces | short static/inverse/evolutive fixtures pass cross-code tolerance. |
+| Pulse-design workflows | GSPD/scenario-design references and OFT pulse examples | waveform, coil current, objective, shape-trace, movie outputs | replay from TOML reproduces saved diagnostics and figure data hashes. |
+
+Figure reproduction rules:
+
+- Reproduce figure data and scientific visual semantics, not copyrighted pixels or styling.
+- Every figure recipe must produce `png`, `svg` or `pdf`, and a data file such as `json`, `csv`, or `npz`.
+- The manifest stores source citation, generated command, input case hash, output data hash, backend, dtype, and tolerance.
+- GUI-generated figures must use the same figure recipe objects as CLI/docs generation.
+- Visual regression tests may check layout and nonblank rendering, but physics acceptance is always data-level.
+- Literature reproduction can start with reduced-resolution cases, but each reduced case must state what differs from the paper.
 
 ## Literature-Anchored Validation Program
 
@@ -1251,26 +1348,135 @@ Exit code policy:
 
 ## GUI Plan
 
+The GUI should be easy for a first-time user, but technical enough that a researcher can inspect equations, tolerances, diagnostics, solver status, and provenance without dropping into a debugger. The GUI is not a separate product path: every GUI action must serialize to the same TOML schema and must be replayable from the CLI.
+
+### GUI Design Principles
+
+- Default entry point:
+  - `tokamaker-jax` opens the GUI to a case dashboard, not a marketing page.
+  - `tokamaker-jax case.toml` runs headlessly and can open the same case later in the GUI.
+- Progressive disclosure:
+  - `Standard` mode shows common settings, validation status, examples, and plots.
+  - `Research` mode exposes equation ids, source links, residual norms, Jacobian choices, tolerances, mesh quality, solver internals, and gradient tests.
+  - Both modes write the same complete TOML file; hidden defaults are displayed in the exported configuration.
+- Reproducibility:
+  - every run creates a run folder with input TOML, resolved TOML, environment metadata, git commit, package versions, solver logs, figure-data files, and exported figures.
+  - every button that changes scientific state updates the TOML preview.
+  - generated Python snippets and CLI commands are shown for each completed run.
+- Research ergonomics:
+  - units and COCOS convention are visible in every relevant panel.
+  - citations/equation ids are available from tooltips or side panels for profiles, constraints, bootstrap, Green's functions, diagnostics, and solver modes.
+  - validation errors report the exact TOML key path and proposed fix.
+  - solver failures keep the last state, residual history, and diagnostic plots available.
+- Performance ergonomics:
+  - preview meshes and reduced cases are default for interactive work.
+  - high-fidelity mode is explicit and shows estimated compile/runtime cost.
+  - compiled solves are cached by mesh signature, order, dtype, backend, and active model features.
+
 ### Screens
 
 1. Case browser:
-   - new case, open TOML, example gallery, recent runs.
+   - new case, open TOML, example gallery, recent runs, literature-reproduction gallery.
+   - filters for analytic, OFT parity, machine examples, reconstruction, time-dependent, bootstrap, and differentiable optimization.
 2. Machine/mesh:
    - region table, coil table, conductor table, limiter preview, mesh preview, mesh quality diagnostics.
+   - region-color views matching TokaMaker Fig. 1/Fig. 2 style recipes.
 3. Profiles:
    - profile type selector, coefficient editor, plot of `p'`, `FF'`, `j_phi`, bootstrap terms.
+   - derivative and source-term preview with equation ids `GS-source-01`, `BS-01`, and `BS-02`.
 4. Constraints and targets:
    - Ip/R0/Z0/pax/beta targets, isoflux points, saddle points, flux loops, Mirnov probes, q/pressure constraints.
+   - interactive residual preview for reconstruction and inverse-shape workflows.
 5. Solve:
    - solve mode, solver settings, backend, progress, convergence history, structured warnings.
+   - linear/nonlinear residual split, line-search/damping trace, active constraints, and compile-vs-run timing.
 6. Equilibrium:
    - flux contours, LCFS, O/X points, geometry overlay, coil currents, q profile, pressure/current profiles, global diagnostics.
+   - contour-level controls, COCOS display, separatrix topology label, and diagnostics table with units.
 7. Time-dependent:
    - waveform editor, time slider, animation export, conductor currents, VDE metrics.
+   - pulse replay from TOML, frame-by-frame diagnostics, and scan-gradient status when enabled.
 8. Optimization:
    - objective terms, differentiable parameters, gradient checks, optimization traces.
+   - finite-difference vs autodiff comparison, sensitivity maps, and excluded nonsmooth events.
 9. Export:
    - TOML, HDF5, EQDSK, i-file, MUG-compatible output, PNG/SVG/PDF, GIF/MP4.
+   - complete run bundle with manifest, citation list, and figure data.
+10. Literature figure workbench:
+   - selectable target figures from the figure-reproduction manifest.
+   - side-by-side generated plot, expected data metrics, source citation, and reproduction command.
+   - reduced-resolution preview and full-fidelity reproduction modes.
+11. Equation and source inspector:
+   - equation id, derivation link, citation keys, source module link, tests validating the equation, and current case parameters used in that equation.
+
+### GUI Implementation Files
+
+Planned GUI and plotting additions:
+
+```text
+src/tokamaker_jax/gui/
+  app.py
+  routes.py
+  state.py
+  provenance.py
+  components/
+    case_browser.py
+    example_gallery.py
+    literature_gallery.py
+    toml_editor.py
+    mesh_panel.py
+    profile_panel.py
+    constraints_panel.py
+    solve_panel.py
+    diagnostics_panel.py
+    equation_inspector.py
+    gradient_panel.py
+    figure_workbench.py
+    export_panel.py
+src/tokamaker_jax/plotting/
+  equilibrium.py
+  mesh.py
+  profiles.py
+  diagnostics.py
+  convergence.py
+  reconstruction.py
+  time_dependent.py
+  bootstrap.py
+  sensitivities.py
+  figure_recipes.py
+```
+
+Implementation rules:
+
+- GUI state is a thin wrapper around public API objects: `Case`, `SolveResult`, `FigureRecipe`, and `RunManifest`.
+- No solver logic lives in GUI components.
+- Plotting code is shared by GUI, CLI, docs, and tests.
+- Plot recipes accept data objects and return both figure objects and structured figure data.
+- GUI tests should use browser automation for interaction and data-level assertions for figure correctness.
+
+### Research Plotting Requirements
+
+Core plot types:
+
+- machine cross-section with regions, limiter, coils, conductors, labels, and mesh overlay.
+- flux contours with LCFS, O-points, X-points, limiter contact, and exterior dashed contours.
+- local error heatmaps for analytic fixtures.
+- log-log convergence plots with fitted slopes and expected-order guide lines.
+- Green's-function value/gradient comparison plots.
+- q, pressure, `p'`, `FF'`, `j_phi`, bootstrap, and current-density profiles.
+- reconstruction residual panels for flux loops, Mirnov probes, boundary errors, q constraints, pressure constraints, and chi-square history.
+- wall-mode eigenfunction and eigenvalue/decay-time plots.
+- time-dependent waveforms, coil currents, passive currents, VDE displacement, shape metrics, and movies.
+- gradient/sensitivity plots for coil currents, profile parameters, shape objectives, and diagnostic residuals.
+- performance plots separating compile time, steady-state time, memory, iteration count, and gradient cost.
+
+Plot quality gates:
+
+- axes always include units and convention where relevant.
+- colorbars always include units or normalized quantity names.
+- every plotted line or contour is traceable to a data field in the figure-data export.
+- all docs/README plots are generated by scripts or figure recipes.
+- plot tests check finite values, expected data ranges, nonblank rendering, and figure-data hashes for release artifacts.
 
 ### GUI Acceptance Criteria
 
@@ -1279,6 +1485,10 @@ Exit code policy:
 - User can open a free-boundary example once Phase 3 is complete.
 - GUI-generated TOML validates and can be run headlessly.
 - Browser smoke tests verify the page is nonblank, controls are visible, and plot updates after a run.
+- User can select a literature target, run a reduced reproduction case, view expected-vs-actual metrics, and export a run bundle.
+- User can switch to research mode and see equation ids, citations, source links, residuals, tolerance gates, and diagnostics for the active solve.
+- User can reproduce at least one analytic convergence plot, one OFT parity plot, one reconstruction plot, one bootstrap plot, and one time-dependent plot from the GUI by the v1.0 milestone.
+- Every GUI figure can be regenerated by a recorded CLI command without opening the GUI.
 
 ## Documentation Plan
 
@@ -1286,6 +1496,9 @@ Docs structure:
 
 - Getting started: install, run GUI, run TOML, Python quickstart.
 - Concepts: Grad-Shafranov equation, regions, coils, profiles, constraints, free-boundary solves.
+- Equation and derivation chapters with equation ids, source-module links, citation keys, and validated-by tables.
+- Literature deep-dive chapter mapping references to implemented models, validation fixtures, and figure recipes.
+- Literature figure reproduction atlas with generated figures, commands, data files, and acceptance metrics.
 - API reference: generated from docstrings.
 - TOML schema reference with complete examples.
 - Tutorials:
@@ -1295,6 +1508,7 @@ Docs structure:
   - reconstruction from synthetic diagnostics.
   - time-dependent CUTE VDE.
   - bootstrap/H-mode scenario.
+  - literature figure reproduction from GUI and CLI.
   - GUI walkthrough.
 - Validation report: parity tables versus OFT and analytic cases.
 - Performance report: CPU/GPU timings and gradient costs.
@@ -1322,6 +1536,7 @@ Asset rules:
 | Property | invariants | partition of unity, symmetric matrices, positive areas |
 | Manufactured solution | PDE correctness | fixed-boundary analytic fields |
 | OFT parity | feature parity | Solov'ev, spheromak, ITER/LTX, reconstruction |
+| Literature figure reproduction | data-level plot reproducibility | TokaMaker Fig. 1-12 families, Cerfon-Freidberg shapes, Sauter/Redl curves |
 | Differentiability | gradient correctness | finite-difference vs `jax.grad`, implicit vs unrolled |
 | Performance | regressions | solve time, compile time, memory |
 | Docs/examples | user workflows | execute example TOML and notebooks |
@@ -1467,12 +1682,15 @@ Deliverables:
 - q profile, global quantities, beta/li, flux-surface tracing, O/X points, LCFS.
 - EQDSK/i-file read/write.
 - publication plotting and animations.
+- `FigureRecipe` API and literature figure manifest.
+- analytic and TokaMaker paper figure-reproduction recipes for mesh, flux/error, and convergence plots.
 
 Acceptance:
 
 - ITER EQDSK/i-file tests pass.
 - plotting examples generate README/docs assets.
 - docs include validation tables.
+- TokaMaker Fig. 1, Fig. 2, and Fig. 5-Fig. 10 families can be regenerated from committed TOML/scripts at reduced and release resolutions.
 
 ### M6: Reconstruction
 
@@ -1482,11 +1700,13 @@ Deliverables:
 - reconstruction optimizer.
 - fit import/export if needed.
 - reconstruction tutorial.
+- EFIT-style boundary-error and diagnostic-residual figure recipes.
 
 Acceptance:
 
 - ITER synthetic reconstruction parity passes.
 - gradients through diagnostic residuals pass finite-difference checks.
+- TokaMaker Fig. 12-style reconstruction plot is reproducible from synthetic or OFT/EFIT fixture data.
 
 ### M7: Conductors, Wall Modes, and Stability
 
@@ -1496,11 +1716,13 @@ Deliverables:
 - wall eigenmodes.
 - linear stability eigenmodes.
 - eddy-current plotting.
+- wall-mode/eigenfunction figure recipes.
 
 Acceptance:
 
 - ITER and LTX wall/stability tests pass.
 - conductor current diagnostics match OFT.
+- TokaMaker Fig. 4-style eddy-current decay-mode plot is reproducible from fixture data.
 
 ### M8: Time-Dependent and Pulse Workflows
 
@@ -1524,11 +1746,14 @@ Deliverables:
 - ITER H-mode/bootstrap example.
 - NSTX-U isoflux controller example.
 - DIII-D/CUTE pulse design examples.
+- Sauter/Redl coefficient and bootstrap-current figure recipes.
+- GUI literature gallery and figure workbench.
 
 Acceptance:
 
 - bootstrap and Redl tests pass.
 - advanced workflows generate docs artifacts.
+- GUI can reproduce one bootstrap plot, one pulse-design plot, and one literature figure bundle headlessly.
 
 ### M10: Release Hardening
 
@@ -1557,6 +1782,8 @@ Recommended next PRs:
 6. Add `greens.py` axisymmetric Green's function and gradient with OFT/brute-force tests.
 7. Add `docs/developer_porting.md` with a porting checklist and source-to-module map.
 8. Add `tokamaker-jax validate` command and schema error reporting.
+9. Add `docs/validation/figures/manifest.yml` and the first `FigureRecipe` interface.
+10. Add the GUI case browser/literature-gallery skeleton wired to TOML export.
 
 ## Issue Backlog
 
@@ -1587,7 +1814,14 @@ Suggested initial issues:
 - `M4-002`: Implement coil dict/vector mapping.
 - `M5-001`: Implement EQDSK reader/writer.
 - `GUI-001`: Replace seed GUI with case browser and TOML editor.
+- `GUI-002`: Add literature figure gallery with reduced/full-fidelity modes.
+- `GUI-003`: Add equation/source inspector with equation ids, citations, source links, and validating tests.
+- `PLOT-001`: Add `FigureRecipe` protocol and structured figure-data export.
+- `PLOT-002`: Reproduce TokaMaker spheromak/Solov'ev convergence figure families from analytic fixtures.
+- `PLOT-003`: Add EFIT-style boundary-error and reconstruction residual plots.
+- `PLOT-004`: Add Sauter/Redl bootstrap coefficient plot recipes.
 - `DOC-001`: Add validation report page.
+- `DOC-002`: Add literature deep-dive and figure-reproduction atlas pages.
 
 ## Risks and Mitigations
 
@@ -1601,6 +1835,7 @@ Suggested initial issues:
 | Optional mesh/GUI dependencies become fragile | install pain | keep optional extras and a lightweight core |
 | License conflicts from reference libraries | legal/redistribution issue | do not vendor GPL code; keep references conceptual unless license-compatible |
 | GitHub assets become too large | slow clones | generate large movies as release artifacts, keep repo assets small |
+| Literature figure reproduction becomes cosmetic | false confidence | require data-level metrics, fixture hashes, and physics gates for every generated figure |
 
 ## Open Questions
 
