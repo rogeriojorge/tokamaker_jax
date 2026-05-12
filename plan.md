@@ -11,6 +11,8 @@ This file is both the technical plan and the running implementation log for a JA
 - Audited TokaMaker source, Python API, docs, examples, and tests.
 - Created `/Users/rogeriojorge/local/tokamaker_jax` with package scaffold, TOML CLI, optional GUI entry point, docs, Read the Docs config, GitHub workflows, tests, README badges, citation metadata, and a differentiable JAX fixed-boundary seed solver.
 - The seed solver is not the full port. It is the executable base used to validate project packaging, differentiability, CLI/GUI shape, plotting, and coverage infrastructure while the full triangular FEM port proceeds.
+- Published public repository: <https://github.com/rogeriojorge/tokamaker_jax>.
+- Validation performed: Ruff formatting/linting passed, `pytest --cov=tokamaker_jax --cov-fail-under=95` passed with 98.66% coverage, and `sphinx -W -b html docs docs/_build/html` passed.
 
 ## Porting Goal
 
@@ -185,7 +187,7 @@ Status: started.
 - [x] Add package scaffold, README badges, docs, Read the Docs config, CI/CD workflows.
 - [x] Add a differentiable JAX fixed-boundary seed solver to validate infrastructure.
 - [x] Add TOML loader, CLI, optional GUI entry point, plotting, tests.
-- [ ] Publish public GitHub repo.
+- [x] Publish public GitHub repo.
 
 ### Phase 1: Mesh and FEM Core
 
@@ -257,4 +259,3 @@ Status: started.
 - Which sparse solver backend should be default for production: JAX BCOO iterative, jaxopt implicit solves, PETSc-through-callback for non-differentiable reference mode, or optional GPU direct solvers.
 - Whether the first full FEM port should directly implement p=2 default parity or start with p=1 for easier operator verification.
 - Whether GUI should remain NiceGUI or move to a notebook-native app once the workflow is clearer.
-
