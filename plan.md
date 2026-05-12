@@ -1957,3 +1957,8 @@ Important limitation: assembly is dense and p=1 only. The next physics step is
 not free-boundary equilibrium yet; it should be p=1 load-vector assembly,
 Dirichlet boundary conditions, and manufactured Poisson convergence before
 moving to sparse `BCOO`, Grad-Shafranov weak forms, and OFT parity fixtures.
+
+Follow-up CI note: the first push of this pass failed GitHub CI because the dev
+extra allowed floating Ruff versions, and the GitHub runner installed a newer
+formatter than the local environment. The fix is to pin Ruff at `0.13.1` so
+local and CI formatting gates are reproducible.
