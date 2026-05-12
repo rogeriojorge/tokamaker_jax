@@ -4,6 +4,9 @@
 .. automodule:: tokamaker_jax.config
    :members:
 
+.. automodule:: tokamaker_jax.comparison
+   :members:
+
 .. automodule:: tokamaker_jax.assembly
    :members:
 

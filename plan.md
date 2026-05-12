@@ -2238,3 +2238,100 @@ Best next steps:
    report.
 4. Add the GUI TOML case browser/editor and connect it to the validation
    report viewer.
+
+### 2026-05-12 22:27 WEST
+
+Completed the eighth implementation pass and raised the tracked overall
+completion marker from 78% to 82%.
+
+Implemented lanes:
+
+- OpenFUSIONToolkit/TokaMaker comparison: added
+  `tokamaker_jax.comparison`, which probes the local upstream checkout,
+  records the upstream commit and source/example inventory, and runs a
+  unit-current `eval_green` parity comparison against the JAX closed-form
+  circular-loop elliptic kernel when the OFT shared library is available.
+- Validation CLI: added `tokamaker-jax verify --gate oft-parity` and included
+  the availability-gated OpenFUSIONToolkit probe in `--gate all`.
+- README/docs visuals: generated and linked a validation dashboard, benchmark
+  summary, and coil-current sweep movie so the README and docs show the current
+  physics gates and performance state directly.
+- Validation manifest: added an explicit OpenFUSIONToolkit parity probe gate
+  with source-inventory checks, availability-gated status, and a documented
+  `1.0e-10` relative-error pass rule for environments where original TokaMaker
+  can be imported.
+- Test infrastructure: added mocked subprocess-boundary tests for the
+  OpenFUSIONToolkit comparison success, numeric-failure, import-failure,
+  malformed-output, and missing-checkout/package paths.
+
+Original TokaMaker comparison status:
+
+- Local checkout: `/Users/rogeriojorge/local/OpenFUSIONToolkit`.
+- Upstream commit: `729a5f9f00723a610f5e13948a15e9dd21011c46`.
+- Probe result: `skipped_unavailable`.
+- Reason: `FileNotFoundError: Unable to load OFT shared library`.
+- JAX reference fluxes for the three parity probe points:
+  `6.346126568499771e-07`, `4.379990104518703e-07`,
+  `4.544967639448762e-07`.
+- Numeric code-to-code parity is therefore wired and tested, but not yet
+  measured locally against original TokaMaker until the OFT shared library is
+  built.
+
+Validation completed during the pass:
+
+- `python -m ruff check . --fix && python -m ruff format . && python -m ruff check .`:
+  passed after fixing two import-order issues.
+- `python -m pytest tests/test_comparison.py tests/test_cli_validate.py tests/test_verification.py tests/test_benchmarks.py`:
+  31 passed before the coverage expansion.
+- `tokamaker-jax verify --gate oft-parity`: passed with
+  `status=skipped_unavailable` and the upstream checkout/commit recorded.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed; Poisson
+  L2 rates `1.895`, `1.972`; Grad-Shafranov L2 rates `1.896`, `1.972`;
+  circular-loop closed-form/quadrature relative error `3.20e-15`; coil Green
+  symmetry/linearity/gradient errors `0.0`; profile residual `0.1 -> 0.001`.
+- `python -m pytest tests/test_comparison.py`: 8 passed after adding mocked
+  comparison-path coverage.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 129 passed,
+  95.47% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed. Local Sphinx 9
+  still emits upstream `sphinx-autodoc-typehints` deprecation notices, but the
+  docs gate succeeds.
+- `python -m json.tool docs/validation/physics_gates_manifest.json` and
+  `git diff --check`: passed.
+
+Generated and inspected artifacts:
+
+- `docs/_static/validation_dashboard.png`
+- `docs/_static/benchmark_summary.png`
+- `docs/_static/coil_current_sweep.gif`
+- `docs/_static/openfusiontoolkit_comparison_report.json`
+- `docs/_static/benchmark_report.json`
+- refreshed `docs/_static/cpc_seed_family_report.json`
+
+Tracked lane percentages after this pass:
+
+- M1 mesh/geometry: 84%.
+- M2 FEM core: 76%.
+- Plotting: 82%.
+- Docs/examples: 83%.
+- Config/CLI: 76%.
+- Test infra: 84%.
+- Differentiability: 73%.
+- GUI: 68%.
+- Performance: 72%.
+- Overall: 82%.
+
+Best next steps:
+
+1. Build or locate the OpenFUSIONToolkit shared library so `oft-parity` runs
+   the real numeric `eval_green` comparison instead of an availability skip.
+2. Add fixture-level parity tests for original TokaMaker examples once OFT can
+   import, starting with circular coil response and then moving to solved
+   fixed-boundary equilibria.
+3. Add CI benchmark artifact upload plus baseline comparison thresholds for
+   seed solve, FEM assembly, local equilibrium, coil Green, and elliptic loop
+   kernels.
+4. Connect the GUI validation dashboard to stored JSON reports and add a
+   read-only literature reproduction gallery.
+5. Couple profile iteration to the free-boundary coil response and add a
+   fixed-boundary-plus-coil validation fixture with differentiability checks.

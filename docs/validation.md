@@ -10,6 +10,8 @@ It separates implemented gates from planned gates so the project can document
 the roadmap without claiming full TokaMaker parity before the relevant tests
 exist.
 
+![Validation dashboard](_static/validation_dashboard.png)
+
 ## Implemented Gates
 
 The current implemented gates cover the seed infrastructure and the first local
@@ -27,8 +29,12 @@ triangular FEM path:
   profile-source load vectors, and a cylindrical manufactured-solution gate.
 - a reduced free-boundary coil Green's-function fixture with analytic symmetry,
   linearity, derivative, and radial log-ratio checks.
-- a nonlinear p=1 profile Picard iteration gate and a circular-loop coil
-  quadrature prototype for the next free-boundary coupling stage.
+- a nonlinear p=1 profile Picard iteration gate and a closed-form
+  circular-loop elliptic coil Green's-function gate checked against
+  high-resolution quadrature.
+- an OpenFUSIONToolkit/TokaMaker comparison probe that records whether the
+  original compiled solver is available locally and, when available, compares
+  the JAX circular-loop kernel against `TokaMaker.util.eval_green`.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -306,6 +312,27 @@ tokamaker-jax verify --gate circular-loop
 
 ![Closed-form circular-loop elliptic response](_static/circular_loop_elliptic_response.png)
 
+## OpenFUSIONToolkit Comparison Probe
+
+The original TokaMaker comparison gate is intentionally availability-aware.
+It probes the local checkout at `/Users/rogeriojorge/local/OpenFUSIONToolkit`,
+records the git commit and source/example inventory, and attempts to import the
+original Python interface. If the compiled OFT shared library is unavailable,
+the gate reports `skipped_unavailable` with the import error instead of making a
+false parity claim.
+
+When the original library is built, the same gate evaluates
+`OpenFUSIONToolkit.TokaMaker.util.eval_green` for a unit circular filament and
+compares it against `tokamaker_jax.circular_loop_elliptic_flux` with zero
+softening:
+
+```bash
+tokamaker-jax verify --gate oft-parity
+```
+
+The generated comparison report is stored at
+`docs/_static/openfusiontoolkit_comparison_report.json`.
+
 ## Nonlinear Profile Iteration Gate
 
 The first nonlinear triangular-FEM equilibrium path uses fixed-boundary Picard
@@ -382,8 +409,12 @@ $$
 
 The current benchmark helpers produce JSON-friendly timing dictionaries for the
 seed fixed-boundary solve, local p=1 FEM kernels, axisymmetric global FEM
-assembly/matrix-free apply, and reduced coil Green's-function response. Future
-gates should add CI baselines and full free-boundary solve timings.
+assembly/matrix-free apply, reduced coil Green's-function response, and
+closed-form circular-loop elliptic response.
+
+![Benchmark summary](_static/benchmark_summary.png)
+
+Future gates should add CI baselines and full free-boundary solve timings.
 
 ## Literature-Anchored Figure Gates
 

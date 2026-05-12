@@ -111,7 +111,8 @@
       "status": "implemented",
       "description": "Validate executable benchmark helpers and JSON-friendly timing outputs without asserting hardware-independent speed.",
       "command": "python -m pytest tests/test_benchmarks.py",
-      "artifact": null,
+      "artifact": "docs/_static/benchmark_summary.png",
+      "report": "docs/_static/benchmark_report.json",
       "required_checks": [
         "benchmark_result_json_roundtrip",
         "aggregate_benchmark_report_json",
@@ -239,6 +240,27 @@
       "pass_rule": {
         "type": "analytic_oracle_and_residual_bound",
         "tolerance_source": "tests/test_fem_equilibrium.py"
+      }
+    },
+    {
+      "id": "openfusiontoolkit-tokamaker-green-parity-probe",
+      "category": "physics_parity",
+      "status": "implemented_availability_gated",
+      "description": "Probe the local OpenFUSIONToolkit checkout and compare the JAX circular-loop elliptic kernel against OpenFUSIONToolkit.TokaMaker.util.eval_green when the original compiled shared library is available.",
+      "command": "tokamaker-jax verify --gate oft-parity",
+      "artifact": "docs/_static/openfusiontoolkit_comparison_report.json",
+      "required_checks": [
+        "local_checkout_probe",
+        "upstream_git_commit_recorded_when_available",
+        "upstream_source_inventory_recorded",
+        "compiled_library_import_status_recorded",
+        "numeric_eval_green_comparison_when_available",
+        "explicit_skip_status_when_unavailable"
+      ],
+      "pass_rule": {
+        "type": "availability_gated_code_to_code",
+        "relative_tolerance_when_available": 1e-10,
+        "tolerance_source": "tests/test_comparison.py and tests/test_cli_validate.py"
       }
     },
     {

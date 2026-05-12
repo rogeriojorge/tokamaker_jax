@@ -93,6 +93,15 @@ def test_main_verify_runs_circular_loop_gate(capsys):
     assert "elliptic_quadrature_relative_error" in captured.out
 
 
+def test_main_verify_runs_openfusiontoolkit_parity_probe(capsys):
+    exit_code = main(["verify", "--gate", "oft-parity"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "openfusiontoolkit" in captured.out
+    assert "circular_loop_eval_green" in captured.out
+
+
 def test_main_verify_runs_profile_iteration_gate(capsys):
     exit_code = main(["verify", "--gate", "profile-iteration"])
 

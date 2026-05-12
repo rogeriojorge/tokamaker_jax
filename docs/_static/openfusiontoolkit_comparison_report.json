@@ -1,0 +1,43 @@
+{
+  "comparison": "circular_loop_eval_green",
+  "jax_flux": [
+    6.346126568499771e-07,
+    4.379990104518703e-07,
+    4.544967639448762e-07
+  ],
+  "max_abs_error": null,
+  "n_points": 3,
+  "notes": [
+    "Compares the JAX closed-form circular filament with OpenFUSIONToolkit.TokaMaker.util.eval_green for unit current.",
+    "The local OpenFUSIONToolkit shared library must be built for the numeric comparison to run."
+  ],
+  "oft_flux": null,
+  "probe": {
+    "checkout_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit",
+    "commit": "729a5f9f00723a610f5e13948a15e9dd21011c46",
+    "exists": true,
+    "import_ok": false,
+    "python_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit/src/python",
+    "reason": "FileNotFoundError: Unable to load OFT shared library",
+    "source_inventory": {
+      "grad_shaf_source": "src/physics/grad_shaf.F90",
+      "test_tokamaker_py": "src/tests/physics/test_TokaMaker.py",
+      "tokamaker_examples": [
+        "src/examples/TokaMaker/AdvancedWorkflows",
+        "src/examples/TokaMaker/CMakeLists.txt",
+        "src/examples/TokaMaker/CUTE",
+        "src/examples/TokaMaker/DIIID",
+        "src/examples/TokaMaker/Dipole",
+        "src/examples/TokaMaker/HBT",
+        "src/examples/TokaMaker/ITER",
+        "src/examples/TokaMaker/LTX",
+        "src/examples/TokaMaker/MANTA",
+        "src/examples/TokaMaker/fixed_boundary",
+        "src/examples/TokaMaker/test_examples.sh.in"
+      ]
+    },
+    "tokamaker_import_ok": false
+  },
+  "relative_error": null,
+  "status": "skipped_unavailable"
+}

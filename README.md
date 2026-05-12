@@ -12,11 +12,17 @@ This repository currently contains the project scaffold, CI/docs infrastructure,
 
 ![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
 
+![Validation dashboard](docs/_static/validation_dashboard.png)
+
 ![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
 
 ![Reduced free-boundary coil Green response](docs/_static/coil_green_response.png)
 
 ![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
+
+![Coil current sweep](docs/_static/coil_current_sweep.gif)
+
+![Benchmark summary](docs/_static/benchmark_summary.png)
 
 ![Nonlinear profile iteration](docs/_static/profile_iteration.png)
 
@@ -64,6 +70,7 @@ Run manufactured validation gates:
 tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
 tokamaker-jax verify --gate coil-green
 tokamaker-jax verify --gate circular-loop
+tokamaker-jax verify --gate oft-parity
 tokamaker-jax verify --gate profile-iteration
 ```
 
@@ -80,6 +87,7 @@ python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 - p=1 triangular FEM reference kernels, dense/sparse/matrix-free assembly, weighted axisymmetric Grad-Shafranov weak-form assembly, profile source loads, and manufactured convergence gates.
 - Nonlinear p=1 profile iteration with pressure and FF' source terms, residual checks, and differentiability tests.
 - Reduced large-aspect-ratio coil Green's-function fixture plus a closed-form circular-loop elliptic Green's-function kernel checked against high-resolution quadrature.
+- OpenFUSIONToolkit/TokaMaker comparison probe that records local upstream availability and runs numeric `eval_green` parity when the original compiled library is available.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.

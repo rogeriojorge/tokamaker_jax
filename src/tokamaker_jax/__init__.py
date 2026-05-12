@@ -37,6 +37,12 @@ from tokamaker_jax.benchmarks import (
     benchmark_report_to_json,
     benchmark_seed_equilibrium,
 )
+from tokamaker_jax.comparison import (
+    OpenFUSIONToolkitComparison,
+    OpenFUSIONToolkitProbe,
+    probe_openfusiontoolkit,
+    run_openfusiontoolkit_green_comparison,
+)
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, load_config
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem import (
@@ -153,6 +159,8 @@ __all__ = [
     "GridConfig",
     "MU0",
     "NonlinearProfileParameters",
+    "OpenFUSIONToolkitComparison",
+    "OpenFUSIONToolkitProbe",
     "PoissonConvergenceResult",
     "PoissonConvergenceStudy",
     "PowerProfile",
@@ -237,6 +245,7 @@ __all__ = [
     "observed_rates",
     "polygon_region",
     "poisson_error_metrics",
+    "probe_openfusiontoolkit",
     "rectangular_triangles",
     "rectangle_region",
     "reference_triangle_nodes",
@@ -245,6 +254,7 @@ __all__ = [
     "run_coil_green_function_validation",
     "run_circular_loop_green_function_validation",
     "run_grad_shafranov_convergence_study",
+    "run_openfusiontoolkit_green_comparison",
     "run_profile_iteration_validation",
     "save_gs_mesh",
     "sample_regions",

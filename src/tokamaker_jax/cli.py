@@ -90,6 +90,7 @@ def _main_verify(argv: list[str]) -> int:
             "grad-shafranov",
             "coil-green",
             "circular-loop",
+            "oft-parity",
             "profile-iteration",
         ),
         default="all",
@@ -128,6 +129,7 @@ def run_verification_gates(
 
     from jax import config as jax_config
 
+    from tokamaker_jax.comparison import run_openfusiontoolkit_green_comparison
     from tokamaker_jax.fem_equilibrium import run_profile_iteration_validation
     from tokamaker_jax.verification import (
         run_circular_loop_green_function_validation,
@@ -148,12 +150,14 @@ def run_verification_gates(
         payload["gates"]["coil_green"] = run_coil_green_function_validation().to_dict()
     if gate in {"all", "circular-loop"}:
         payload["gates"]["circular_loop"] = run_circular_loop_green_function_validation().to_dict()
+    if gate in {"all", "oft-parity"}:
+        payload["gates"]["openfusiontoolkit"] = run_openfusiontoolkit_green_comparison().to_dict()
     if gate in {"all", "profile-iteration"}:
         payload["gates"]["profile_iteration"] = run_profile_iteration_validation().to_dict()
     if not payload["gates"]:
         raise ValueError(
             "gate must be one of: all, poisson, grad-shafranov, coil-green, "
-            "circular-loop, profile-iteration"
+            "circular-loop, oft-parity, profile-iteration"
         )
     return payload
 

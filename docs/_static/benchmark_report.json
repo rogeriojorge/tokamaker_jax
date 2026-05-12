@@ -1,0 +1,89 @@
+{
+  "benchmarks": [
+    {
+      "lane": "seed",
+      "result": {
+        "best_s": 0.07374366599833593,
+        "median_s": 0.07374366599833593,
+        "metadata": {
+          "iterations": 20,
+          "nr": 17,
+          "nz": 17
+        },
+        "name": "seed_fixed_boundary_equilibrium",
+        "repeats": 1,
+        "warmups": 0,
+        "worst_s": 0.07374366599833593
+      }
+    },
+    {
+      "lane": "local_fem",
+      "result": {
+        "best_s": 0.0528937089984538,
+        "median_s": 0.0528937089984538,
+        "metadata": {
+          "element": "p1_triangle",
+          "matrices": [
+            "mass",
+            "stiffness"
+          ]
+        },
+        "name": "local_p1_triangle_matrices",
+        "repeats": 1,
+        "warmups": 0,
+        "worst_s": 0.0528937089984538
+      }
+    },
+    {
+      "lane": "axisymmetric_fem",
+      "result": {
+        "best_s": 0.12661254199338146,
+        "median_s": 0.12661254199338146,
+        "metadata": {
+          "operator": "grad_shafranov_weak",
+          "subdivisions": 6
+        },
+        "name": "axisymmetric_p1_fem_assembly_apply",
+        "repeats": 1,
+        "warmups": 0,
+        "worst_s": 0.12661254199338146
+      }
+    },
+    {
+      "lane": "reduced_coil_green",
+      "result": {
+        "best_s": 0.025603749993024394,
+        "median_s": 0.025603749993024394,
+        "metadata": {
+          "n_coils": 3,
+          "nr": 17,
+          "nz": 17
+        },
+        "name": "reduced_coil_green_response",
+        "repeats": 1,
+        "warmups": 0,
+        "worst_s": 0.025603749993024394
+      }
+    },
+    {
+      "lane": "circular_loop_elliptic",
+      "result": {
+        "best_s": 0.04090449999785051,
+        "median_s": 0.04090449999785051,
+        "metadata": {
+          "kernel": "agm_elliptic",
+          "n_coils": 3,
+          "n_points": 48
+        },
+        "name": "circular_loop_elliptic_response",
+        "repeats": 1,
+        "warmups": 0,
+        "worst_s": 0.04090449999785051
+      }
+    }
+  ],
+  "generated_by": "tokamaker_jax.benchmarks.benchmark_baseline_report",
+  "schema_version": 1,
+  "suite": "tokamaker_jax_baseline_benchmarks",
+  "time_unit": "seconds"
+}

@@ -1,5 +1,6 @@
 """Generate README and documentation visual assets."""
 
+import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,9 @@ from jax import config as jax_config
 from matplotlib.animation import FuncAnimation, PillowWriter
 from reproduce_cpc_seed_family import generate_cpc_seed_family_artifacts
 
+from tokamaker_jax.benchmarks import benchmark_baseline_report, benchmark_report_to_json
+from tokamaker_jax.cli import run_verification_gates
+from tokamaker_jax.comparison import run_openfusiontoolkit_green_comparison
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem_equilibrium import (
@@ -48,7 +52,11 @@ def main() -> None:
     write_coil_green_response()
     write_circular_loop_elliptic_response()
     write_profile_iteration()
+    write_validation_dashboard()
+    write_benchmark_summary()
+    write_openfusiontoolkit_comparison_report()
     write_cpc_seed_family()
+    write_coil_current_sweep()
     write_pressure_sweep()
 
 
@@ -181,6 +189,82 @@ def write_profile_iteration() -> None:
     plt.close(fig)
 
 
+def write_validation_dashboard() -> None:
+    report = run_verification_gates("all", (4, 8, 16))
+    gates = report["gates"]
+    values = {
+        "Poisson L2 rate": min(gates["poisson"]["l2_rates"]),
+        "GS L2 rate": min(gates["grad_shafranov"]["l2_rates"]),
+        "Circular loop": -np.log10(gates["circular_loop"]["elliptic_quadrature_relative_error"]),
+        "Coil Green": -np.log10(max(gates["coil_green"]["log_ratio_error"], 1.0e-30)),
+        "Profile residual drop": gates["profile_iteration"]["residual_initial"]
+        / gates["profile_iteration"]["residual_final"],
+    }
+    labels = list(values)
+    metric_values = np.asarray([values[label] for label in labels], dtype=float)
+    targets = np.asarray([1.8, 1.8, 10.0, 10.0, 10.0], dtype=float)
+    normalized = np.minimum(metric_values / targets, 1.35)
+    colors = ["#2ca25f" if value >= 1.0 else "#de2d26" for value in normalized]
+
+    fig, ax = plt.subplots(figsize=(7.2, 4.4), constrained_layout=True)
+    y = np.arange(len(labels))
+    ax.barh(y, normalized, color=colors)
+    ax.axvline(1.0, color="black", linewidth=1.0, linestyle="--", label="gate target")
+    ax.set_yticks(y, labels)
+    ax.set_xlim(0.0, 1.35)
+    ax.set_xlabel("normalized validation margin")
+    ax.set_title("tokamaker-jax physics validation dashboard")
+    for index, value in enumerate(metric_values):
+        ax.text(
+            min(normalized[index] + 0.03, 1.28),
+            index,
+            f"{value:.3g}",
+            va="center",
+            fontsize=9,
+        )
+    ax.legend(loc="lower right")
+    fig.savefig(ASSET_DIR / "validation_dashboard.png", dpi=180)
+    plt.close(fig)
+
+
+def write_benchmark_summary() -> None:
+    report = benchmark_baseline_report(
+        repeats=1,
+        warmups=0,
+        seed_equilibrium={"nr": 17, "nz": 17, "iterations": 20},
+        axisymmetric_fem={"subdivisions": 6},
+        coil_green={"nr": 17, "nz": 17},
+        circular_loop={"n_points": 48},
+    )
+    (ASSET_DIR / "benchmark_report.json").write_text(
+        benchmark_report_to_json(report),
+        encoding="utf-8",
+    )
+    labels = [entry["lane"].replace("_", " ") for entry in report["benchmarks"]]
+    medians_ms = np.asarray(
+        [entry["result"]["median_s"] * 1000.0 for entry in report["benchmarks"]],
+        dtype=float,
+    )
+    fig, ax = plt.subplots(figsize=(7.2, 4.2), constrained_layout=True)
+    ax.barh(np.arange(len(labels)), medians_ms, color="#3182bd")
+    ax.set_yticks(np.arange(len(labels)), labels)
+    ax.set_xlabel("median runtime [ms]")
+    ax.set_title("baseline benchmark lanes")
+    for index, value in enumerate(medians_ms):
+        ax.text(value + max(medians_ms) * 0.015, index, f"{value:.2f}", va="center", fontsize=9)
+    ax.set_xlim(0.0, max(medians_ms) * 1.25 + 1.0e-6)
+    fig.savefig(ASSET_DIR / "benchmark_summary.png", dpi=180)
+    plt.close(fig)
+
+
+def write_openfusiontoolkit_comparison_report() -> None:
+    comparison = run_openfusiontoolkit_green_comparison().to_dict()
+    (ASSET_DIR / "openfusiontoolkit_comparison_report.json").write_text(
+        json.dumps(comparison, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def write_cpc_seed_family() -> None:
     generate_cpc_seed_family_artifacts(
         ASSET_DIR,
@@ -191,6 +275,50 @@ def write_cpc_seed_family() -> None:
         png_name="cpc_seed_family.png",
         command="python examples/reproduce_cpc_seed_family.py docs/_static",
     )
+
+
+def write_coil_current_sweep() -> None:
+    grid = RectangularGrid(1.0, 2.8, -0.9, 0.9, 81, 81)
+    r, z = grid.mesh()
+    points = np.column_stack((np.asarray(r).reshape(-1), np.asarray(z).reshape(-1)))
+    currents = np.linspace(-1.6e5, 1.6e5, 13)
+    frames = []
+    for current in currents:
+        coils = (
+            CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+            CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+            CoilConfig(name="PF_C", r=2.45, z=0.0, current=float(current), sigma=0.08),
+        )
+        frames.append(
+            np.asarray(circular_loop_elliptic_coil_flux(points, coils)).reshape(grid.nr, grid.nz)
+        )
+    vmin = min(float(np.min(frame)) for frame in frames)
+    vmax = max(float(np.max(frame)) for frame in frames)
+    levels = np.linspace(vmin, vmax, 28)
+    fig, ax = plt.subplots(figsize=(5.8, 4.6), constrained_layout=True)
+
+    def update(frame: int):
+        ax.clear()
+        ax.contourf(np.asarray(r), np.asarray(z), frames[frame], levels=levels, cmap="viridis")
+        ax.contour(
+            np.asarray(r), np.asarray(z), frames[frame], levels=12, colors="black", linewidths=0.45
+        )
+        ax.scatter(
+            [1.35, 1.35, 2.45],
+            [0.45, -0.45, 0.0],
+            c=["tab:red", "tab:red", "tab:blue"],
+            marker="s",
+            edgecolor="black",
+        )
+        ax.set_xlabel("R [m]")
+        ax.set_ylabel("Z [m]")
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_title(f"PF_C current = {currents[frame] / 1000.0:.0f} kA")
+        return []
+
+    animation = FuncAnimation(fig, update, frames=len(frames), blit=False)
+    animation.save(ASSET_DIR / "coil_current_sweep.gif", writer=PillowWriter(fps=3))
+    plt.close(fig)
 
 
 def write_pressure_sweep() -> None:
