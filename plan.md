@@ -1859,3 +1859,56 @@ Suggested initial issues:
 - Should mesh generation use Triangle, Gmsh, Shapely, or a minimal internal builder for common cases?
 - Should GUI remain NiceGUI after the full workflow is clearer, or move to a different web stack?
 - What should be the first public validation target: fixed-boundary only, ITER free-boundary, or a broader alpha bundle?
+
+## Implementation Log
+
+### 2026-05-12 17:58 WEST
+
+Started the first multi-lane implementation pass after planning. Four parallel
+lanes were split across workers while the main thread implemented the first FEM
+kernel slice:
+
+- Config/TOML lane: added TOML region parsing into `RunConfig` through
+  `[[region]]`/`[[regions]]`, including rectangle, polygon, annulus, and direct
+  point-loop forms.
+- GUI lane: added a user-facing region geometry tab and a pure Plotly
+  `region_geometry_figure` helper so the GUI can preview machine regions without
+  launching the full app during tests.
+- Plotting lane: added `FigureRecipe` and JSON-friendly structured figure-data
+  exports for equilibrium, mesh, and region plots. This is the first foundation
+  for citation-linked literature figure reproduction.
+- Docs/progress lane: added `docs/progress.md` and linked it from the docs
+  index so current completion status, next steps, and project limitations are
+  visible in generated documentation.
+- FEM lane: added `tokamaker_jax.fem` with p=1 reference-triangle nodes, basis
+  functions, gradients, degree-1/2 quadrature, affine mapping, local mass matrix,
+  and local Laplace stiffness matrix.
+
+Focused worker checks passed before integration:
+
+- `pytest tests/test_config.py`: 7 passed.
+- `pytest tests/test_gui.py tests/test_cli_plotting.py`: 8 passed.
+- `pytest tests/test_plotting.py tests/test_cli_plotting.py`: 7 passed.
+- `ruff check`: passed in worker workspaces.
+
+Integration status before the full gate: local FEM tests were added for
+partition of unity, exact degree-2 quadrature, affine mapping, gradient
+consistency, and matrix symmetry/consistency. The remaining open item in this
+pass is the repository-wide lint/test/docs gate after merging the worker slices.
+
+### 2026-05-12 18:00 WEST
+
+Completed the first integrated gate for the multi-lane pass:
+
+- `python -m ruff format .`: 23 files unchanged.
+- `python -m ruff check .`: passed.
+- Focused integration tests for FEM/config/plotting/GUI: 21 passed.
+- Full suite with coverage: 46 passed, 96.35% coverage, satisfying the 95%
+  threshold.
+- Sphinx docs build with `-W`: passed and generated `docs/_build/html`.
+
+The current generated plot artifact inspected in this pass is
+`docs/_static/region_geometry_seed.png`, which previews the sample plasma,
+vacuum-vessel, and PF-coil regions used by the new region plotting and GUI
+paths. No new literature reproduction plot was generated in this pass; that
+waits on the validation-manifest and physics-gate lane.

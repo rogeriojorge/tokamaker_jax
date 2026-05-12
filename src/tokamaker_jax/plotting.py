@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
@@ -12,6 +14,202 @@ from matplotlib.patches import Polygon as PolygonPatch
 from tokamaker_jax.geometry import Region, RegionSet
 from tokamaker_jax.mesh import TriMesh
 from tokamaker_jax.solver import EquilibriumSolution
+
+RZ_AXES = {
+    "x": {
+        "label": "R",
+        "units": "m",
+        "convention": "Major radius in axisymmetric cylindrical coordinates.",
+    },
+    "y": {
+        "label": "Z",
+        "units": "m",
+        "convention": "Vertical coordinate in axisymmetric cylindrical coordinates.",
+    },
+}
+
+
+@dataclass(frozen=True)
+class FigureRecipe:
+    """JSON-friendly description of the data behind a reproducible figure."""
+
+    name: str
+    source: str | None = None
+    citation: str | None = None
+    command: str | None = None
+    axes: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain-data representation suitable for JSON serialization."""
+
+        recipe: dict[str, Any] = {
+            "name": self.name,
+            "axes": _json_ready(self.axes),
+            "data": _json_ready(self.data),
+            "metadata": _json_ready(self.metadata),
+        }
+        if self.source is not None:
+            recipe["source"] = self.source
+        if self.citation is not None:
+            recipe["citation"] = self.citation
+        if self.command is not None:
+            recipe["command"] = self.command
+        return recipe
+
+
+def equilibrium_figure_data(
+    solution: EquilibriumSolution,
+    *,
+    name: str = "fixed_boundary_equilibrium",
+    source: str | None = None,
+    citation: str | None = None,
+    command: str | None = None,
+    include_source: bool = True,
+) -> FigureRecipe:
+    """Return structured figure data for :func:`plot_equilibrium`."""
+
+    r, z = solution.grid.mesh(dtype=solution.psi.dtype)
+    data = {
+        "R": _array_payload(r),
+        "Z": _array_payload(z),
+        "psi": _array_payload(
+            solution.psi,
+            label="Poloidal flux",
+            units=None,
+            convention="Solver-native fixed-boundary flux values.",
+        ),
+    }
+    if include_source:
+        data["source"] = _array_payload(
+            solution.source,
+            label="Grad-Shafranov source",
+            units=None,
+            convention="Solver-native right-hand-side source values.",
+        )
+    return FigureRecipe(
+        name=name,
+        source=source,
+        citation=citation,
+        command=command,
+        axes=dict(RZ_AXES),
+        data=data,
+        metadata={
+            "plot_type": "equilibrium_contours",
+            "grid": {
+                "nr": solution.grid.nr,
+                "nz": solution.grid.nz,
+                "dr": solution.grid.dr,
+                "dz": solution.grid.dz,
+            },
+            "iterations": solution.iterations,
+        },
+    )
+
+
+def mesh_figure_data(
+    mesh: TriMesh,
+    *,
+    name: str = "triangular_mesh",
+    source: str | None = None,
+    citation: str | None = None,
+    command: str | None = None,
+) -> FigureRecipe:
+    """Return structured figure data for :func:`plot_mesh`."""
+
+    return FigureRecipe(
+        name=name,
+        source=source if source is not None else mesh.source_path,
+        citation=citation,
+        command=command,
+        axes=dict(RZ_AXES),
+        data={
+            "nodes": _array_payload(
+                mesh.nodes,
+                columns=["R", "Z"],
+                units=["m", "m"],
+                convention="Node coordinates in axisymmetric R-Z space.",
+            ),
+            "triangles": _array_payload(
+                mesh.triangles,
+                columns=["node_0", "node_1", "node_2"],
+                convention="Zero-based triangle node indices.",
+            ),
+            "cell_regions": _array_payload(
+                mesh.regions,
+                label="Region id",
+                convention="One-based TokaMaker region ids, one value per triangular cell.",
+            ),
+        },
+        metadata={
+            "plot_type": "triangular_mesh",
+            "summary": mesh.summary(),
+            "coil_names": sorted(mesh.coil_dict),
+            "conductor_names": list(mesh.conductor_names()),
+            "vacuum_names": list(mesh.vacuum_names()),
+        },
+    )
+
+
+def region_figure_data(
+    regions: RegionSet | tuple[Region, ...] | list[Region],
+    *,
+    name: str = "region_geometry",
+    source: str | None = None,
+    citation: str | None = None,
+    command: str | None = None,
+) -> FigureRecipe:
+    """Return structured figure data for :func:`plot_regions`."""
+
+    region_tuple = regions.regions if isinstance(regions, RegionSet) else tuple(regions)
+    if not region_tuple:
+        raise ValueError("regions must contain at least one region")
+    all_points = np.vstack([region.points for region in region_tuple])
+    return FigureRecipe(
+        name=name,
+        source=source,
+        citation=citation,
+        command=command,
+        axes=dict(RZ_AXES),
+        data={
+            "regions": [
+                {
+                    "id": region.id,
+                    "name": region.name,
+                    "kind": region.kind,
+                    "points": _array_payload(
+                        region.points,
+                        columns=["R", "Z"],
+                        units=["m", "m"],
+                        convention="Counterclockwise outer region loop.",
+                    ),
+                    "holes": [
+                        _array_payload(
+                            hole,
+                            columns=["R", "Z"],
+                            units=["m", "m"],
+                            convention="Counterclockwise inner region loop.",
+                        )
+                        for hole in region.holes
+                    ],
+                    "area": region.area,
+                    "centroid": region.centroid,
+                    "target_size": region.target_size,
+                    "metadata": region.metadata,
+                }
+                for region in region_tuple
+            ],
+        },
+        metadata={
+            "plot_type": "region_geometry",
+            "n_regions": len(region_tuple),
+            "bounds": {
+                "R": _finite_range(all_points[:, 0]),
+                "Z": _finite_range(all_points[:, 1]),
+            },
+        },
+    )
 
 
 def plot_equilibrium(
@@ -165,3 +363,53 @@ def _region_label_position(region: Region) -> tuple[float, float]:
     outer_max_r = float(np.max(region.points[:, 0]))
     _, center_z = region.centroid
     return 0.5 * (inner_max_r + outer_max_r), center_z
+
+
+def _array_payload(
+    values: Any,
+    *,
+    label: str | None = None,
+    units: str | list[str] | None = None,
+    columns: list[str] | None = None,
+    convention: str | None = None,
+) -> dict[str, Any]:
+    array = np.asarray(values)
+    payload: dict[str, Any] = {
+        "values": array.tolist(),
+        "shape": list(array.shape),
+        "dtype": str(array.dtype),
+        "range": _finite_range(array),
+    }
+    if label is not None:
+        payload["label"] = label
+    if units is not None:
+        payload["units"] = units
+    if columns is not None:
+        payload["columns"] = columns
+    if convention is not None:
+        payload["convention"] = convention
+    return payload
+
+
+def _finite_range(values: Any) -> dict[str, float | bool | None]:
+    array = np.asarray(values, dtype=np.float64)
+    finite = array[np.isfinite(array)]
+    if finite.size == 0:
+        return {"min": None, "max": None, "all_finite": False}
+    return {
+        "min": float(np.min(finite)),
+        "max": float(np.max(finite)),
+        "all_finite": bool(finite.size == array.size),
+    }
+
+
+def _json_ready(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_ready(item) for item in value]
+    return value
