@@ -1962,3 +1962,38 @@ Follow-up CI note: the first push of this pass failed GitHub CI because the dev
 extra allowed floating Ruff versions, and the GitHub runner installed a newer
 formatter than the local environment. The fix is to pin Ruff at `0.13.1` so
 local and CI formatting gates are reproducible.
+
+### 2026-05-12 18:51 WEST
+
+Completed the third implementation pass and raised the tracked overall
+completion marker from 15% to 30%.
+
+Implemented lanes:
+
+- FEM assembly: added sparse `BCOO` assembly for p=1 mass/stiffness operators
+  and matrix-free element scatter applies, while keeping dense matrices as
+  analytic oracles.
+- Load vectors and boundary conditions: added degree-3 p=1 triangular load
+  vector integration, global load assembly, rectangular-boundary node
+  detection, dense Dirichlet reduction, and dense Dirichlet solve helpers.
+- Manufactured physics gate: added a reusable `tokamaker_jax.verification`
+  module with the unit-square p=1 mesh sequence, sine Poisson exact solution,
+  forcing, solve path, L2/H1 error metrics, observed rates, and JSON-ready
+  convergence reports.
+- Validation artifacts: marked the manufactured Poisson gate implemented in
+  `docs/validation/physics_gates_manifest.json` and generated
+  `docs/_static/manufactured_poisson_convergence.png`.
+
+Validation completed during the pass:
+
+- `python -m pytest tests/test_fem.py tests/test_assembly.py tests/test_verification.py`:
+  21 passed.
+- `python -m ruff check ...`: passed for the touched source/test files.
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 78 passed,
+  96.78% coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+
+Generated artifact:
+
+- `docs/_static/manufactured_poisson_convergence.png`

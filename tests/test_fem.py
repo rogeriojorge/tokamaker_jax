@@ -57,6 +57,19 @@ def test_quadrature_exactness_for_degree_two_monomials():
             assert numerical == pytest.approx(exact, abs=1.0e-14)
 
 
+def test_quadrature_exactness_for_degree_three_monomials():
+    quadrature = triangle_quadrature(degree=3)
+
+    assert quadrature.degree == 3
+    assert float(jnp.min(quadrature.weights)) < 0.0
+    for power_x in range(4):
+        for power_y in range(4 - power_x):
+            values = quadrature.points[:, 0] ** power_x * quadrature.points[:, 1] ** power_y
+            numerical = float(jnp.sum(quadrature.weights * values))
+            exact = analytic_reference_integral(power_x, power_y)
+            assert numerical == pytest.approx(exact, abs=1.0e-14)
+
+
 def test_degree_one_quadrature_and_unsupported_orders():
     quadrature = triangle_quadrature(degree=1)
 
@@ -65,8 +78,8 @@ def test_degree_one_quadrature_and_unsupported_orders():
 
     with pytest.raises(NotImplementedError, match="p=1"):
         reference_triangle_nodes(order=2)
-    with pytest.raises(NotImplementedError, match="degree 2"):
-        triangle_quadrature(degree=3)
+    with pytest.raises(NotImplementedError, match="degree 3"):
+        triangle_quadrature(degree=4)
 
 
 def test_affine_mapping_area_and_physical_gradients():

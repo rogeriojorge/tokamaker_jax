@@ -19,6 +19,9 @@ triangular FEM path:
   and local Laplace stiffness matrices.
 - dense global p=1 triangular mass and Laplace stiffness assembly for fixed
   mesh topology.
+- p=1 load-vector assembly, dense Dirichlet reduction, matrix-free operator
+  application, sparse `BCOO` assembly, and a manufactured Poisson convergence
+  gate on uniformly refined unit-square meshes.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -89,9 +92,9 @@ and stiffness matrices. It verifies symmetry, mass total, stiffness row sums,
 constant nullspace, eigenvalue signs, JIT compatibility, and gradients with
 respect to node coordinates for fixed topology.
 
-## Manufactured-Solution Plan
+## Manufactured-Solution Gate
 
-The next physics gate is a manufactured Poisson problem:
+The first implemented manufactured-solution gate is a Poisson problem:
 
 $$
 -\Delta u=f,\qquad u|_{\partial\Omega}=g.
@@ -111,9 +114,19 @@ p_\mathrm{obs} =
 \frac{\log(e(h_m)/e(h_{m+1}))}{\log(h_m/h_{m+1})}.
 $$
 
-This gate is still planned because the repository now has local and dense
-global FEM operators, but not boundary-condition application, load-vector
-assembly, or a triangular FEM solve path.
+The implemented gate uses
+
+$$
+u(x,y)=\sin(\pi x)\sin(\pi y),
+\qquad
+f(x,y)=2\pi^2\sin(\pi x)\sin(\pi y),
+$$
+
+on the unit square with exact Dirichlet boundary values. It assembles the p=1
+load vector by degree-3 triangle quadrature, applies nodal Dirichlet values by
+dense reduction, solves the interior system, and reports observed rates.
+
+![Manufactured Poisson convergence](_static/manufactured_poisson_convergence.png)
 
 ## Differentiability Gates
 

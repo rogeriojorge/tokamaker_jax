@@ -42,7 +42,23 @@ def triangle_quadrature(degree: int = 2) -> TriangleQuadrature:
             weights=jnp.asarray([1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0], dtype=jnp.float64),
             degree=2,
         )
-    raise NotImplementedError("triangle quadrature is currently implemented through degree 2")
+    if degree <= 3:
+        return TriangleQuadrature(
+            points=jnp.asarray(
+                [
+                    [1.0 / 3.0, 1.0 / 3.0],
+                    [0.6, 0.2],
+                    [0.2, 0.6],
+                    [0.2, 0.2],
+                ],
+                dtype=jnp.float64,
+            ),
+            weights=jnp.asarray(
+                [-27.0 / 96.0, 25.0 / 96.0, 25.0 / 96.0, 25.0 / 96.0], dtype=jnp.float64
+            ),
+            degree=3,
+        )
+    raise NotImplementedError("triangle quadrature is currently implemented through degree 3")
 
 
 def linear_basis(reference_points: jnp.ndarray) -> jnp.ndarray:

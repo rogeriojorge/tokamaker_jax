@@ -10,6 +10,7 @@ from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConf
 from tokamaker_jax.geometry import sample_regions
 from tokamaker_jax.plotting import plot_equilibrium, save_equilibrium_plot, save_region_plot
 from tokamaker_jax.solver import solve_from_config
+from tokamaker_jax.verification import run_poisson_convergence_study
 
 ASSET_DIR = Path("docs/_static")
 
@@ -23,11 +24,33 @@ def main() -> None:
     )
     save_equilibrium_plot(solve_from_config(base), ASSET_DIR / "fixed_boundary_seed.png")
     write_region_geometry_preview()
+    write_manufactured_poisson_convergence()
     write_pressure_sweep()
 
 
 def write_region_geometry_preview() -> None:
     save_region_plot(sample_regions(), ASSET_DIR / "region_geometry_seed.png")
+
+
+def write_manufactured_poisson_convergence() -> None:
+    study = run_poisson_convergence_study((4, 8, 16))
+    h = np.asarray([result.h for result in study.results])
+    l2 = np.asarray([result.l2_error for result in study.results])
+    h1 = np.asarray([result.h1_error for result in study.results])
+
+    fig, ax = plt.subplots(figsize=(6.2, 4.6), constrained_layout=True)
+    ax.loglog(h, l2, "o-", label="L2 error")
+    ax.loglog(h, h1, "s-", label="H1 seminorm error")
+    ax.loglog(h, l2[-1] * (h / h[-1]) ** 2, "--", color="C0", alpha=0.55, label="O(h^2)")
+    ax.loglog(h, h1[-1] * (h / h[-1]), "--", color="C1", alpha=0.55, label="O(h)")
+    ax.invert_xaxis()
+    ax.set_xlabel("mesh size h")
+    ax.set_ylabel("error")
+    ax.set_title("p=1 manufactured Poisson convergence")
+    ax.grid(True, which="both", alpha=0.3)
+    ax.legend()
+    fig.savefig(ASSET_DIR / "manufactured_poisson_convergence.png", dpi=180)
+    plt.close(fig)
 
 
 def write_pressure_sweep() -> None:

@@ -45,6 +45,8 @@
       "required_checks": [
         "exact_unit_square_mass_matrix",
         "exact_unit_square_stiffness_matrix",
+        "sparse_bcoo_matches_dense",
+        "matrix_free_apply_matches_dense",
         "symmetry",
         "mass_total",
         "positive_mass_eigenvalues",
@@ -118,22 +120,23 @@
     {
       "id": "manufactured-p1-poisson-convergence",
       "category": "manufactured_solution",
-      "status": "planned",
+      "status": "implemented",
       "description": "Validate triangular p=1 Poisson convergence with H1 order one and L2 order two on shape-regular refinements.",
-      "command": null,
-      "artifact": null,
+      "command": "python -m pytest tests/test_assembly.py tests/test_verification.py",
+      "artifact": "docs/_static/manufactured_poisson_convergence.png",
       "required_checks": [
         "load_vector_assembly",
         "dirichlet_boundary_conditions",
         "refinement_sequence",
         "observed_h1_rate",
         "observed_l2_rate",
-        "roundoff_floor_detection"
+        "json_ready_convergence_report"
       ],
       "pass_rule": {
         "type": "observed_rate",
         "h1_expected_order": 1,
-        "l2_expected_order": 2
+        "l2_expected_order": 2,
+        "tolerance_source": "tests/test_assembly.py"
       }
     },
     {

@@ -30,4 +30,7 @@
 
 .. automodule:: tokamaker_jax.plotting
    :members:
+
+.. automodule:: tokamaker_jax.verification
+   :members:
 ```
