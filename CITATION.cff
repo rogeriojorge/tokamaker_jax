@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use tokamaker-jax, cite this repository and the original TokaMaker publication."
+title: "tokamaker-jax: A JAX-native port plan and implementation scaffold for TokaMaker"
+type: software
+authors:
+  - family-names: Jorge
+    given-names: Rogerio
+repository-code: "https://github.com/rogeriojorge/tokamaker_jax"
+license: LGPL-3.0-only
+version: 0.1.0a0
+date-released: "2026-05-12"
+references:
+  - type: article
+    title: "TokaMaker: An open-source time-dependent Grad-Shafranov tool for the design and modeling of axisymmetric fusion devices"
+    authors:
+      - family-names: Hansen
+        given-names: C.
+      - family-names: Stewart
+        given-names: I. G.
+      - family-names: Burgess
+        given-names: D.
+      - family-names: Pharr
+        given-names: M.
+      - family-names: Guizzo
+        given-names: S.
+      - family-names: Logak
+        given-names: F.
+      - family-names: Nelson
+        given-names: A. O.
+      - family-names: Paz-Soldan
+        given-names: C.
+    journal: "Computer Physics Communications"
+    volume: 298
+    year: 2024
+    doi: "10.1016/j.cpc.2024.109111"
+

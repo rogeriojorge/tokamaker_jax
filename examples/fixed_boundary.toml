@@ -1,0 +1,36 @@
+[grid]
+r_min = 0.5
+r_max = 1.5
+z_min = -0.55
+z_max = 0.55
+nr = 65
+nz = 65
+
+[source]
+profile = "solovev"
+pressure_scale = 5000.0
+ffp_scale = -0.35
+
+[[coil]]
+name = "PF_upper"
+r = 0.82
+z = 0.42
+current = 15000.0
+sigma = 0.055
+
+[[coil]]
+name = "PF_lower"
+r = 0.82
+z = -0.42
+current = 15000.0
+sigma = 0.055
+
+[solver]
+iterations = 700
+relaxation = 0.75
+dtype = "float64"
+
+[output]
+npz = "outputs/fixed_boundary.npz"
+plot = "outputs/fixed_boundary.png"
+

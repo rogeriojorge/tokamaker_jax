@@ -1,0 +1,27 @@
+# Planned full-port example.
+# This file documents the intended TOML shape for a free-boundary run while the
+# JAX FEM, coil optimization, and LCFS tooling are being implemented.
+
+[machine]
+name = "ITER-like"
+
+[[region]]
+name = "plasma"
+type = "plasma"
+mesh_size = 0.05
+
+[[constraint.isoflux]]
+r = 6.2
+z = 0.0
+weight = 1.0
+
+[[constraint.saddle]]
+r = 5.0
+z = -3.4
+weight = 1.0
+
+[targets]
+plasma_current = 15.0e6
+magnetic_axis_r = 6.2
+magnetic_axis_z = 0.0
+
