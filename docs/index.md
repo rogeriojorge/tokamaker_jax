@@ -7,9 +7,13 @@
 
 getting_started
 architecture
+equations
+design_decisions
 porting_map
 progress
 validation
+comparisons
+io_contract
 literature_reproduction
 examples
 api

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -25,30 +25,28 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-  "jax>=0.4.28",
-  "numpy>=1.26",
-  "scipy>=1.11",
-  "h5py>=3.11",
-  "matplotlib>=3.8",
-  "tomli>=2.0.1; python_version < '3.11'",
+  "jax",
+  "numpy",
+  "scipy",
+  "h5py",
+  "matplotlib",
+  "nicegui",
+  "plotly",
+  "tomli; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8",
-  "pytest-cov>=5",
-  "ruff==0.13.1",
+  "pytest",
+  "pytest-cov",
+  "ruff",
 ]
 docs = [
-  "furo>=2024.8.6",
-  "myst-parser>=4",
-  "sphinx>=8",
-  "sphinx-autodoc-typehints>=2",
-  "sphinx-copybutton>=0.5",
-]
-gui = [
-  "nicegui>=2",
-  "plotly>=5.22",
+  "furo",
+  "myst-parser",
+  "sphinx",
+  "sphinx-autodoc-typehints",
+  "sphinx-copybutton",
 ]
 
 [project.urls]

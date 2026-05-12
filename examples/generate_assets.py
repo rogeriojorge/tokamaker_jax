@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+import matplotlib.image as mpimg
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 from jax import config as jax_config
@@ -63,6 +65,9 @@ def main() -> None:
     write_free_boundary_profile_coupling()
     write_validation_dashboard()
     write_benchmark_summary()
+    write_upstream_comparison_matrix()
+    write_io_artifact_map()
+    write_publication_validation_panel()
     write_openfusiontoolkit_comparison_report()
     write_cpc_seed_family()
     write_coil_current_sweep()
@@ -340,6 +345,167 @@ def write_benchmark_summary() -> None:
         ax.text(value + max(medians_ms) * 0.015, index, f"{value:.2f}", va="center", fontsize=9)
     ax.set_xlim(0.0, max(medians_ms) * 1.25 + 1.0e-6)
     fig.savefig(ASSET_DIR / "benchmark_summary.png", dpi=180)
+    plt.close(fig)
+
+
+def write_upstream_comparison_matrix() -> None:
+    rows = [
+        {
+            "reference": "OFT/TokaMaker",
+            "level": "kernel_parity",
+            "scores": [0.80, 0.65, 0.25, 0.40, 0.90],
+            "next_gate": "fixed/free-boundary equilibrium parity",
+        },
+        {
+            "reference": "TokaMaker CPC paper",
+            "level": "surrogate_fixture",
+            "scores": [0.60, 0.45, 0.25, 0.35, 0.80],
+            "next_gate": "published figure data-level reproduction",
+        },
+        {
+            "reference": "FreeGS/FreeGSNKE",
+            "level": "source_audit",
+            "scores": [0.45, 0.45, 0.10, 0.30, 0.55],
+            "next_gate": "static inverse/passive structure fixture",
+        },
+        {
+            "reference": "JAX-FEM/TORAX",
+            "level": "design_parity",
+            "scores": [0.75, 0.40, 0.20, 0.85, 0.70],
+            "next_gate": "implicit differentiation benchmark",
+        },
+        {
+            "reference": "COCOS/EFIT/bootstrap literature",
+            "level": "source_audit",
+            "scores": [0.30, 0.20, 0.10, 0.25, 0.50],
+            "next_gate": "EQDSK/reconstruction/bootstrap gates",
+        },
+    ]
+    columns = ["FEM/mesh", "free-boundary", "time/recon", "AD", "docs/tests"]
+    report = {
+        "schema_version": 1,
+        "artifact_id": "upstream-literature-comparison-matrix",
+        "status_levels": {
+            "source_audit": "requirements extracted, no numeric parity claim",
+            "surrogate_fixture": "workflow artifact exists without numeric parity claim",
+            "design_parity": "design pattern adopted, no code-to-code physics claim",
+            "kernel_parity": "scalar/vector kernel matches reference within tolerance",
+        },
+        "columns": columns,
+        "rows": rows,
+    }
+    (ASSET_DIR / "upstream_comparison_report.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    matrix = np.asarray([row["scores"] for row in rows], dtype=float)
+    fig, ax = plt.subplots(figsize=(9.0, 4.8), constrained_layout=True)
+    image = ax.imshow(matrix, cmap="YlGnBu", vmin=0.0, vmax=1.0)
+    ax.set_xticks(np.arange(len(columns)), columns, rotation=25, ha="right")
+    ax.set_yticks(np.arange(len(rows)), [row["reference"] for row in rows])
+    ax.set_title("comparison coverage against upstream codes and literature")
+    for i, row in enumerate(rows):
+        for j, score in enumerate(row["scores"]):
+            ax.text(j, i, f"{score:.2f}", ha="center", va="center", fontsize=8)
+        ax.text(len(columns) + 0.15, i, row["level"], va="center", fontsize=8)
+    ax.set_xlim(-0.5, len(columns) + 1.85)
+    ax.text(len(columns) + 0.15, -0.75, "current level", fontsize=9, fontweight="bold")
+    fig.colorbar(image, ax=ax, label="current comparison coverage")
+    fig.savefig(ASSET_DIR / "upstream_comparison_matrix.png", dpi=180)
+    plt.close(fig)
+
+
+def write_io_artifact_map() -> None:
+    fig, ax = plt.subplots(figsize=(9.0, 4.8), constrained_layout=True)
+    ax.set_axis_off()
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
+    width = 0.20
+    height = 0.15
+    boxes = {
+        "TOML": (0.04, 0.72, "TOML cases\nexamples/*.toml"),
+        "Python": (0.04, 0.44, "Python API\nload_config/solve"),
+        "GUI": (0.04, 0.16, "GUI workflow\ncase + report views"),
+        "Config": (0.33, 0.48, "validated dataclasses\nRunConfig/CoilConfig"),
+        "Physics": (0.57, 0.48, "JAX physics kernels\nFEM + profiles + coils"),
+        "Artifacts": (0.78, 0.62, "JSON reports\nvalidation/benchmarks"),
+        "Figures": (0.78, 0.32, "PNG/GIF figures\ndocs/_static"),
+    }
+    for key, (x, y, text) in boxes.items():
+        color = "#e8f4f8" if key in {"TOML", "Python", "GUI"} else "#f4f1de"
+        rect = patches.FancyBboxPatch(
+            (x, y),
+            width,
+            height,
+            boxstyle="round,pad=0.02,rounding_size=0.015",
+            linewidth=1.1,
+            edgecolor="#333333",
+            facecolor=color,
+        )
+        ax.add_patch(rect)
+        ax.text(x + 0.09, y + 0.075, text, ha="center", va="center", fontsize=9)
+
+    arrows = [
+        ("TOML", "Config"),
+        ("Python", "Config"),
+        ("GUI", "Config"),
+        ("Config", "Physics"),
+        ("Physics", "Artifacts"),
+        ("Physics", "Figures"),
+    ]
+    for start, end in arrows:
+        sx, sy, _ = boxes[start]
+        ex, ey, _ = boxes[end]
+        ax.annotate(
+            "",
+            xy=(ex, ey + height / 2.0),
+            xytext=(sx + width, sy + height / 2.0),
+            arrowprops={"arrowstyle": "->", "color": "#333333", "lw": 1.1},
+        )
+    ax.text(
+        0.80,
+        0.16,
+        "The GUI reads the same reports and figures\nthat CI/docs generate.",
+        ha="center",
+        va="center",
+        fontsize=9,
+    )
+    ax.text(
+        0.5,
+        0.94,
+        "tokamaker-jax reproducible input/output flow",
+        ha="center",
+        va="center",
+        fontsize=14,
+    )
+    ax.text(
+        0.5,
+        0.05,
+        "Every GUI or docs artifact should map back to a command, dataclass config, JSON report, or figure recipe.",
+        ha="center",
+        va="center",
+        fontsize=9,
+    )
+    fig.savefig(ASSET_DIR / "io_artifact_map.png", dpi=180)
+    plt.close(fig)
+
+
+def write_publication_validation_panel() -> None:
+    panels = [
+        ("manufactured_grad_shafranov_convergence.png", "a) Grad-Shafranov convergence"),
+        ("free_boundary_profile_coupling.png", "b) coupled free-boundary/profile solve"),
+        ("validation_dashboard.png", "c) physics gate margins"),
+        ("benchmark_summary.png", "d) benchmark lanes"),
+    ]
+    fig, axes = plt.subplots(2, 2, figsize=(10.5, 7.2), constrained_layout=True)
+    for ax, (filename, title) in zip(axes.reshape(-1), panels, strict=True):
+        image = mpimg.imread(ASSET_DIR / filename)
+        ax.imshow(image)
+        ax.set_axis_off()
+        ax.set_title(title, loc="left", fontsize=11)
+    fig.suptitle("tokamaker-jax current validation and performance evidence", fontsize=15)
+    fig.savefig(ASSET_DIR / "publication_validation_panel.png", dpi=200)
     plt.close(fig)
 
 

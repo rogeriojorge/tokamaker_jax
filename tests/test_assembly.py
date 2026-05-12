@@ -259,9 +259,11 @@ def test_assembly_is_jittable_and_differentiable_for_fixed_connectivity():
         nodes
     )
     stiffness_energy_grad = jax.grad(
-        lambda coords: jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=coords.dtype)
-        @ assemble_laplace_stiffness_matrix(coords, triangles)
-        @ jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=coords.dtype)
+        lambda coords: (
+            jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=coords.dtype)
+            @ assemble_laplace_stiffness_matrix(coords, triangles)
+            @ jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=coords.dtype)
+        )
     )(nodes)
     shifted_nodes = nodes.at[:, 0].add(1.0)
     direction = jnp.asarray([[0.03, 0.02], [-0.01, 0.04], [0.02, -0.03], [0.01, 0.02]])

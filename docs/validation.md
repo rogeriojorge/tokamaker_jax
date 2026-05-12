@@ -3,6 +3,9 @@
 This page defines the current validation gates for `tokamaker-jax`. The goal is
 to make every physics, differentiability, figure, and performance claim
 traceable to an executable command, a fixture, a tolerance, and an artifact.
+The derivations behind the weak forms and Green's functions are collected in
+[](equations.md), and the upstream/literature parity levels are tracked in
+[](comparisons.md).
 
 The first machine-readable manifest is
 [`docs/validation/physics_gates_manifest.json`](validation/physics_gates_manifest.json).

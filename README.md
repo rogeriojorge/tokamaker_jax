@@ -8,41 +8,17 @@
 
 `tokamaker-jax` is a JAX-native porting project for TokaMaker, the OpenFUSIONToolkit Grad-Shafranov equilibrium tool. The target is an end-to-end differentiable, accelerator-ready solver with a friendlier Python API, TOML-driven CLI, GUI-first workflow, high-quality examples, plotting, docs, and at least 95% test coverage.
 
-This repository currently contains the project scaffold, CI/docs infrastructure, source audit, porting plan/log, and a small differentiable fixed-boundary Grad-Shafranov seed solver. The complete feature parity port is tracked in [plan.md](plan.md).
+This repository currently contains the staged JAX port infrastructure, p=1 triangular FEM kernels, validation gates, GUI workflow, generated documentation assets, source audit, and porting plan/log. The complete feature parity port is tracked in [plan.md](plan.md).
 
-![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
-
-![Validation dashboard](docs/_static/validation_dashboard.png)
-
-![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
-
-![Reduced free-boundary coil Green response](docs/_static/coil_green_response.png)
-
-![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
-
-![Free-boundary profile coupling](docs/_static/free_boundary_profile_coupling.png)
-
-![Coil current sweep](docs/_static/coil_current_sweep.gif)
-
-![Benchmark summary](docs/_static/benchmark_summary.png)
-
-![Nonlinear profile iteration](docs/_static/profile_iteration.png)
-
-![CPC seed-family reproduction surrogate](docs/_static/cpc_seed_family.png)
-
-![Pressure sweep animation](docs/_static/pressure_sweep.gif)
-
-## Install
+## Quick Start
 
 ```bash
 git clone https://github.com/rogeriojorge/tokamaker_jax.git
 cd tokamaker_jax
-pip install -e ".[dev,gui,docs]"
+pip install -e .
 ```
 
-Python 3.10 and newer are supported. TOML files use `tomllib` on Python 3.11+ and `tomli` on Python 3.10.
-
-## Use
+The default install includes GUI dependencies. Python 3.10 and newer are supported.
 
 Launch the GUI:
 
@@ -50,10 +26,16 @@ Launch the GUI:
 tokamaker-jax
 ```
 
-Run from a TOML file:
+Run a TOML case and write a plot:
 
 ```bash
 tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png
+```
+
+Run the main validation suite:
+
+```bash
+tokamaker-jax verify --gate all --subdivisions 4 8 16
 ```
 
 Use from Python:
@@ -66,16 +48,15 @@ solution = solve_from_config(config)
 print(solution.stats())
 ```
 
-Run manufactured validation gates:
+For development and docs work:
 
 ```bash
-tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
-tokamaker-jax verify --gate coil-green
-tokamaker-jax verify --gate circular-loop
-tokamaker-jax verify --gate oft-parity
-tokamaker-jax verify --gate profile-iteration
-tokamaker-jax verify --gate free-boundary-profile
+pip install -e ".[dev,docs]"
 ```
+
+TOML files use `tomllib` on Python 3.11+ and `tomli` on Python 3.10.
+
+## Examples
 
 Generate benchmark and literature-reproduction artifacts:
 
@@ -83,6 +64,37 @@ Generate benchmark and literature-reproduction artifacts:
 python examples/benchmark_report.py --output outputs/benchmark_report.json
 python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 ```
+
+Run individual physics gates:
+
+```bash
+tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
+tokamaker-jax verify --gate circular-loop
+tokamaker-jax verify --gate oft-parity
+tokamaker-jax verify --gate free-boundary-profile
+```
+
+## Visual Overview
+
+![Publication validation panel](docs/_static/publication_validation_panel.png)
+
+![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
+
+![Validation dashboard](docs/_static/validation_dashboard.png)
+
+![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
+
+![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
+
+![Free-boundary profile coupling](docs/_static/free_boundary_profile_coupling.png)
+
+![Coil current sweep](docs/_static/coil_current_sweep.gif)
+
+![Benchmark summary](docs/_static/benchmark_summary.png)
+
+![CPC seed-family reproduction surrogate](docs/_static/cpc_seed_family.png)
+
+![Pressure sweep animation](docs/_static/pressure_sweep.gif)
 
 ## Current Scope
 
@@ -96,6 +108,7 @@ python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
 - NiceGUI workflow dashboard summaries and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
+- Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, and publication-ready generated figures.
 - Sphinx and Read the Docs setup.
 - GitHub Actions for linting, testing with coverage, benchmark artifact upload, docs, and release publishing.
 

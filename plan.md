@@ -62,6 +62,26 @@ This file is both the engineering plan and the running implementation log for a 
 - Local verification passed: focused test suite `54 passed`, full suite with coverage `137 passed` at `95.44%`, `tokamaker-jax verify --gate all --subdivisions 4 8 16` passed, Sphinx docs passed with warnings treated as errors, and JSON/diff hygiene passed.
 - Updated completion accounting to 90% overall for the current scoped milestone, with remaining work concentrated in full-equilibrium OFT fixtures, GUI TOML editing, richer literature gallery cases, and hardware-normalized benchmark history.
 
+### 2026-05-12 23:10 WEST
+
+- Added the final large documentation pass for the staged 99% milestone.
+- Added `docs/equations.md` with axisymmetric field definitions, Grad-Shafranov derivation, self-adjoint weak form, p=1 triangular FEM derivation, manufactured solutions, coil Green's functions, free-boundary/profile coupling checks, and differentiability policy.
+- Added `docs/design_decisions.md` with source-porting boundaries, data-model rules, FEM strategy, differentiability strategy, GUI strategy, documentation strategy, performance policy, and compatibility levels.
+- Added `docs/io_contract.md` with all current input surfaces, TOML schema summary, JSON report shapes, figure recipe requirements, committed asset producers, and reproducibility policy.
+- Added `docs/comparisons.md` with upstream TokaMaker, FreeGS/FreeGSNKE, JAX-FEM, TORAX, EFIT/COCOS, bootstrap, and analytic-equilibrium comparison levels.
+- Added generated publication and audit assets: `publication_validation_panel.png`, `upstream_comparison_matrix.png`, `upstream_comparison_report.json`, and `io_artifact_map.png`.
+- Added docs tests that ensure the new pages are in the toctree, core equations/sign conventions are documented, comparison artifacts do not overclaim full parity, and publication assets exist.
+- Updated progress accounting to 99% for the current staged repository milestone while explicitly preserving that full TokaMaker feature parity remains future work.
+
+### 2026-05-12 23:15 WEST
+
+- Updated packaging so a normal `pip install -e .` includes the GUI stack by default.
+- Removed the `gui` optional dependency group and moved `nicegui` and `plotly` into the main dependencies.
+- Removed version specifiers from project, build-system, dev, and docs dependency declarations while keeping the Python support declaration `requires-python = ">=3.10"`.
+- Reworked the top of the README so the name, badges, project description, clone/install command, GUI launch, TOML run command, validation command, and Python API example appear before the visual gallery.
+- Updated getting-started docs to match the new default install and added packaging tests for default GUI dependencies and unversioned dependency declarations.
+- Updated progress accounting to 100% for the current staged repository milestone while preserving that full upstream TokaMaker feature parity is the next milestone.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>
