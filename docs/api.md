@@ -7,6 +7,9 @@
 .. automodule:: tokamaker_jax.domain
    :members:
 
+.. automodule:: tokamaker_jax.geometry
+   :members:
+
 .. automodule:: tokamaker_jax.mesh
    :members:
 

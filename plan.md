@@ -43,6 +43,12 @@ This file is both the engineering plan and the running implementation log for a 
 - Added deterministic mesh summaries, region area/count helpers, boundary-edge extraction, conductor/vacuum metadata helpers, and mesh plotting.
 - Added tests covering validation errors, HDF5/JSON round trips, plotting output, and local upstream ITER mesh import when the OFT checkout is present.
 
+### 2026-05-12 17:44 WEST
+
+- Added geometry primitives for M1: `Region`, `RegionSet`, rectangle/polygon/annulus builders, bounds, area, centroid, orientation, point-in-polygon, and TOML/JSON-style serialization.
+- Added region geometry plotting and a generated docs asset at `docs/_static/region_geometry_seed.png`.
+- Added focused geometry tests for serialization, containment, annular holes, validation failures, region-set uniqueness, and plot export.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>
@@ -922,8 +928,8 @@ Documentation quality gates:
 | --- | --- | --- |
 | `config` | TOML parsing, schema versioning, dataclass conversion | Seed implementation exists |
 | `domain` | Rectangular seed domain now; future machine/region domain objects | Seed implementation exists |
-| `geometry` | Polygons, annuli, rectangles, limiters, wall geometry, geometry validation | Planned |
-| `mesh` | Triangular mesh container, HDF5 import/export, region labels, mesh quality | Planned |
+| `geometry` | Polygons, annuli, rectangles, limiters, wall geometry, geometry validation | Seed implementation exists |
+| `mesh` | Triangular mesh container, HDF5 import/export, region labels, mesh quality | Seed implementation exists |
 | `fem` | Basis functions, quadrature, element assembly, sparse and matrix-free apply | Planned |
 | `operator` | Grad-Shafranov operator and source operators | Planned |
 | `profiles` | Flux functions, derivatives, profile coefficient pytrees | Seed functions exist; full hierarchy planned |

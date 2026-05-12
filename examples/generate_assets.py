@@ -7,7 +7,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
 
 from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConfig
-from tokamaker_jax.plotting import plot_equilibrium, save_equilibrium_plot
+from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
+from tokamaker_jax.plotting import plot_equilibrium, save_equilibrium_plot, save_region_plot
 from tokamaker_jax.solver import solve_from_config
 
 ASSET_DIR = Path("docs/_static")
@@ -21,7 +22,47 @@ def main() -> None:
         solver=SolverConfig(iterations=700, relaxation=0.75, dtype="float64"),
     )
     save_equilibrium_plot(solve_from_config(base), ASSET_DIR / "fixed_boundary_seed.png")
+    write_region_geometry_preview()
     write_pressure_sweep()
+
+
+def write_region_geometry_preview() -> None:
+    regions = RegionSet(
+        (
+            annulus_region(
+                id=2,
+                name="VV",
+                kind="conductor",
+                center_r=2.0,
+                center_z=0.0,
+                inner_radius=1.05,
+                outer_radius=1.25,
+                n=96,
+                target_size=0.05,
+            ),
+            rectangle_region(
+                id=1,
+                name="PLASMA",
+                kind="plasma",
+                r_min=1.35,
+                r_max=2.65,
+                z_min=-0.75,
+                z_max=0.75,
+                target_size=0.08,
+            ),
+            rectangle_region(
+                id=3,
+                name="PF",
+                kind="coil",
+                r_min=3.25,
+                r_max=3.55,
+                z_min=-0.25,
+                z_max=0.25,
+                target_size=0.04,
+            ),
+        )
+    )
+    save_region_plot(regions, ASSET_DIR / "region_geometry_seed.png")
 
 
 def write_pressure_sweep() -> None:

@@ -7,7 +7,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
+from matplotlib.patches import Polygon as PolygonPatch
 
+from tokamaker_jax.geometry import Region, RegionSet
 from tokamaker_jax.mesh import TriMesh
 from tokamaker_jax.solver import EquilibriumSolution
 
@@ -92,3 +94,74 @@ def save_mesh_plot(mesh: TriMesh, path: str | Path) -> Path:
     fig.savefig(path, dpi=180)
     plt.close(fig)
     return path.resolve()
+
+
+def plot_regions(
+    regions: RegionSet | tuple[Region, ...] | list[Region],
+    *,
+    ax: plt.Axes | None = None,
+    show_labels: bool = True,
+) -> tuple[plt.Figure, plt.Axes]:
+    """Plot region geometry loops for machine-definition previews."""
+
+    region_tuple = regions.regions if isinstance(regions, RegionSet) else tuple(regions)
+    if not region_tuple:
+        raise ValueError("regions must contain at least one region")
+    fig, ax = (
+        plt.subplots(figsize=(6.5, 5.2), constrained_layout=True) if ax is None else (ax.figure, ax)
+    )
+    colors = plt.get_cmap("tab20")
+    for index, region in enumerate(region_tuple):
+        patch = PolygonPatch(
+            region.points,
+            closed=True,
+            facecolor=colors(index % 20),
+            edgecolor="black",
+            linewidth=1.0,
+            alpha=0.45,
+        )
+        ax.add_patch(patch)
+        for hole in region.holes:
+            hole_patch = PolygonPatch(
+                hole,
+                closed=True,
+                facecolor="white",
+                edgecolor="black",
+                linewidth=0.8,
+                alpha=1.0,
+            )
+            ax.add_patch(hole_patch)
+        if show_labels:
+            r, z = _region_label_position(region)
+            ax.text(r, z, region.name, ha="center", va="center", fontsize=8)
+    all_points = np.vstack([region.points for region in region_tuple])
+    margin = 0.08 * max(np.ptp(all_points[:, 0]), np.ptp(all_points[:, 1]), 1.0)
+    ax.set_xlim(float(np.min(all_points[:, 0]) - margin), float(np.max(all_points[:, 0]) + margin))
+    ax.set_ylim(float(np.min(all_points[:, 1]) - margin), float(np.max(all_points[:, 1]) + margin))
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("tokamaker-jax region geometry")
+    return fig, ax
+
+
+def save_region_plot(
+    regions: RegionSet | tuple[Region, ...] | list[Region], path: str | Path
+) -> Path:
+    """Save a region preview plot and return the resolved path."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig, _ = plot_regions(regions)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+    return path.resolve()
+
+
+def _region_label_position(region: Region) -> tuple[float, float]:
+    if not region.holes:
+        return region.centroid
+    inner_max_r = max(float(np.max(hole[:, 0])) for hole in region.holes)
+    outer_max_r = float(np.max(region.points[:, 0]))
+    _, center_z = region.centroid
+    return 0.5 * (inner_max_r + outer_max_r), center_z

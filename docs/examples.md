@@ -14,6 +14,13 @@ tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png
 :alt: Pressure sweep animation
 ```
 
+The first geometry preview shows the TOML/Python region primitives that will
+feed TokaMaker-style machine definitions and mesh generation:
+
+```{image} _static/region_geometry_seed.png
+:alt: Region geometry preview with plasma, vacuum vessel, and PF coil
+```
+
 Future examples tracked in `plan.md`:
 
 - Fixed-boundary analytic Solov'ev convergence.
