@@ -11,10 +11,15 @@ from typing import Any, TypeVar
 import jax
 import jax.numpy as jnp
 
+from tokamaker_jax.assembly import (
+    apply_grad_shafranov_stiffness_matrix,
+    assemble_grad_shafranov_stiffness_matrix,
+)
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem import linear_mass_matrix, linear_stiffness_matrix
 from tokamaker_jax.profiles import solovev_source
 from tokamaker_jax.solver import EquilibriumSolution, solve_fixed_boundary
+from tokamaker_jax.verification import rectangular_triangles
 
 T = TypeVar("T")
 
@@ -130,6 +135,32 @@ def benchmark_local_fem_kernel(
         repeats=repeats,
         warmups=warmups,
         metadata={"element": "p1_triangle", "matrices": ["mass", "stiffness"]},
+    )
+
+
+def benchmark_axisymmetric_fem_apply(
+    *,
+    subdivisions: int = 16,
+    repeats: int = 5,
+    warmups: int = 1,
+) -> BenchmarkResult:
+    """Benchmark p=1 axisymmetric stiffness assembly plus matrix-free apply."""
+
+    nodes, triangles = rectangular_triangles(1.0, 2.0, -0.5, 0.5, subdivisions)
+    vector = jnp.sin(jnp.linspace(0.0, 1.0, nodes.shape[0], dtype=jnp.float64))
+
+    @jax.jit
+    def run() -> dict[str, jnp.ndarray]:
+        matrix = assemble_grad_shafranov_stiffness_matrix(nodes, triangles)
+        applied = apply_grad_shafranov_stiffness_matrix(nodes, triangles, vector)
+        return {"matrix": matrix, "applied": applied}
+
+    return benchmark_callable(
+        "axisymmetric_p1_fem_assembly_apply",
+        run,
+        repeats=repeats,
+        warmups=warmups,
+        metadata={"subdivisions": subdivisions, "operator": "grad_shafranov_weak"},
     )
 
 

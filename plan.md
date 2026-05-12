@@ -1997,3 +1997,56 @@ Validation completed during the pass:
 Generated artifact:
 
 - `docs/_static/manufactured_poisson_convergence.png`
+
+### 2026-05-12 19:34 WEST
+
+Completed the fourth implementation pass and raised the tracked overall
+completion marker from 30% to 50%.
+
+Implemented lanes:
+
+- Axisymmetric FEM: added coefficient-weighted p=1 mass and stiffness element
+  kernels, dense/sparse weighted global stiffness assembly, matrix-free
+  weighted applies, and named Grad-Shafranov weak-form stiffness helpers using
+  the self-adjoint coefficient `1/R`.
+- Profile/source assembly: added the weak source density convention
+  `0.5 dF^2/dpsi / R + mu0 R dp/dpsi` plus profile load-vector assembly for
+  triangular meshes.
+- Manufactured physics gate: added a cylindrical-coordinate manufactured
+  Grad-Shafranov solve on `[1,2] x [-0.5,0.5]` with exact Dirichlet values,
+  true quadrature-integrated L2 errors, true weighted H1 seminorm errors, and
+  observed convergence rates.
+- Differentiability gate: added an AD-versus-central-finite-difference
+  directional derivative check for the weighted axisymmetric stiffness
+  objective with respect to node coordinates.
+- CLI/GUI/performance: added `tokamaker-jax verify`, a GUI validation
+  convergence figure, and an executable axisymmetric assembly/apply benchmark.
+- Documentation/artifacts: updated validation equations, the machine-readable
+  physics-gate manifest, API coverage, progress accounting, and generated a
+  Grad-Shafranov convergence plot.
+
+Focused validation completed during the pass:
+
+- `gh run list --limit 8 --json ...`: latest pushed CI and Docs were passing
+  on SHA `811df28` before implementation began.
+- `python -m pytest tests/test_fem.py tests/test_assembly.py tests/test_verification.py`:
+  25 passed after the new axisymmetric FEM and manufactured gate landed.
+- `python -m pytest tests/test_fem.py tests/test_assembly.py tests/test_verification.py tests/test_cli_validate.py tests/test_gui.py tests/test_benchmarks.py tests/test_solver.py`:
+  57 passed after CLI, GUI, profile, and benchmark integration.
+- `python -m ruff format . && python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 87 passed,
+  95.37% coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed. The local
+  Sphinx 9 build reports upstream `sphinx-autodoc-typehints` deprecation
+  notices, but they did not fail the docs gate.
+
+Numerical validation snapshot for the implemented manufactured gates:
+
+- Poisson `(4, 8, 16)` true-error rates: L2 rates about `1.90, 1.97`; H1 rates
+  about `0.96, 0.99`.
+- Axisymmetric Grad-Shafranov `(4, 8, 16)` true-error rates: L2 rates about
+  `1.90, 1.97`; weighted H1 rates about `0.96, 0.99`.
+
+Generated artifact:
+
+- `docs/_static/manufactured_grad_shafranov_convergence.png`

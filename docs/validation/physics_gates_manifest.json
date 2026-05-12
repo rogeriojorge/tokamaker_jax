@@ -28,7 +28,9 @@
         "mass_matrix_symmetry",
         "mass_matrix_positive_definite",
         "stiffness_matrix_symmetry",
-        "stiffness_constant_nullspace"
+        "stiffness_constant_nullspace",
+        "weighted_mass_constant_scaling",
+        "weighted_stiffness_constant_scaling"
       ],
       "pass_rule": {
         "type": "analytic_identity",
@@ -47,6 +49,10 @@
         "exact_unit_square_stiffness_matrix",
         "sparse_bcoo_matches_dense",
         "matrix_free_apply_matches_dense",
+        "weighted_sparse_bcoo_matches_dense",
+        "weighted_matrix_free_apply_matches_dense",
+        "axisymmetric_inverse_radius_stiffness",
+        "grad_shafranov_profile_load_density",
         "symmetry",
         "mass_total",
         "positive_mass_eigenvalues",
@@ -110,7 +116,8 @@
         "benchmark_result_json_roundtrip",
         "benchmark_validation_errors",
         "small_seed_solve_timing",
-        "jitted_local_fem_kernel_timing"
+        "jitted_local_fem_kernel_timing",
+        "jitted_axisymmetric_global_assembly_apply_timing"
       ],
       "pass_rule": {
         "type": "executable_schema",
@@ -137,6 +144,31 @@
         "h1_expected_order": 1,
         "l2_expected_order": 2,
         "tolerance_source": "tests/test_assembly.py"
+      }
+    },
+    {
+      "id": "manufactured-axisymmetric-grad-shafranov-convergence",
+      "category": "manufactured_solution",
+      "status": "implemented",
+      "description": "Validate self-adjoint axisymmetric Grad-Shafranov p=1 FEM convergence on a cylindrical-coordinate manufactured problem.",
+      "command": "tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16",
+      "artifact": "docs/_static/manufactured_grad_shafranov_convergence.png",
+      "required_checks": [
+        "axisymmetric_inverse_radius_weight",
+        "profile_source_density_convention",
+        "exact_dirichlet_boundary_conditions",
+        "true_quadrature_l2_error",
+        "true_quadrature_weighted_h1_error",
+        "observed_weighted_h1_rate",
+        "observed_l2_rate",
+        "json_ready_convergence_report",
+        "finite_difference_vs_autodiff_weighted_stiffness"
+      ],
+      "pass_rule": {
+        "type": "observed_rate",
+        "weighted_h1_expected_order": 1,
+        "l2_expected_order": 2,
+        "tolerance_source": "tests/test_verification.py and tests/test_assembly.py"
       }
     },
     {

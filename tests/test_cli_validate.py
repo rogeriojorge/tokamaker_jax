@@ -4,7 +4,7 @@ import pytest
 from conftest import REPO_ROOT
 
 from tokamaker_jax import cli
-from tokamaker_jax.cli import ConfigValidationError, main, validate_config
+from tokamaker_jax.cli import ConfigValidationError, main, run_verification_gates, validate_config
 
 
 def test_validate_config_accepts_example():
@@ -50,6 +50,38 @@ nz = 9
     assert exit_code == 1
     assert "Validation failed" in captured.err
     assert "grid.nr must be at least 3" in captured.err
+
+
+def test_main_verify_runs_manufactured_gate_and_writes_json(capsys, tmp_path: Path):
+    output = tmp_path / "verify.json"
+
+    exit_code = main(
+        [
+            "verify",
+            "--gate",
+            "grad-shafranov",
+            "--subdivisions",
+            "4",
+            "8",
+            "--output",
+            str(output),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert output.exists()
+    assert "grad_shafranov" in captured.out
+    assert "weighted_h1_rates" in output.read_text(encoding="utf-8")
+
+
+def test_run_verification_gates_validates_subdivisions():
+    with pytest.raises(ValueError, match="at least two"):
+        run_verification_gates("poisson", (4,))
+    with pytest.raises(ValueError, match="at least 2"):
+        run_verification_gates("poisson", (1, 2))
+    with pytest.raises(ValueError, match="gate must be"):
+        run_verification_gates("bad", (4, 8))
 
 
 def test_validate_config_reports_physical_and_solver_errors(tmp_path: Path):

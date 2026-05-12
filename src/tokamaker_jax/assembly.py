@@ -14,11 +14,14 @@ from tokamaker_jax.fem import (
     linear_basis,
     linear_mass_matrix,
     linear_stiffness_matrix,
+    linear_weighted_mass_matrix,
+    linear_weighted_stiffness_matrix,
     map_to_physical,
     triangle_jacobian,
     triangle_quadrature,
 )
 from tokamaker_jax.mesh import TriMesh
+from tokamaker_jax.profiles import ProfileDerivative, grad_shafranov_weak_source_density
 
 
 @dataclass(frozen=True)
@@ -174,6 +177,204 @@ def apply_laplace_stiffness_matrix(
     nodes, triangles, vector = _mesh_arrays_and_vector(mesh_or_nodes, triangles_or_vector, vector)
     element_matrices = jax.vmap(linear_stiffness_matrix)(nodes[triangles])
     return apply_global_matrix(element_matrices, triangles, vector, nodes.shape[0])
+
+
+def assemble_weighted_mass_matrix(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_coefficient: jnp.ndarray | Callable[[jnp.ndarray], jnp.ndarray],
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Assemble a dense p=1 mass matrix weighted by a coefficient."""
+
+    nodes, triangles, coefficient = _mesh_arrays_and_coefficient(
+        mesh_or_nodes, triangles_or_coefficient, coefficient
+    )
+    element_matrices = jax.vmap(
+        lambda vertices: linear_weighted_mass_matrix(
+            vertices,
+            coefficient,
+            quadrature_degree=quadrature_degree,
+        )
+    )(nodes[triangles])
+    return assemble_global_matrix(element_matrices, triangles, nodes.shape[0])
+
+
+def assemble_weighted_stiffness_matrix(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_coefficient: jnp.ndarray | Callable[[jnp.ndarray], jnp.ndarray],
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Assemble a dense p=1 stiffness matrix weighted by a coefficient."""
+
+    nodes, triangles, coefficient = _mesh_arrays_and_coefficient(
+        mesh_or_nodes, triangles_or_coefficient, coefficient
+    )
+    element_matrices = jax.vmap(
+        lambda vertices: linear_weighted_stiffness_matrix(
+            vertices,
+            coefficient,
+            quadrature_degree=quadrature_degree,
+        )
+    )(nodes[triangles])
+    return assemble_global_matrix(element_matrices, triangles, nodes.shape[0])
+
+
+def assemble_weighted_stiffness_bcoo(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_coefficient: jnp.ndarray | Callable[[jnp.ndarray], jnp.ndarray],
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> BCOO:
+    """Assemble a sparse p=1 weighted stiffness matrix as ``BCOO``."""
+
+    nodes, triangles, coefficient = _mesh_arrays_and_coefficient(
+        mesh_or_nodes, triangles_or_coefficient, coefficient
+    )
+    element_matrices = jax.vmap(
+        lambda vertices: linear_weighted_stiffness_matrix(
+            vertices,
+            coefficient,
+            quadrature_degree=quadrature_degree,
+        )
+    )(nodes[triangles])
+    return assemble_global_bcoo(element_matrices, triangles, nodes.shape[0])
+
+
+def apply_weighted_stiffness_matrix(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_vector: jnp.ndarray,
+    vector_or_coefficient: jnp.ndarray | Callable[[jnp.ndarray], jnp.ndarray],
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Apply a weighted p=1 stiffness matrix without materializing it densely."""
+
+    if isinstance(mesh_or_nodes, TriMesh):
+        if coefficient is not None:
+            raise ValueError(
+                "coefficient must be the third positional argument when passing a TriMesh"
+            )
+        nodes, triangles = _mesh_arrays(mesh_or_nodes, None)
+        vector = jnp.asarray(triangles_or_vector)
+        coefficient = _require_callable_coefficient(vector_or_coefficient)
+    else:
+        nodes, triangles = _mesh_arrays(mesh_or_nodes, triangles_or_vector)
+        vector = jnp.asarray(vector_or_coefficient)
+        coefficient = _require_callable_coefficient(coefficient)
+    if vector.shape != (nodes.shape[0],):
+        raise ValueError("vector must have shape (n_nodes,)")
+    element_matrices = jax.vmap(
+        lambda vertices: linear_weighted_stiffness_matrix(
+            vertices,
+            coefficient,
+            quadrature_degree=quadrature_degree,
+        )
+    )(nodes[triangles])
+    return apply_global_matrix(element_matrices, triangles, vector, nodes.shape[0])
+
+
+def axisymmetric_inverse_radius(points: jnp.ndarray) -> jnp.ndarray:
+    """Return the Grad-Shafranov weak-form coefficient ``1 / R``."""
+
+    points = jnp.asarray(points, dtype=jnp.float64)
+    if points.ndim != 2 or points.shape[1] != 2:
+        raise ValueError("points must have shape (n_points, 2)")
+    return 1.0 / points[:, 0]
+
+
+def assemble_grad_shafranov_stiffness_matrix(
+    mesh_or_nodes: TriMesh | Any,
+    triangles: jnp.ndarray | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Assemble the self-adjoint axisymmetric Grad-Shafranov stiffness matrix."""
+
+    return assemble_weighted_stiffness_matrix(
+        mesh_or_nodes,
+        axisymmetric_inverse_radius if isinstance(mesh_or_nodes, TriMesh) else triangles,
+        None if isinstance(mesh_or_nodes, TriMesh) else axisymmetric_inverse_radius,
+        quadrature_degree=quadrature_degree,
+    )
+
+
+def assemble_grad_shafranov_stiffness_bcoo(
+    mesh_or_nodes: TriMesh | Any,
+    triangles: jnp.ndarray | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> BCOO:
+    """Assemble the axisymmetric Grad-Shafranov stiffness matrix as ``BCOO``."""
+
+    return assemble_weighted_stiffness_bcoo(
+        mesh_or_nodes,
+        axisymmetric_inverse_radius if isinstance(mesh_or_nodes, TriMesh) else triangles,
+        None if isinstance(mesh_or_nodes, TriMesh) else axisymmetric_inverse_radius,
+        quadrature_degree=quadrature_degree,
+    )
+
+
+def apply_grad_shafranov_stiffness_matrix(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_vector: jnp.ndarray,
+    vector: jnp.ndarray | None = None,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Apply the axisymmetric Grad-Shafranov stiffness matrix matrix-free."""
+
+    if isinstance(mesh_or_nodes, TriMesh):
+        if vector is not None:
+            raise ValueError("vector must be the second positional argument when passing a TriMesh")
+        return apply_weighted_stiffness_matrix(
+            mesh_or_nodes,
+            triangles_or_vector,
+            axisymmetric_inverse_radius,
+            quadrature_degree=quadrature_degree,
+        )
+    if vector is None:
+        raise ValueError("vector must be provided when passing node arrays")
+    return apply_weighted_stiffness_matrix(
+        mesh_or_nodes,
+        triangles_or_vector,
+        vector,
+        axisymmetric_inverse_radius,
+        quadrature_degree=quadrature_degree,
+    )
+
+
+def assemble_grad_shafranov_profile_load_vector(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_pressure_prime: jnp.ndarray | ProfileDerivative,
+    pressure_prime: ProfileDerivative | None = None,
+    ffprime: ProfileDerivative = 0.0,
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Assemble the weak-form profile source vector for ``-Delta* psi``."""
+
+    if isinstance(mesh_or_nodes, TriMesh):
+        if pressure_prime is not None:
+            raise ValueError(
+                "pressure_prime must be the second positional argument when passing a TriMesh"
+            )
+        nodes, triangles = _mesh_arrays(mesh_or_nodes, None)
+        pressure_prime = triangles_or_pressure_prime
+    else:
+        if pressure_prime is None:
+            raise ValueError("pressure_prime must be provided when passing node arrays")
+        nodes, triangles = _mesh_arrays(mesh_or_nodes, triangles_or_pressure_prime)
+
+    def source(points: jnp.ndarray) -> jnp.ndarray:
+        return grad_shafranov_weak_source_density(points, pressure_prime, ffprime)
+
+    return assemble_load_vector(nodes, triangles, source, quadrature_degree=quadrature_degree)
 
 
 def linear_load_vector(
@@ -344,6 +545,32 @@ def _mesh_arrays_and_source(
         raise TypeError("source must be callable")
     nodes, triangles = _mesh_arrays(mesh_or_nodes, triangles_or_source)
     return nodes, triangles, source
+
+
+def _mesh_arrays_and_coefficient(
+    mesh_or_nodes: TriMesh | Any,
+    triangles_or_coefficient: jnp.ndarray | Callable[[jnp.ndarray], jnp.ndarray],
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None,
+) -> tuple[jnp.ndarray, jnp.ndarray, Callable[[jnp.ndarray], jnp.ndarray]]:
+    if isinstance(mesh_or_nodes, TriMesh):
+        if coefficient is not None:
+            raise ValueError(
+                "coefficient must be the second positional argument when passing a TriMesh"
+            )
+        nodes, triangles = _mesh_arrays(mesh_or_nodes, None)
+        return nodes, triangles, _require_callable_coefficient(triangles_or_coefficient)
+    if coefficient is None:
+        raise ValueError("coefficient must be provided when passing node arrays")
+    nodes, triangles = _mesh_arrays(mesh_or_nodes, triangles_or_coefficient)
+    return nodes, triangles, _require_callable_coefficient(coefficient)
+
+
+def _require_callable_coefficient(
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray] | None,
+) -> Callable[[jnp.ndarray], jnp.ndarray]:
+    if not callable(coefficient):
+        raise TypeError("coefficient must be callable")
+    return coefficient
 
 
 def _validate_mesh_array_shapes(nodes: jnp.ndarray, triangles: jnp.ndarray) -> None:

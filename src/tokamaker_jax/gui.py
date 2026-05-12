@@ -12,6 +12,12 @@ from tokamaker_jax.config import GridConfig, RunConfig, SolverConfig, SourceConf
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.plotting import equilibrium_metadata_summary, region_table_data
 from tokamaker_jax.solver import solve_from_config
+from tokamaker_jax.verification import (
+    GradShafranovConvergenceStudy,
+    PoissonConvergenceStudy,
+    run_grad_shafranov_convergence_study,
+    run_poisson_convergence_study,
+)
 
 
 def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) -> None:
@@ -33,6 +39,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
     with ui.tabs().classes("w-full") as tabs:
         equilibrium_tab = ui.tab("Seed equilibrium")
         geometry_tab = ui.tab("Region geometry")
+        validation_tab = ui.tab("Validation")
 
     with ui.tab_panels(tabs, value=equilibrium_tab).classes("w-full"):
         with ui.tab_panel(equilibrium_tab):
@@ -79,6 +86,8 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=region_table_rows(regions),
             ).classes("w-full")
+        with ui.tab_panel(validation_tab):
+            ui.plotly(validation_convergence_figure("grad-shafranov")).classes("w-full h-[620px]")
     ui.run(host=host, port=port, reload=reload, show=True)
 
 
@@ -163,6 +172,34 @@ def seed_equilibrium_figure(
 
     figure, _ = _seed_equilibrium_payload(pressure_scale, ffp_scale, iterations)
     return figure
+
+
+def validation_convergence_figure(gate: str = "grad-shafranov"):
+    """Return a Plotly figure for an implemented manufactured validation gate."""
+
+    import plotly.graph_objects as go
+
+    if gate == "poisson":
+        study = run_poisson_convergence_study((4, 8, 16))
+        return _convergence_figure_from_study(
+            go,
+            "p=1 manufactured Poisson convergence",
+            study,
+            h1_key="h1_error",
+            h1_label="H1 seminorm error",
+            h1_rates=study.h1_rates,
+        )
+    if gate == "grad-shafranov":
+        study = run_grad_shafranov_convergence_study((4, 8, 16))
+        return _convergence_figure_from_study(
+            go,
+            "axisymmetric Grad-Shafranov weak-form convergence",
+            study,
+            h1_key="weighted_h1_error",
+            h1_label="weighted H1 seminorm error",
+            h1_rates=study.weighted_h1_rates,
+        )
+    raise ValueError("gate must be 'poisson' or 'grad-shafranov'")
 
 
 def seed_equilibrium_summary_rows(summary: dict[str, Any]) -> list[dict[str, str]]:
@@ -257,6 +294,56 @@ def _seed_equilibrium_payload(
         font={"size": 12},
     )
     return fig, summary
+
+
+def _convergence_figure_from_study(
+    go,
+    title: str,
+    study: PoissonConvergenceStudy | GradShafranovConvergenceStudy,
+    *,
+    h1_key: str,
+    h1_label: str,
+    h1_rates: tuple[float, ...],
+):
+    results = study.to_dict()["results"]
+    h = np.asarray([result["h"] for result in results])
+    l2 = np.asarray([result["l2_error"] for result in results])
+    h1 = np.asarray([result[h1_key] for result in results])
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=h, y=l2, mode="lines+markers", name="L2 error"))
+    fig.add_trace(go.Scatter(x=h, y=h1, mode="lines+markers", name=h1_label))
+    fig.add_trace(
+        go.Scatter(
+            x=h,
+            y=l2[-1] * (h / h[-1]) ** 2,
+            mode="lines",
+            name="O(h^2)",
+            line={"dash": "dash"},
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=h,
+            y=h1[-1] * (h / h[-1]),
+            mode="lines",
+            name="O(h)",
+            line={"dash": "dash"},
+        )
+    )
+    fig.update_xaxes(title="mesh size h", type="log", autorange="reversed")
+    fig.update_yaxes(title="error", type="log")
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        margin={"l": 48, "r": 20, "t": 48, "b": 42},
+        legend_title_text="Metric",
+        meta={
+            "results": results,
+            "l2_rates": list(study.l2_rates),
+            "h1_rates": list(h1_rates),
+        },
+    )
+    return fig
 
 
 def _region_tuple(regions: RegionSet | Sequence[Region]) -> tuple[Region, ...]:

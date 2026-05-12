@@ -12,6 +12,8 @@ This repository currently contains the project scaffold, CI/docs infrastructure,
 
 ![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
 
+![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
+
 ![Pressure sweep animation](docs/_static/pressure_sweep.gif)
 
 ## Install
@@ -48,9 +50,16 @@ solution = solve_from_config(config)
 print(solution.stats())
 ```
 
+Run manufactured validation gates:
+
+```bash
+tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
+```
+
 ## Current Scope
 
 - JAX differentiable fixed-boundary seed solver for the Grad-Shafranov operator on a rectangular grid.
+- p=1 triangular FEM reference kernels, dense/sparse/matrix-free assembly, weighted axisymmetric Grad-Shafranov weak-form assembly, profile source loads, and manufactured convergence gates.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Matplotlib plotting utilities.

@@ -6,6 +6,7 @@ from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.profiles import (
     gaussian_coil_source,
+    grad_shafranov_weak_source_density,
     normalized_flux,
     power_profile,
     solovev_source,
@@ -73,6 +74,31 @@ def test_power_profile():
 
     assert jnp.isclose(profile[0], 1.0)
     assert jnp.isclose(profile[-1], 0.0)
+
+
+def test_grad_shafranov_weak_source_density_accepts_scalars_and_callables():
+    points = jnp.asarray([[1.0, 0.0], [2.0, 0.5]], dtype=jnp.float64)
+
+    scalar_density = grad_shafranov_weak_source_density(
+        points,
+        pressure_prime=0.0,
+        ffprime=2.0,
+    )
+    callable_density = grad_shafranov_weak_source_density(
+        points,
+        pressure_prime=lambda x: x[:, 0],
+        ffprime=lambda x: 2.0 * x[:, 0],
+    )
+
+    assert scalar_density[0] == pytest.approx(1.0)
+    assert scalar_density[1] == pytest.approx(0.5)
+    assert callable_density.shape == (2,)
+    assert jnp.all(jnp.isfinite(callable_density))
+
+    with pytest.raises(ValueError, match="points must have shape"):
+        grad_shafranov_weak_source_density(jnp.ones((2, 3)), 0.0, 0.0)
+    with pytest.raises(ValueError, match="pressure_prime"):
+        grad_shafranov_weak_source_density(points, lambda x: jnp.ones(x.shape[0] + 1), 0.0)
 
 
 def test_gaussian_coil_source_and_config_solve():

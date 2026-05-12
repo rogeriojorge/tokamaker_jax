@@ -10,6 +10,8 @@ from tokamaker_jax.fem import (
     linear_basis_gradients,
     linear_mass_matrix,
     linear_stiffness_matrix,
+    linear_weighted_mass_matrix,
+    linear_weighted_stiffness_matrix,
     map_to_physical,
     physical_basis_gradients,
     reference_triangle_nodes,
@@ -111,8 +113,35 @@ def test_linear_element_matrices_are_symmetric_and_consistent():
     assert float(jnp.min(jnp.linalg.eigvalsh(stiffness))) > -1.0e-12
 
 
+def test_weighted_element_matrices_reduce_to_constant_scaling():
+    vertices = jnp.asarray([[0.5, -0.2], [1.7, -0.1], [0.7, 0.9]], dtype=jnp.float64)
+
+    weighted_mass = linear_weighted_mass_matrix(
+        vertices,
+        lambda points: jnp.full(points.shape[0], 2.5, dtype=points.dtype),
+    )
+    weighted_stiffness = linear_weighted_stiffness_matrix(
+        vertices,
+        lambda points: jnp.full(points.shape[0], 2.5, dtype=points.dtype),
+    )
+
+    np.testing.assert_allclose(weighted_mass, 2.5 * linear_mass_matrix(vertices), atol=1.0e-14)
+    np.testing.assert_allclose(
+        weighted_stiffness,
+        2.5 * linear_stiffness_matrix(vertices),
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(weighted_mass, weighted_mass.T, atol=1.0e-14)
+    np.testing.assert_allclose(weighted_stiffness, weighted_stiffness.T, atol=1.0e-14)
+
+
 def test_fem_helpers_validate_input_shape():
     with pytest.raises(ValueError, match="final dimension 2"):
         linear_basis(jnp.asarray([0.1, 0.2, 0.3]))
     with pytest.raises(ValueError, match="shape"):
         triangle_area(jnp.asarray([[0.0, 0.0], [1.0, 0.0]]))
+    with pytest.raises(ValueError, match="one value per quadrature point"):
+        linear_weighted_mass_matrix(
+            jnp.asarray([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=jnp.float64),
+            lambda points: jnp.ones(points.shape[0] + 1),
+        )

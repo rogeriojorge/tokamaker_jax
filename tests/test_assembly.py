@@ -5,14 +5,23 @@ import pytest
 
 from tokamaker_jax.assembly import (
     apply_dirichlet_conditions,
+    apply_grad_shafranov_stiffness_matrix,
     apply_laplace_stiffness_matrix,
     apply_mass_matrix,
+    apply_weighted_stiffness_matrix,
     assemble_global_matrix,
+    assemble_grad_shafranov_profile_load_vector,
+    assemble_grad_shafranov_stiffness_bcoo,
+    assemble_grad_shafranov_stiffness_matrix,
     assemble_laplace_stiffness_bcoo,
     assemble_laplace_stiffness_matrix,
     assemble_load_vector,
     assemble_mass_bcoo,
     assemble_mass_matrix,
+    assemble_weighted_mass_matrix,
+    assemble_weighted_stiffness_bcoo,
+    assemble_weighted_stiffness_matrix,
+    axisymmetric_inverse_radius,
     boundary_nodes_from_coordinates,
     linear_load_vector,
     solve_dirichlet_system,
@@ -138,6 +147,73 @@ def test_load_vector_constant_source_matches_mass_times_one():
     np.testing.assert_allclose(jnp.sum(element_load), 0.5, atol=1.0e-14)
 
 
+def test_weighted_assembly_and_axisymmetric_paths_match_dense_oracles():
+    nodes, triangles = square_mesh_arrays()
+    shifted_nodes = nodes.at[:, 0].add(1.0)
+    vector = jnp.asarray([1.0, -2.0, 3.0, -4.0], dtype=jnp.float64)
+
+    def constant_weight(points):
+        return jnp.full(points.shape[0], 2.0, dtype=points.dtype)
+
+    weighted_mass = assemble_weighted_mass_matrix(shifted_nodes, triangles, constant_weight)
+    weighted_stiffness = assemble_weighted_stiffness_matrix(
+        shifted_nodes, triangles, constant_weight
+    )
+    laplace = assemble_laplace_stiffness_matrix(shifted_nodes, triangles)
+
+    np.testing.assert_allclose(
+        weighted_mass,
+        2.0 * assemble_mass_matrix(shifted_nodes, triangles),
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(weighted_stiffness, 2.0 * laplace, atol=1.0e-14)
+    np.testing.assert_allclose(
+        assemble_weighted_stiffness_bcoo(shifted_nodes, triangles, constant_weight).todense(),
+        weighted_stiffness,
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(
+        apply_weighted_stiffness_matrix(shifted_nodes, triangles, vector, constant_weight),
+        weighted_stiffness @ vector,
+        atol=1.0e-14,
+    )
+
+    grad_shafranov = assemble_grad_shafranov_stiffness_matrix(shifted_nodes, triangles)
+    np.testing.assert_allclose(
+        assemble_grad_shafranov_stiffness_bcoo(shifted_nodes, triangles).todense(),
+        grad_shafranov,
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(
+        apply_grad_shafranov_stiffness_matrix(shifted_nodes, triangles, vector),
+        grad_shafranov @ vector,
+        atol=1.0e-14,
+    )
+    np.testing.assert_allclose(
+        axisymmetric_inverse_radius(jnp.asarray([[2.0, 0.0], [4.0, 1.0]], dtype=jnp.float64)),
+        [0.5, 0.25],
+    )
+
+
+def test_grad_shafranov_profile_load_matches_weak_density_convention():
+    nodes, triangles = square_mesh_arrays()
+    shifted_nodes = nodes.at[:, 0].add(1.0)
+
+    load = assemble_grad_shafranov_profile_load_vector(
+        shifted_nodes,
+        triangles,
+        pressure_prime=0.0,
+        ffprime=2.0,
+    )
+    reference = assemble_load_vector(
+        shifted_nodes,
+        triangles,
+        lambda points: 1.0 / points[:, 0],
+    )
+
+    np.testing.assert_allclose(load, reference, atol=1.0e-14)
+
+
 def test_dirichlet_helpers_solve_known_laplace_problem():
     nodes, triangles = square_mesh_arrays()
     stiffness = assemble_laplace_stiffness_matrix(nodes, triangles)
@@ -187,6 +263,18 @@ def test_assembly_is_jittable_and_differentiable_for_fixed_connectivity():
         @ assemble_laplace_stiffness_matrix(coords, triangles)
         @ jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=coords.dtype)
     )(nodes)
+    shifted_nodes = nodes.at[:, 0].add(1.0)
+    direction = jnp.asarray([[0.03, 0.02], [-0.01, 0.04], [0.02, -0.03], [0.01, 0.02]])
+    vector = jnp.asarray([0.0, 1.0, 0.0, -1.0], dtype=nodes.dtype)
+
+    def objective(coords):
+        return vector @ assemble_grad_shafranov_stiffness_matrix(coords, triangles) @ vector
+
+    ad_directional = jnp.sum(jax.grad(objective)(shifted_nodes) * direction)
+    eps = 1.0e-6
+    fd_directional = (
+        objective(shifted_nodes + eps * direction) - objective(shifted_nodes - eps * direction)
+    ) / (2.0 * eps)
 
     np.testing.assert_allclose(jnp.sum(mass), 1.0, atol=1.0e-14)
     np.testing.assert_allclose(jnp.sum(stiffness, axis=1), np.zeros(4), atol=1.0e-14)
@@ -194,6 +282,7 @@ def test_assembly_is_jittable_and_differentiable_for_fixed_connectivity():
     assert stiffness_energy_grad.shape == nodes.shape
     assert bool(jnp.all(jnp.isfinite(mass_total_grad)))
     assert bool(jnp.all(jnp.isfinite(stiffness_energy_grad)))
+    np.testing.assert_allclose(ad_directional, fd_directional, rtol=5.0e-6, atol=1.0e-9)
 
 
 def test_assembly_validates_input_shapes():
@@ -210,10 +299,20 @@ def test_assembly_validates_input_shapes():
         apply_mass_matrix(mesh, triangles, jnp.ones(4))
     with pytest.raises(ValueError, match="source must be provided"):
         assemble_load_vector(nodes, triangles)
+    with pytest.raises(ValueError, match="coefficient must be provided"):
+        assemble_weighted_stiffness_matrix(nodes, triangles)
     with pytest.raises(TypeError, match="source must be callable"):
         assemble_load_vector(mesh, jnp.ones(4))
+    with pytest.raises(TypeError, match="coefficient must be callable"):
+        assemble_weighted_stiffness_matrix(mesh, jnp.ones(4))
     with pytest.raises(ValueError, match="source must be the second"):
         assemble_load_vector(mesh, lambda points: points[:, 0], source=lambda points: points[:, 0])
+    with pytest.raises(ValueError, match="coefficient must be the second"):
+        assemble_weighted_stiffness_matrix(
+            mesh,
+            lambda points: points[:, 0],
+            coefficient=lambda points: points[:, 0],
+        )
     with pytest.raises(ValueError, match="nodes must have shape"):
         assemble_mass_matrix(jnp.ones((4, 3)), triangles)
     with pytest.raises(ValueError, match="at least 3"):
@@ -230,6 +329,8 @@ def test_assembly_validates_input_shapes():
         assemble_global_matrix(jnp.ones((2, 3, 3)), triangles, n_nodes=2)
     with pytest.raises(ValueError, match="one value per quadrature point"):
         linear_load_vector(nodes[triangles[0]], lambda points: jnp.ones(points.shape[0] + 1))
+    with pytest.raises(ValueError, match="points must have shape"):
+        axisymmetric_inverse_radius(jnp.ones((3, 3)))
     with pytest.raises(ValueError, match="matrix must be square"):
         apply_dirichlet_conditions(
             jnp.ones((4, 3)), jnp.ones(4), jnp.asarray([0]), jnp.asarray([0.0])

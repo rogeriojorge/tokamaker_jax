@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import jax.numpy as jnp
@@ -129,6 +130,55 @@ def linear_stiffness_matrix(vertices: jnp.ndarray) -> jnp.ndarray:
     return area * (gradients @ gradients.T)
 
 
+def linear_weighted_mass_matrix(
+    vertices: jnp.ndarray,
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray],
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Return the p=1 mass matrix weighted by a physical-space coefficient.
+
+    The matrix entries are
+
+    ``M_ij = int_K coefficient(R, Z) phi_i(R, Z) phi_j(R, Z) dR dZ``.
+    """
+
+    quadrature = triangle_quadrature(quadrature_degree)
+    physical_points = map_to_physical(vertices, quadrature.points)
+    coefficient_values = _coefficient_values(coefficient, physical_points, quadrature.weights)
+    basis = linear_basis(quadrature.points)
+    det_jacobian = jnp.abs(jnp.linalg.det(triangle_jacobian(vertices)))
+    return det_jacobian * jnp.einsum(
+        "q,q,qi,qj->ij",
+        quadrature.weights,
+        coefficient_values,
+        basis,
+        basis,
+    )
+
+
+def linear_weighted_stiffness_matrix(
+    vertices: jnp.ndarray,
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray],
+    *,
+    quadrature_degree: int = 3,
+) -> jnp.ndarray:
+    """Return the p=1 stiffness matrix weighted by a coefficient.
+
+    The matrix entries are
+
+    ``A_ij = int_K coefficient(R, Z) grad(phi_i).grad(phi_j) dR dZ``.
+    """
+
+    quadrature = triangle_quadrature(quadrature_degree)
+    physical_points = map_to_physical(vertices, quadrature.points)
+    coefficient_values = _coefficient_values(coefficient, physical_points, quadrature.weights)
+    gradients = physical_basis_gradients(vertices)
+    det_jacobian = jnp.abs(jnp.linalg.det(triangle_jacobian(vertices)))
+    coefficient_integral = det_jacobian * jnp.sum(quadrature.weights * coefficient_values)
+    return coefficient_integral * (gradients @ gradients.T)
+
+
 def _as_points(points: jnp.ndarray) -> jnp.ndarray:
     array = jnp.asarray(points, dtype=jnp.float64)
     if array.shape[-1] != 2:
@@ -141,3 +191,14 @@ def _as_vertices(vertices: jnp.ndarray) -> jnp.ndarray:
     if array.shape != (3, 2):
         raise ValueError("vertices must have shape (3, 2)")
     return array
+
+
+def _coefficient_values(
+    coefficient: Callable[[jnp.ndarray], jnp.ndarray],
+    physical_points: jnp.ndarray,
+    weights: jnp.ndarray,
+) -> jnp.ndarray:
+    values = jnp.asarray(coefficient(physical_points), dtype=jnp.float64)
+    if values.shape != weights.shape:
+        raise ValueError("coefficient must return one value per quadrature point")
+    return values

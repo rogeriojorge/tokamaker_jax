@@ -22,6 +22,9 @@ triangular FEM path:
 - p=1 load-vector assembly, dense Dirichlet reduction, matrix-free operator
   application, sparse `BCOO` assembly, and a manufactured Poisson convergence
   gate on uniformly refined unit-square meshes.
+- coefficient-weighted p=1 mass/stiffness assembly, sparse and matrix-free
+  weighted stiffness paths, axisymmetric Grad-Shafranov weak-form assembly,
+  profile-source load vectors, and a cylindrical manufactured-solution gate.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -128,6 +131,81 @@ dense reduction, solves the interior system, and reports observed rates.
 
 ![Manufactured Poisson convergence](_static/manufactured_poisson_convergence.png)
 
+## Axisymmetric Grad-Shafranov Gate
+
+The implemented axisymmetric FEM gate uses the self-adjoint form of the
+Grad-Shafranov operator. With
+
+$$
+\Delta^*\psi = R\frac{\partial}{\partial R}
+\left(\frac{1}{R}\frac{\partial \psi}{\partial R}\right)
+\frac{\partial^2\psi}{\partial Z^2},
+$$
+
+the manufactured validation problem is written as
+
+$$
+-\nabla\cdot\left(\frac{1}{R}\nabla\psi\right)=q
+\qquad\hbox{on}\qquad \Omega=[1,2]\times[-0.5,0.5].
+$$
+
+The p=1 element stiffness entries are
+
+$$
+A^K_{ij} =
+\int_K \frac{1}{R}\nabla\phi_i\cdot\nabla\phi_j\,dR\,dZ.
+$$
+
+The source profile helper follows the TokaMaker/OpenFUSIONToolkit convention
+used by the seed solver,
+
+$$
+\Delta^*\psi = -\frac{1}{2}\frac{dF^2}{d\psi}
+-\mu_0 R^2\frac{dp}{d\psi},
+$$
+
+so the weak source density for the negated self-adjoint equation is
+
+$$
+q_\mathrm{profile}(R,Z)=
+\frac{1}{2R}\frac{dF^2}{d\psi}+\mu_0 R\frac{dp}{d\psi}.
+$$
+
+The manufactured exact solution is
+
+$$
+\psi(R,Z) =
+\sin\left(\pi(R-1)\right)\sin\left(\pi(Z+0.5)\right),
+$$
+
+with exact boundary values on all four sides. The corresponding weak source is
+
+$$
+q(R,Z)=
+\frac{(k_R^2+k_Z^2)\psi}{R}
++\frac{\partial\psi/\partial R}{R^2},
+\qquad
+k_R=k_Z=\pi.
+$$
+
+The gate integrates the true L2 value error and the true weighted H1 seminorm
+error by element quadrature, rather than only comparing nodal vectors:
+
+$$
+\|e\|_{L^2(\Omega)}^2=\int_\Omega e^2\,dR\,dZ,
+\qquad
+|e|_{H^1_R(\Omega)}^2=
+\int_\Omega \frac{1}{R}\|\nabla e\|^2\,dR\,dZ.
+$$
+
+The executable command is:
+
+```bash
+tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
+```
+
+![Manufactured Grad-Shafranov convergence](_static/manufactured_grad_shafranov_convergence.png)
+
 ## Differentiability Gates
 
 Differentiability gates compare JAX automatic differentiation with central
@@ -165,8 +243,9 @@ $$
 $$
 
 The current benchmark helpers produce JSON-friendly timing dictionaries for the
-seed fixed-boundary solve and local p=1 FEM kernels. Future gates should add
-global sparse assembly, matrix-free operator, and free-boundary solve timings.
+seed fixed-boundary solve, local p=1 FEM kernels, and axisymmetric global FEM
+assembly/matrix-free apply. Future gates should add CI baselines and
+free-boundary solve timings.
 
 ## Literature-Anchored Figure Gates
 

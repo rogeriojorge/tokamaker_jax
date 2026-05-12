@@ -7,6 +7,7 @@ from tokamaker_jax.gui import (
     region_table_rows,
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
+    validation_convergence_figure,
 )
 
 pytest.importorskip("plotly")
@@ -106,3 +107,15 @@ def test_seed_equilibrium_figure_attaches_summary_metadata():
     assert any("residual" in annotation.text for annotation in fig.layout.annotations)
     assert rows[0] == {"metric": "grid", "value": "65 x 65"}
     assert rows[-1]["metric"] == "final residual"
+
+
+def test_validation_convergence_figure_attaches_rates_metadata():
+    fig = validation_convergence_figure("grad-shafranov")
+
+    assert "Grad-Shafranov" in fig.layout.title.text
+    assert len(fig.data) == 4
+    assert len(fig.layout.meta["results"]) == 3
+    assert min(fig.layout.meta["h1_rates"]) > 0.85
+
+    with pytest.raises(ValueError, match="poisson"):
+        validation_convergence_figure("bad")

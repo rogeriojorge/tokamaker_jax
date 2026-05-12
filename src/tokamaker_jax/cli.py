@@ -62,6 +62,8 @@ def main(argv: list[str] | None = None) -> int:
     args_list = sys.argv[1:] if argv is None else list(argv)
     if args_list[:1] == ["validate"]:
         return _main_validate(args_list[1:])
+    if args_list[:1] == ["verify"]:
+        return _main_verify(args_list[1:])
 
     parser = argparse.ArgumentParser(prog="tokamaker-jax")
     parser.add_argument("config", nargs="?", help="TOML run configuration. Omit to launch the GUI.")
@@ -76,6 +78,65 @@ def main(argv: list[str] | None = None) -> int:
     solution = run_config(args.config, output=args.output, plot=args.plot)
     print(json.dumps(solution.stats(), indent=2, sort_keys=True))
     return 0
+
+
+def _main_verify(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="tokamaker-jax verify")
+    parser.add_argument(
+        "--gate",
+        choices=("all", "poisson", "grad-shafranov"),
+        default="all",
+        help="Manufactured validation gate to run.",
+    )
+    parser.add_argument(
+        "--subdivisions",
+        nargs="+",
+        type=int,
+        default=[4, 8, 16],
+        help="Uniform refinement levels.",
+    )
+    parser.add_argument("--output", "-o", help="Write the JSON report to this path.")
+    args = parser.parse_args(argv)
+
+    payload = run_verification_gates(args.gate, tuple(args.subdivisions))
+    text = json.dumps(payload, indent=2, sort_keys=True)
+    if args.output:
+        path = Path(args.output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text + "\n", encoding="utf-8")
+    print(text)
+    return 0
+
+
+def run_verification_gates(
+    gate: str = "all",
+    subdivisions: tuple[int, ...] = (4, 8, 16),
+) -> dict[str, Any]:
+    """Run manufactured validation gates and return a JSON-ready report."""
+
+    if len(subdivisions) < 2:
+        raise ValueError("at least two subdivisions are required")
+    if any(level < 2 for level in subdivisions):
+        raise ValueError("all subdivisions must be at least 2")
+
+    from jax import config as jax_config
+
+    from tokamaker_jax.verification import (
+        run_grad_shafranov_convergence_study,
+        run_poisson_convergence_study,
+    )
+
+    jax_config.update("jax_enable_x64", True)
+    payload: dict[str, Any] = {"subdivisions": list(subdivisions), "gates": {}}
+    if gate in {"all", "poisson"}:
+        payload["gates"]["poisson"] = run_poisson_convergence_study(subdivisions).to_dict()
+    if gate in {"all", "grad-shafranov"}:
+        payload["gates"]["grad_shafranov"] = run_grad_shafranov_convergence_study(
+            subdivisions
+        ).to_dict()
+    if not payload["gates"]:
+        raise ValueError("gate must be one of: all, poisson, grad-shafranov")
+    return payload
 
 
 def _main_validate(argv: list[str]) -> int:
