@@ -84,6 +84,15 @@ def test_main_verify_runs_reduced_coil_green_gate(capsys):
     assert "gradient_error" in captured.out
 
 
+def test_main_verify_runs_circular_loop_gate(capsys):
+    exit_code = main(["verify", "--gate", "circular-loop"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "circular_loop" in captured.out
+    assert "elliptic_quadrature_relative_error" in captured.out
+
+
 def test_main_verify_runs_profile_iteration_gate(capsys):
     exit_code = main(["verify", "--gate", "profile-iteration"])
 

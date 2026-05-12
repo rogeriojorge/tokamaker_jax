@@ -120,7 +120,8 @@
         "small_seed_solve_timing",
         "jitted_local_fem_kernel_timing",
         "jitted_axisymmetric_global_assembly_apply_timing",
-        "jitted_reduced_coil_green_response_timing"
+        "jitted_reduced_coil_green_response_timing",
+        "jitted_circular_loop_elliptic_response_timing"
       ],
       "pass_rule": {
         "type": "executable_schema",
@@ -197,23 +198,26 @@
       }
     },
     {
-      "id": "circular-loop-coil-quadrature-prototype",
+      "id": "circular-loop-coil-elliptic-green",
       "category": "free_boundary",
       "status": "implemented",
-      "description": "Validate a JAX-native finite-radius circular-filament coil flux prototype using fixed toroidal midpoint quadrature before elliptic-integral parity fixtures are added.",
-      "command": "python -m pytest tests/test_free_boundary.py",
-      "artifact": null,
+      "description": "Validate a JAX-native circular-filament coil flux kernel using complete elliptic integrals evaluated by fixed-iteration AGM and checked against high-resolution toroidal quadrature.",
+      "command": "tokamaker-jax verify --gate circular-loop",
+      "artifact": "docs/_static/circular_loop_elliptic_response.png",
       "required_checks": [
+        "agm_complete_elliptic_integrals_reference_values",
         "midplane_symmetry",
         "linear_superposition",
+        "closed_form_matches_high_resolution_quadrature",
         "quadrature_convergence_against_high_resolution_reference",
         "finite_autodiff_flux_gradient",
         "autodiff_gradient_matches_exposed_gradient_api",
-        "static_quadrature_shape_compatibility"
+        "closed_form_gradient_matches_quadrature_gradient",
+        "benchmark_report_lane"
       ],
       "pass_rule": {
-        "type": "quadrature_reference",
-        "tolerance_source": "tests/test_free_boundary.py"
+        "type": "elliptic_closed_form_vs_quadrature_reference",
+        "tolerance_source": "tests/test_free_boundary.py and tests/test_verification.py"
       }
     },
     {

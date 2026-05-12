@@ -15,6 +15,7 @@ from tokamaker_jax.fem_equilibrium import (
     PowerProfile,
     solve_profile_iteration_on_rectangle,
 )
+from tokamaker_jax.free_boundary import circular_loop_elliptic_coil_flux
 from tokamaker_jax.geometry import sample_regions
 from tokamaker_jax.plotting import (
     plot_equilibrium,
@@ -45,6 +46,7 @@ def main() -> None:
     write_manufactured_poisson_convergence()
     write_grad_shafranov_convergence()
     write_coil_green_response()
+    write_circular_loop_elliptic_response()
     write_profile_iteration()
     write_cpc_seed_family()
     write_pressure_sweep()
@@ -104,6 +106,42 @@ def write_coil_green_response() -> None:
         CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
     )
     save_coil_green_response_plot(grid, coils, ASSET_DIR / "coil_green_response.png")
+
+
+def write_circular_loop_elliptic_response() -> None:
+    grid = RectangularGrid(1.0, 2.8, -0.9, 0.9, 121, 121)
+    coils = (
+        CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
+    )
+    r, z = grid.mesh()
+    points = np.column_stack((np.asarray(r).reshape(-1), np.asarray(z).reshape(-1)))
+    flux = np.asarray(circular_loop_elliptic_coil_flux(points, coils)).reshape(grid.nr, grid.nz)
+
+    fig, ax = plt.subplots(figsize=(6.2, 4.8), constrained_layout=True)
+    filled = ax.contourf(np.asarray(r), np.asarray(z), flux, levels=30, cmap="viridis")
+    contours = ax.contour(
+        np.asarray(r), np.asarray(z), flux, levels=14, colors="black", linewidths=0.5
+    )
+    ax.clabel(contours, inline=True, fontsize=6)
+    ax.scatter(
+        [coil.r for coil in coils],
+        [coil.z for coil in coils],
+        c=["tab:red" if coil.current >= 0.0 else "tab:blue" for coil in coils],
+        marker="s",
+        edgecolor="black",
+        linewidth=0.7,
+    )
+    for coil in coils:
+        ax.text(coil.r + 0.04, coil.z, coil.name, fontsize=8, va="center")
+    fig.colorbar(filled, ax=ax, label="circular-loop flux")
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("closed-form circular-loop elliptic response")
+    fig.savefig(ASSET_DIR / "circular_loop_elliptic_response.png", dpi=180)
+    plt.close(fig)
 
 
 def write_profile_iteration() -> None:

@@ -25,6 +25,12 @@ from tokamaker_jax.fem import (
     triangle_quadrature,
 )
 from tokamaker_jax.free_boundary import (
+    circular_loop_elliptic_coil_flux,
+    circular_loop_elliptic_flux,
+    circular_loop_elliptic_flux_gradient,
+    circular_loop_elliptic_response_matrix,
+    circular_loop_flux_gradient,
+    circular_loop_response_matrix,
     coil_flux,
     coil_flux_gradient,
     coil_response_matrix,
@@ -140,6 +146,30 @@ class CoilGreenFunctionValidation:
             "linearity_error": self.linearity_error,
             "gradient_error": self.gradient_error,
             "log_ratio_error": self.log_ratio_error,
+        }
+
+
+@dataclass(frozen=True)
+class CircularLoopGreenFunctionValidation:
+    """Validation metrics for the circular-loop elliptic Green's function."""
+
+    n_points: int
+    n_coils: int
+    elliptic_quadrature_relative_error: float
+    linearity_error: float
+    gradient_error: float
+    quadrature_gradient_relative_error: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly representation."""
+
+        return {
+            "n_points": self.n_points,
+            "n_coils": self.n_coils,
+            "elliptic_quadrature_relative_error": self.elliptic_quadrature_relative_error,
+            "linearity_error": self.linearity_error,
+            "gradient_error": self.gradient_error,
+            "quadrature_gradient_relative_error": self.quadrature_gradient_relative_error,
         }
 
 
@@ -479,6 +509,67 @@ def run_coil_green_function_validation() -> CoilGreenFunctionValidation:
         linearity_error=linearity_error,
         gradient_error=gradient_error,
         log_ratio_error=log_ratio_error,
+    )
+
+
+def run_circular_loop_green_function_validation() -> CircularLoopGreenFunctionValidation:
+    """Run closed-form circular-loop checks against quadrature references."""
+
+    coils = (
+        CoilConfig(name="PF_A", r=1.52, z=0.03, current=1.3, sigma=0.015),
+        CoilConfig(name="PF_B", r=2.25, z=-0.28, current=-0.7, sigma=0.02),
+    )
+    points = jnp.asarray([[1.72, 0.18], [2.05, -0.22], [1.35, 0.31]], dtype=jnp.float64)
+    elliptic_response = circular_loop_elliptic_response_matrix(points, coils)
+    quadrature_response = circular_loop_response_matrix(points, coils, n_phi=2048)
+    response_norm = jnp.linalg.norm(quadrature_response)
+    elliptic_quadrature_relative_error = float(
+        jnp.linalg.norm(elliptic_response - quadrature_response) / response_norm
+    )
+
+    currents = jnp.asarray([coil.current for coil in coils], dtype=jnp.float64)
+    linearity_error = float(
+        jnp.linalg.norm(
+            circular_loop_elliptic_coil_flux(points, coils) - elliptic_response @ currents
+        )
+    )
+
+    coil = coils[0]
+    point = jnp.asarray([1.83, 0.21], dtype=jnp.float64)
+    ad_gradient = jax.grad(
+        lambda x: circular_loop_elliptic_flux(
+            x[None, :],
+            coil.r,
+            coil.z,
+            core_radius=coil.sigma,
+        )[0]
+    )(point)
+    elliptic_gradient = circular_loop_elliptic_flux_gradient(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+    )[0]
+    quadrature_gradient = circular_loop_flux_gradient(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+        n_phi=2048,
+    )[0]
+    gradient_error = float(jnp.linalg.norm(ad_gradient - elliptic_gradient))
+    quadrature_gradient_relative_error = float(
+        jnp.linalg.norm(elliptic_gradient - quadrature_gradient)
+        / jnp.linalg.norm(quadrature_gradient)
+    )
+
+    return CircularLoopGreenFunctionValidation(
+        n_points=int(points.shape[0]),
+        n_coils=len(coils),
+        elliptic_quadrature_relative_error=elliptic_quadrature_relative_error,
+        linearity_error=linearity_error,
+        gradient_error=gradient_error,
+        quadrature_gradient_relative_error=quadrature_gradient_relative_error,
     )
 
 

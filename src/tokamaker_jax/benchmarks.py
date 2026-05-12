@@ -19,7 +19,7 @@ from tokamaker_jax.assembly import (
 from tokamaker_jax.config import CoilConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.fem import linear_mass_matrix, linear_stiffness_matrix
-from tokamaker_jax.free_boundary import coil_flux_on_grid
+from tokamaker_jax.free_boundary import circular_loop_elliptic_response_matrix, coil_flux_on_grid
 from tokamaker_jax.profiles import solovev_source
 from tokamaker_jax.solver import EquilibriumSolution, solve_fixed_boundary
 from tokamaker_jax.verification import rectangular_triangles
@@ -198,6 +198,36 @@ def benchmark_coil_green_response(
     )
 
 
+def benchmark_circular_loop_elliptic_response(
+    *,
+    n_points: int = 256,
+    repeats: int = 5,
+    warmups: int = 1,
+) -> BenchmarkResult:
+    """Benchmark the closed-form circular-loop elliptic response matrix."""
+
+    r_values = jnp.linspace(1.1, 2.6, n_points, dtype=jnp.float64)
+    z_values = 0.45 * jnp.sin(jnp.linspace(0.0, 2.0 * jnp.pi, n_points, dtype=jnp.float64))
+    points = jnp.column_stack((r_values, z_values))
+    coils = (
+        CoilConfig(name="PF_A", r=1.35, z=0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_B", r=1.35, z=-0.45, current=2.0e5, sigma=0.06),
+        CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
+    )
+
+    @jax.jit
+    def run() -> jnp.ndarray:
+        return circular_loop_elliptic_response_matrix(points, coils)
+
+    return benchmark_callable(
+        "circular_loop_elliptic_response",
+        run,
+        repeats=repeats,
+        warmups=warmups,
+        metadata={"n_points": n_points, "n_coils": len(coils), "kernel": "agm_elliptic"},
+    )
+
+
 def benchmark_baseline_report(
     *,
     repeats: int = 5,
@@ -206,6 +236,7 @@ def benchmark_baseline_report(
     local_fem: Mapping[str, Any] | None = None,
     axisymmetric_fem: Mapping[str, Any] | None = None,
     coil_green: Mapping[str, Any] | None = None,
+    circular_loop: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the baseline benchmark lanes and return a JSON-friendly report.
 
@@ -238,6 +269,12 @@ def benchmark_baseline_report(
             "reduced_coil_green",
             benchmark_coil_green_response(
                 **_benchmark_options(common_options, coil_green),
+            ),
+        ),
+        _benchmark_report_entry(
+            "circular_loop_elliptic",
+            benchmark_circular_loop_elliptic_response(
+                **_benchmark_options(common_options, circular_loop),
             ),
         ),
     ]

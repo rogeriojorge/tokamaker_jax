@@ -8,6 +8,7 @@ from tokamaker_jax.benchmarks import (
     benchmark_axisymmetric_fem_apply,
     benchmark_baseline_report,
     benchmark_callable,
+    benchmark_circular_loop_elliptic_response,
     benchmark_coil_green_response,
     benchmark_local_fem_kernel,
     benchmark_report_to_json,
@@ -78,6 +79,16 @@ def test_coil_green_response_benchmark_runs_small_case():
     assert result.best_s >= 0.0
 
 
+def test_circular_loop_elliptic_benchmark_runs_small_case():
+    result = benchmark_circular_loop_elliptic_response(n_points=8, repeats=1, warmups=0)
+
+    assert result.name == "circular_loop_elliptic_response"
+    assert result.repeats == 1
+    assert result.warmups == 0
+    assert result.metadata == {"n_points": 8, "n_coils": 3, "kernel": "agm_elliptic"}
+    assert result.best_s >= 0.0
+
+
 def test_baseline_report_runs_all_lanes_and_roundtrips_json():
     report = benchmark_baseline_report(
         repeats=1,
@@ -85,6 +96,7 @@ def test_baseline_report_runs_all_lanes_and_roundtrips_json():
         seed_equilibrium={"nr": 9, "nz": 9, "iterations": 3},
         axisymmetric_fem={"subdivisions": 3},
         coil_green={"nr": 7, "nz": 7},
+        circular_loop={"n_points": 8},
     )
 
     assert json.loads(json.dumps(report)) == report
@@ -97,12 +109,14 @@ def test_baseline_report_runs_all_lanes_and_roundtrips_json():
         "local_fem",
         "axisymmetric_fem",
         "reduced_coil_green",
+        "circular_loop_elliptic",
     ]
     assert [entry["result"]["name"] for entry in report["benchmarks"]] == [
         "seed_fixed_boundary_equilibrium",
         "local_p1_triangle_matrices",
         "axisymmetric_p1_fem_assembly_apply",
         "reduced_coil_green_response",
+        "circular_loop_elliptic_response",
     ]
 
     for entry in report["benchmarks"]:

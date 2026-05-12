@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import jax
 import jax.numpy as jnp
 
 from tokamaker_jax.config import CoilConfig
@@ -205,6 +206,214 @@ def circular_loop_flux_gradient(
     dpsi_d_z = factor * observation_r * d_integral_d_z
     values = jnp.stack((dpsi_d_r, dpsi_d_z), axis=-1)
     return values[:, 0, :] if scalar_input else values
+
+
+def complete_elliptic_integrals_agm(
+    parameter: jnp.ndarray | float,
+    *,
+    iterations: int = 8,
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Return complete elliptic integrals ``K(m)`` and ``E(m)``.
+
+    The implementation uses a fixed-iteration arithmetic-geometric mean
+    formula so it remains JAX-transformable and does not depend on SciPy's
+    elliptic special functions. ``parameter`` is the elliptic parameter
+    ``m = k**2``.
+    """
+
+    if iterations <= 0:
+        raise ValueError("iterations must be positive")
+    if isinstance(parameter, (int, float)) and not 0.0 <= parameter < 1.0:
+        raise ValueError("elliptic parameter must satisfy 0 <= m < 1")
+    parameter_array = jnp.asarray(parameter, dtype=jnp.float64)
+    upper = 1.0 - jnp.finfo(parameter_array.dtype).eps
+    m = jnp.clip(parameter_array, 0.0, upper)
+    a = jnp.ones_like(m)
+    b = jnp.sqrt(1.0 - m)
+    correction = 0.5 * m
+    weight = 1.0
+    for _ in range(iterations):
+        c = 0.5 * (a - b)
+        correction = correction + weight * c**2
+        next_a = 0.5 * (a + b)
+        b = jnp.sqrt(a * b)
+        a = next_a
+        weight *= 2.0
+    complete_first = jnp.pi / (2.0 * a)
+    complete_second = complete_first * (1.0 - correction)
+    return complete_first, complete_second
+
+
+def circular_loop_elliptic_vector_potential(
+    points: jnp.ndarray,
+    coil_r: jnp.ndarray | float,
+    coil_z: jnp.ndarray | float,
+    *,
+    core_radius: jnp.ndarray | float = 0.0,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return closed-form circular-loop ``A_phi`` per ampere.
+
+    This evaluates the complete-elliptic-integral form of the same circular
+    filament response used by :func:`circular_loop_vector_potential`. A nonzero
+    ``core_radius`` enters as a smooth distance softening in the same way as the
+    quadrature reference.
+    """
+
+    points = _as_points(points)
+    (
+        observation_r,
+        _observation_z,
+        source_r,
+        _source_z,
+        _core,
+        scalar_input,
+        parameter,
+    ) = _circular_loop_elliptic_geometry(points, coil_r, coil_z, core_radius)
+    complete_first, complete_second = complete_elliptic_integrals_agm(
+        parameter,
+        iterations=elliptic_iterations,
+    )
+    modulus = jnp.sqrt(parameter)
+    bracket = (1.0 - 0.5 * parameter) * complete_first - complete_second
+    values = MU0 / (jnp.pi * modulus) * jnp.sqrt(source_r / observation_r) * bracket
+    return values[:, 0] if scalar_input else values
+
+
+def circular_loop_elliptic_flux(
+    points: jnp.ndarray,
+    coil_r: jnp.ndarray | float,
+    coil_z: jnp.ndarray | float,
+    *,
+    core_radius: jnp.ndarray | float = 0.0,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return closed-form circular-loop flux ``psi = R A_phi`` per ampere."""
+
+    points = _as_points(points)
+    vector_potential = circular_loop_elliptic_vector_potential(
+        points,
+        coil_r,
+        coil_z,
+        core_radius=core_radius,
+        elliptic_iterations=elliptic_iterations,
+    )
+    radius_shape = (points.shape[0],) + (1,) * (vector_potential.ndim - 1)
+    return points[:, 0].reshape(radius_shape) * vector_potential
+
+
+def circular_loop_elliptic_flux_gradient(
+    points: jnp.ndarray,
+    coil_r: jnp.ndarray | float,
+    coil_z: jnp.ndarray | float,
+    *,
+    core_radius: jnp.ndarray | float = 0.0,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return ``(dpsi/dR, dpsi/dZ)`` for the closed-form circular-loop flux."""
+
+    points = _as_points(points)
+    scalar_input = (
+        jnp.ndim(jnp.asarray(coil_r)) == 0
+        and jnp.ndim(jnp.asarray(coil_z)) == 0
+        and jnp.ndim(jnp.asarray(core_radius)) == 0
+    )
+    arrays = jnp.broadcast_arrays(
+        jnp.asarray(coil_r, dtype=points.dtype),
+        jnp.asarray(coil_z, dtype=points.dtype),
+        jnp.asarray(core_radius, dtype=points.dtype),
+    )
+    source_r, source_z, core = (array.reshape(-1) for array in arrays)
+
+    def scalar_flux(
+        point: jnp.ndarray,
+        radius: jnp.ndarray,
+        height: jnp.ndarray,
+        softening: jnp.ndarray,
+    ) -> jnp.ndarray:
+        return circular_loop_elliptic_flux(
+            point[None, :],
+            radius,
+            height,
+            core_radius=softening,
+            elliptic_iterations=elliptic_iterations,
+        )[0]
+
+    gradient_one_coil = jax.grad(scalar_flux, argnums=0)
+    gradients = jax.vmap(
+        lambda point: jax.vmap(
+            lambda radius, height, softening: gradient_one_coil(
+                point,
+                radius,
+                height,
+                softening,
+            )
+        )(source_r, source_z, core)
+    )(points)
+    return gradients[:, 0, :] if scalar_input else gradients
+
+
+def circular_loop_elliptic_response_matrix(
+    points: jnp.ndarray,
+    coils: tuple[CoilConfig, ...],
+    *,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return the closed-form circular-loop point-by-coil flux matrix."""
+
+    points = _as_points(points)
+    arrays = _coil_arrays(coils, dtype=points.dtype)
+    if arrays["r"].size == 0:
+        return jnp.zeros((points.shape[0], 0), dtype=points.dtype)
+    return circular_loop_elliptic_flux(
+        points,
+        arrays["r"],
+        arrays["z"],
+        core_radius=arrays["core"],
+        elliptic_iterations=elliptic_iterations,
+    )
+
+
+def circular_loop_elliptic_coil_flux(
+    points: jnp.ndarray,
+    coils: tuple[CoilConfig, ...],
+    *,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return total closed-form circular-loop coil flux at each point."""
+
+    points = _as_points(points)
+    arrays = _coil_arrays(coils, dtype=points.dtype)
+    if arrays["current"].size == 0:
+        return jnp.zeros((points.shape[0],), dtype=points.dtype)
+    response = circular_loop_elliptic_response_matrix(
+        points,
+        coils,
+        elliptic_iterations=elliptic_iterations,
+    )
+    return response @ arrays["current"]
+
+
+def circular_loop_elliptic_coil_flux_gradient(
+    points: jnp.ndarray,
+    coils: tuple[CoilConfig, ...],
+    *,
+    elliptic_iterations: int = 8,
+) -> jnp.ndarray:
+    """Return ``(dpsi/dR, dpsi/dZ)`` from all closed-form loop coils."""
+
+    points = _as_points(points)
+    arrays = _coil_arrays(coils, dtype=points.dtype)
+    if arrays["current"].size == 0:
+        return jnp.zeros((points.shape[0], 2), dtype=points.dtype)
+    gradients = circular_loop_elliptic_flux_gradient(
+        points,
+        arrays["r"],
+        arrays["z"],
+        core_radius=arrays["core"],
+        elliptic_iterations=elliptic_iterations,
+    )
+    return jnp.einsum("ncd,c->nd", gradients, arrays["current"])
 
 
 def circular_loop_response_matrix(
@@ -421,6 +630,27 @@ def _circular_loop_geometry(
     core = jnp.zeros_like(observation_r) + jnp.asarray(core_radius, dtype=points.dtype)
     broadcast = jnp.broadcast_arrays(observation_r, observation_z, source_r, source_z, core)
     return (*broadcast, scalar_input)
+
+
+def _circular_loop_elliptic_geometry(
+    points: jnp.ndarray,
+    coil_r: jnp.ndarray | float,
+    coil_z: jnp.ndarray | float,
+    core_radius: jnp.ndarray | float,
+) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, bool, jnp.ndarray]:
+    (
+        observation_r,
+        observation_z,
+        source_r,
+        source_z,
+        core,
+        scalar_input,
+    ) = _circular_loop_geometry(points, coil_r, coil_z, core_radius)
+    separation_squared = (observation_z - source_z) ** 2 + core**2
+    denominator = (observation_r + source_r) ** 2 + separation_squared
+    parameter = 4.0 * observation_r * source_r / denominator
+    parameter = jnp.clip(parameter, jnp.finfo(points.dtype).tiny, 1.0 - jnp.finfo(points.dtype).eps)
+    return observation_r, observation_z, source_r, source_z, core, scalar_input, parameter
 
 
 def _circular_loop_distance(

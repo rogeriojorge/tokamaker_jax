@@ -11,6 +11,7 @@ from tokamaker_jax.verification import (
     observed_rates,
     poisson_error_metrics,
     rectangular_triangles,
+    run_circular_loop_green_function_validation,
     run_coil_green_function_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
@@ -88,6 +89,19 @@ def test_reduced_coil_green_function_validation_schema_and_tolerances():
     assert result.linearity_error < 1.0e-18
     assert result.gradient_error < 1.0e-14
     assert result.log_ratio_error < 1.0e-18
+
+
+def test_circular_loop_green_function_validation_schema_and_tolerances():
+    result = run_circular_loop_green_function_validation()
+    payload = result.to_dict()
+
+    assert json.loads(json.dumps(payload)) == payload
+    assert result.n_points == 3
+    assert result.n_coils == 2
+    assert result.elliptic_quadrature_relative_error < 1.0e-10
+    assert result.linearity_error < 1.0e-18
+    assert result.gradient_error < 1.0e-14
+    assert result.quadrature_gradient_relative_error < 1.0e-8
 
 
 def test_verification_validation_errors():

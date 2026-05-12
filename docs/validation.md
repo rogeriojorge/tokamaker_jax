@@ -258,11 +258,11 @@ tokamaker-jax verify --gate coil-green
 
 ![Reduced coil Green response](_static/coil_green_response.png)
 
-## Circular-Loop Coil Prototype
+## Circular-Loop Coil Gate
 
-The next coil-response path evaluates the circular-filament vector potential
-by fixed midpoint quadrature over toroidal angle. For an observation point
-$(R,Z)$ and a source loop at $(R_c,Z_c)$,
+The circular-filament response now has both a fixed midpoint quadrature
+reference and a closed-form complete-elliptic-integral path. For an observation
+point $(R,Z)$ and a source loop at $(R_c,Z_c)$, the quadrature reference is
 
 $$
 A_\phi(R,Z) =
@@ -274,10 +274,37 @@ A_\phi(R,Z) =
 \psi = R A_\phi .
 $$
 
-This is still a prototype, not the final elliptic-integral parity path. The
-implemented gate verifies midplane symmetry, superposition through the response
-matrix, fixed-quadrature convergence against a higher-resolution reference, and
-JAX automatic differentiation against the analytic quadrature gradient.
+The closed-form path uses
+
+$$
+m = \frac{4RR_c}{(R+R_c)^2+(Z-Z_c)^2+\epsilon^2},
+$$
+
+and complete elliptic integrals of the first and second kind, $K(m)$ and
+$E(m)$:
+
+$$
+A_\phi =
+\frac{\mu_0 I}{\pi\sqrt{m}}\sqrt{\frac{R_c}{R}}
+\left[\left(1-\frac{m}{2}\right)K(m)-E(m)\right],
+\qquad
+\psi = R A_\phi .
+$$
+
+Because JAX does not currently expose these complete elliptic integrals in this
+environment, `tokamaker-jax` evaluates $K$ and $E$ with a fixed-iteration
+arithmetic-geometric mean formula. The validation gate compares the closed
+form against the high-resolution quadrature reference, checks superposition
+through the response matrix, and checks exposed gradients against JAX automatic
+differentiation.
+
+The executable command is:
+
+```bash
+tokamaker-jax verify --gate circular-loop
+```
+
+![Closed-form circular-loop elliptic response](_static/circular_loop_elliptic_response.png)
 
 ## Nonlinear Profile Iteration Gate
 

@@ -84,7 +84,14 @@ def _main_verify(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="tokamaker-jax verify")
     parser.add_argument(
         "--gate",
-        choices=("all", "poisson", "grad-shafranov", "coil-green", "profile-iteration"),
+        choices=(
+            "all",
+            "poisson",
+            "grad-shafranov",
+            "coil-green",
+            "circular-loop",
+            "profile-iteration",
+        ),
         default="all",
         help="Manufactured validation gate to run.",
     )
@@ -123,6 +130,7 @@ def run_verification_gates(
 
     from tokamaker_jax.fem_equilibrium import run_profile_iteration_validation
     from tokamaker_jax.verification import (
+        run_circular_loop_green_function_validation,
         run_coil_green_function_validation,
         run_grad_shafranov_convergence_study,
         run_poisson_convergence_study,
@@ -138,11 +146,14 @@ def run_verification_gates(
         ).to_dict()
     if gate in {"all", "coil-green"}:
         payload["gates"]["coil_green"] = run_coil_green_function_validation().to_dict()
+    if gate in {"all", "circular-loop"}:
+        payload["gates"]["circular_loop"] = run_circular_loop_green_function_validation().to_dict()
     if gate in {"all", "profile-iteration"}:
         payload["gates"]["profile_iteration"] = run_profile_iteration_validation().to_dict()
     if not payload["gates"]:
         raise ValueError(
-            "gate must be one of: all, poisson, grad-shafranov, coil-green, profile-iteration"
+            "gate must be one of: all, poisson, grad-shafranov, coil-green, "
+            "circular-loop, profile-iteration"
         )
     return payload
 

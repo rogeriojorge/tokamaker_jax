@@ -2177,3 +2177,64 @@ Best next steps:
 4. Add CI benchmark artifact upload plus baseline comparison for sparse
    assembly, matrix-free apply, profile iteration, and circular-loop response.
 5. Add the GUI TOML case browser/editor and a literature reproduction gallery.
+
+### 2026-05-12 21:49 WEST
+
+Completed the seventh implementation pass and raised the tracked overall
+completion marker from 75% to 78%.
+
+Implemented lanes:
+
+- Free-boundary kernel: replaced the circular-loop quadrature-only prototype
+  with a JAX-native complete-elliptic-integral path for circular-filament
+  vector potential, flux, response matrices, total coil flux, and gradients.
+  The elliptic integrals use a fixed-iteration arithmetic-geometric mean
+  formula so the kernel remains differentiable and JAX-transformable without a
+  SciPy runtime dependency.
+- Validation CLI: added `tokamaker-jax verify --gate circular-loop`, which
+  compares the closed-form kernel against high-resolution toroidal quadrature,
+  checks linear superposition, checks the exposed gradient against JAX AD, and
+  compares the gradient to the quadrature reference.
+- Performance: added a jitted circular-loop elliptic response benchmark and
+  included it in the aggregate benchmark report.
+- Docs/artifacts: documented the elliptic-kernel equations, added the gate to
+  the validation manifest, updated examples/README/progress, and added the
+  generated circular-loop response figure.
+
+Validation completed during the pass:
+
+- `python -m pytest tests/test_free_boundary.py tests/test_verification.py tests/test_cli_validate.py tests/test_benchmarks.py`:
+  40 passed.
+- `tokamaker-jax verify --gate circular-loop`: closed-form-vs-quadrature
+  relative error `3.20e-15`, AD gradient error `0.0`, linearly combined flux
+  error `0.0`, quadrature-gradient relative error `1.54e-15`.
+- `python examples/benchmark_report.py --repeats 1 --warmups 0 --output outputs/benchmark_report.json`:
+  passed and emitted the new `circular_loop_elliptic` lane.
+
+Generated artifact:
+
+- `docs/_static/circular_loop_elliptic_response.png`
+
+Tracked lane percentages after this pass:
+
+- M1 mesh/geometry: 84%.
+- M2 FEM core: 76%.
+- Plotting: 78%.
+- Docs/examples: 80%.
+- Config/CLI: 74%.
+- Test infra: 82%.
+- Differentiability: 73%.
+- GUI: 68%.
+- Performance: 68%.
+- Overall: 78%.
+
+Best next steps:
+
+1. Compare the closed-form circular-loop elliptic kernel against
+   OpenFUSIONToolkit fixtures with fixture-specific tolerances.
+2. Couple the nonlinear profile iteration to the circular-loop coil response
+   and add a fixed-boundary-plus-coil validation fixture.
+3. Add CI benchmark artifact upload and baseline comparison for the benchmark
+   report.
+4. Add the GUI TOML case browser/editor and connect it to the validation
+   report viewer.

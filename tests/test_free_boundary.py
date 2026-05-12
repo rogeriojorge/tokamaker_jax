@@ -10,6 +10,12 @@ from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.free_boundary import (
     circular_loop_coil_flux,
     circular_loop_coil_flux_gradient,
+    circular_loop_elliptic_coil_flux,
+    circular_loop_elliptic_coil_flux_gradient,
+    circular_loop_elliptic_flux,
+    circular_loop_elliptic_flux_gradient,
+    circular_loop_elliptic_response_matrix,
+    circular_loop_elliptic_vector_potential,
     circular_loop_flux,
     circular_loop_flux_gradient,
     circular_loop_response_matrix,
@@ -19,6 +25,7 @@ from tokamaker_jax.free_boundary import (
     coil_flux_gradient,
     coil_flux_on_grid,
     coil_response_matrix,
+    complete_elliptic_integrals_agm,
     evaluate_coil_green_response,
     regularized_log_green_function,
     regularized_log_green_gradient,
@@ -144,6 +151,103 @@ def test_circular_loop_quadrature_converges_to_high_resolution_reference():
 
     assert fine_error < 0.02 * coarse_error
     np.testing.assert_allclose(fine, reference, rtol=2.0e-3, atol=1.0e-12)
+
+
+def test_complete_elliptic_integrals_agm_matches_reference_values():
+    parameters = jnp.asarray([0.0, 0.5, 0.9], dtype=jnp.float64)
+    complete_first, complete_second = complete_elliptic_integrals_agm(parameters)
+
+    np.testing.assert_allclose(
+        complete_first,
+        [np.pi / 2.0, 1.8540746773013719, 2.5780921133481733],
+        rtol=1.0e-13,
+    )
+    np.testing.assert_allclose(
+        complete_second,
+        [np.pi / 2.0, 1.350643881047675, 1.1047747327040733],
+        rtol=1.0e-13,
+    )
+
+    with pytest.raises(ValueError, match="elliptic parameter"):
+        complete_elliptic_integrals_agm(1.0)
+    with pytest.raises(ValueError, match="iterations"):
+        complete_elliptic_integrals_agm(0.5, iterations=0)
+
+
+def test_circular_loop_elliptic_kernel_matches_high_resolution_quadrature():
+    coils = (
+        CoilConfig(name="PF_A", r=1.52, z=0.03, current=1.3, sigma=0.015),
+        CoilConfig(name="PF_B", r=2.25, z=-0.28, current=-0.7, sigma=0.02),
+    )
+    points = jnp.asarray([[1.72, 0.18], [2.05, -0.22], [1.35, 0.31]], dtype=jnp.float64)
+
+    elliptic = circular_loop_elliptic_response_matrix(points, coils)
+    reference = circular_loop_response_matrix(points, coils, n_phi=2048)
+
+    np.testing.assert_allclose(elliptic, reference, rtol=2.0e-11, atol=1.0e-14)
+    np.testing.assert_allclose(
+        circular_loop_elliptic_coil_flux(points, coils),
+        elliptic @ jnp.asarray([coil.current for coil in coils]),
+        rtol=1.0e-13,
+    )
+    np.testing.assert_allclose(circular_loop_elliptic_coil_flux(points, ()), np.zeros(3))
+    assert circular_loop_elliptic_response_matrix(points, ()).shape == (3, 0)
+
+
+def test_circular_loop_elliptic_vector_potential_and_gradient_match_quadrature():
+    point = jnp.asarray([1.83, 0.21], dtype=jnp.float64)
+    coil = CoilConfig(name="PF", r=1.55, z=0.02, current=2.5, sigma=0.03)
+
+    elliptic_vector_potential = circular_loop_elliptic_vector_potential(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+    )[0]
+    quadrature_vector_potential = circular_loop_vector_potential(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+        n_phi=2048,
+    )[0]
+    elliptic_flux = circular_loop_elliptic_flux(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+    )[0]
+    quadrature_gradient = circular_loop_flux_gradient(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+        n_phi=2048,
+    )[0]
+    elliptic_gradient = circular_loop_elliptic_flux_gradient(
+        point[None, :],
+        coil.r,
+        coil.z,
+        core_radius=coil.sigma,
+    )[0]
+    ad_gradient = jax.grad(
+        lambda x: circular_loop_elliptic_flux(
+            x[None, :],
+            coil.r,
+            coil.z,
+            core_radius=coil.sigma,
+        )[0]
+    )(point)
+
+    np.testing.assert_allclose(elliptic_vector_potential, quadrature_vector_potential, rtol=2.0e-11)
+    np.testing.assert_allclose(elliptic_flux, point[0] * elliptic_vector_potential)
+    np.testing.assert_allclose(elliptic_gradient, quadrature_gradient, rtol=3.0e-9, atol=1.0e-14)
+    np.testing.assert_allclose(elliptic_gradient, ad_gradient, rtol=1.0e-10, atol=1.0e-14)
+    np.testing.assert_allclose(
+        circular_loop_elliptic_coil_flux_gradient(point[None, :], (coil,))[0],
+        coil.current * elliptic_gradient,
+        rtol=1.0e-10,
+    )
 
 
 def test_circular_loop_gradient_matches_jax_ad_and_is_finite():
