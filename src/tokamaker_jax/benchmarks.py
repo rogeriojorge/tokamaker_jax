@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import statistics
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
@@ -24,6 +25,8 @@ from tokamaker_jax.solver import EquilibriumSolution, solve_fixed_boundary
 from tokamaker_jax.verification import rectangular_triangles
 
 T = TypeVar("T")
+
+BENCHMARK_REPORT_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -195,6 +198,65 @@ def benchmark_coil_green_response(
     )
 
 
+def benchmark_baseline_report(
+    *,
+    repeats: int = 5,
+    warmups: int = 1,
+    seed_equilibrium: Mapping[str, Any] | None = None,
+    local_fem: Mapping[str, Any] | None = None,
+    axisymmetric_fem: Mapping[str, Any] | None = None,
+    coil_green: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run the baseline benchmark lanes and return a JSON-friendly report.
+
+    The report intentionally records timings without interpreting them against
+    pass/fail thresholds; CI jobs can upload the payload as an artifact and
+    compare it with environment-specific tooling.
+    """
+
+    common_options = {"repeats": repeats, "warmups": warmups}
+    entries = [
+        _benchmark_report_entry(
+            "seed",
+            benchmark_seed_equilibrium(
+                **_benchmark_options(common_options, seed_equilibrium),
+            ),
+        ),
+        _benchmark_report_entry(
+            "local_fem",
+            benchmark_local_fem_kernel(
+                **_benchmark_options(common_options, local_fem),
+            ),
+        ),
+        _benchmark_report_entry(
+            "axisymmetric_fem",
+            benchmark_axisymmetric_fem_apply(
+                **_benchmark_options(common_options, axisymmetric_fem),
+            ),
+        ),
+        _benchmark_report_entry(
+            "reduced_coil_green",
+            benchmark_coil_green_response(
+                **_benchmark_options(common_options, coil_green),
+            ),
+        ),
+    ]
+
+    return {
+        "schema_version": BENCHMARK_REPORT_SCHEMA_VERSION,
+        "suite": "tokamaker_jax_baseline_benchmarks",
+        "generated_by": "tokamaker_jax.benchmarks.benchmark_baseline_report",
+        "time_unit": "seconds",
+        "benchmarks": entries,
+    }
+
+
+def benchmark_report_to_json(report: Mapping[str, Any], *, indent: int = 2) -> str:
+    """Serialize a benchmark report as deterministic JSON text."""
+
+    return json.dumps(report, indent=indent, sort_keys=True) + "\n"
+
+
 def _block_until_ready(value: Any) -> None:
     if hasattr(value, "block_until_ready"):
         value.block_until_ready()
@@ -211,3 +273,20 @@ def _block_until_ready(value: Any) -> None:
     if isinstance(value, tuple | list):
         for item in value:
             _block_until_ready(item)
+
+
+def _benchmark_options(
+    common_options: Mapping[str, int],
+    overrides: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    options: dict[str, Any] = dict(common_options)
+    if overrides is not None:
+        options.update(overrides)
+    return options
+
+
+def _benchmark_report_entry(lane: str, result: BenchmarkResult) -> dict[str, Any]:
+    return {
+        "lane": lane,
+        "result": result.to_dict(),
+    }

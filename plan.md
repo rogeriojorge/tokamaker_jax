@@ -2091,3 +2091,89 @@ Validation completed during the pass:
 Generated artifact:
 
 - `docs/_static/coil_green_response.png`
+
+### 2026-05-12 21:28 WEST
+
+Completed the sixth implementation pass and raised the tracked overall
+completion marker from 58% to 75%.
+
+Implemented lanes:
+
+- Nonlinear FEM equilibrium: added `tokamaker_jax.fem_equilibrium` with a
+  fixed-boundary p=1 triangular Picard iteration, normalized-flux profile
+  evaluation, pressure and `FF'` source assembly, Dirichlet solves, residual
+  diagnostics, and a differentiability check with respect to pressure scale.
+- Free-boundary kernel bridge: extended the coil module with a JAX-native
+  circular-loop vector-potential/flux prototype using static toroidal midpoint
+  quadrature, response matrices, coil-config helpers, and autodiff gradient
+  accessors.
+- GUI workflow lane: added GUI-ready workflow dashboard data, status rows,
+  validation-gate rows, next-step rows, and a NiceGUI "Workflow" tab that
+  summarizes solver, validation, plotting, benchmark, GUI, and documentation
+  status for research users.
+- Literature reproduction lane: added a CPC/TokaMaker seed-family surrogate
+  script, JSON report, generated figure, docs page, manifest entry, and tests.
+  This is explicitly source-anchored but not yet an OFT parity claim.
+- Performance lane: added an aggregate benchmark-report schema, JSON serializer,
+  and `examples/benchmark_report.py` so CI/release jobs can archive timing
+  payloads.
+- Documentation/artifacts: updated README, docs examples, API docs, validation
+  equations, the physics-gate manifest, progress accounting, and generated
+  `profile_iteration.png` plus `cpc_seed_family.png`.
+
+Validation completed during the pass:
+
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest tests/test_fem_equilibrium.py tests/test_free_boundary.py tests/test_literature_reproduction.py`:
+  17 passed.
+- `python -m pytest tests/test_gui.py tests/test_benchmarks.py tests/test_cli_validate.py tests/test_plotting.py`:
+  37 passed.
+- `tokamaker-jax verify --gate profile-iteration`: load oracle error `0.0`,
+  residual `0.1 -> 0.001`, update final `0.009009`, pressure-scale gradient
+  `2.49e-10`.
+- `tokamaker-jax verify --gate coil-green`: symmetry error `0.0`, linearity
+  error `0.0`, gradient error `0.0`, log-ratio error `5.29e-23`.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: Poisson and
+  axisymmetric Grad-Shafranov rates stayed near L2 order two and H1 order one;
+  profile and coil gates passed in the same JSON report.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 114 passed,
+  95.13% coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed. The local
+  Sphinx 9 build still reports upstream `sphinx-autodoc-typehints` deprecation
+  notices, but they did not fail the docs gate.
+
+Generated and inspected artifacts:
+
+- `docs/_static/profile_iteration.png`
+- `docs/_static/cpc_seed_family.png`
+- `docs/_static/cpc_seed_family_report.json`
+- refreshed `docs/_static/fixed_boundary_seed.png`
+- refreshed `docs/_static/manufactured_poisson_convergence.png`
+- refreshed `docs/_static/manufactured_grad_shafranov_convergence.png`
+- refreshed `docs/_static/coil_green_response.png`
+- refreshed `docs/_static/pressure_sweep.gif`
+
+Tracked lane percentages after this pass:
+
+- M1 mesh/geometry: 84%.
+- M2 FEM core: 74%.
+- Plotting: 76%.
+- Docs/examples: 78%.
+- Config/CLI: 72%.
+- Test infra: 80%.
+- Differentiability: 70%.
+- GUI: 68%.
+- Performance: 65%.
+- Overall: 75%.
+
+Best next steps:
+
+1. Replace the circular-loop quadrature prototype with the closed-form
+   elliptic-integral kernel and compare against OpenFUSIONToolkit fixtures.
+2. Couple nonlinear profile iteration to the free-boundary coil response and
+   add Picard/Newton convergence gates on a documented equilibrium fixture.
+3. Promote the CPC seed-family surrogate into a true code-to-code literature
+   reproduction with exact OFT inputs and scalar tolerances.
+4. Add CI benchmark artifact upload plus baseline comparison for sparse
+   assembly, matrix-free apply, profile iteration, and circular-loop response.
+5. Add the GUI TOML case browser/editor and a literature reproduction gallery.

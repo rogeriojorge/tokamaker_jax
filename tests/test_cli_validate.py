@@ -84,6 +84,15 @@ def test_main_verify_runs_reduced_coil_green_gate(capsys):
     assert "gradient_error" in captured.out
 
 
+def test_main_verify_runs_profile_iteration_gate(capsys):
+    exit_code = main(["verify", "--gate", "profile-iteration"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "profile_iteration" in captured.out
+    assert "load_oracle_error" in captured.out
+
+
 def test_run_verification_gates_validates_subdivisions():
     with pytest.raises(ValueError, match="at least two"):
         run_verification_gates("poisson", (4,))

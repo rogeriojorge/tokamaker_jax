@@ -16,6 +16,10 @@ This repository currently contains the project scaffold, CI/docs infrastructure,
 
 ![Reduced free-boundary coil Green response](docs/_static/coil_green_response.png)
 
+![Nonlinear profile iteration](docs/_static/profile_iteration.png)
+
+![CPC seed-family reproduction surrogate](docs/_static/cpc_seed_family.png)
+
 ![Pressure sweep animation](docs/_static/pressure_sweep.gif)
 
 ## Install
@@ -57,16 +61,26 @@ Run manufactured validation gates:
 ```bash
 tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
 tokamaker-jax verify --gate coil-green
+tokamaker-jax verify --gate profile-iteration
+```
+
+Generate benchmark and literature-reproduction artifacts:
+
+```bash
+python examples/benchmark_report.py --output outputs/benchmark_report.json
+python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 ```
 
 ## Current Scope
 
 - JAX differentiable fixed-boundary seed solver for the Grad-Shafranov operator on a rectangular grid.
 - p=1 triangular FEM reference kernels, dense/sparse/matrix-free assembly, weighted axisymmetric Grad-Shafranov weak-form assembly, profile source loads, and manufactured convergence gates.
-- Reduced large-aspect-ratio coil Green's-function fixture for early free-boundary coupling tests.
+- Nonlinear p=1 profile iteration with pressure and FF' source terms, residual checks, and differentiability tests.
+- Reduced large-aspect-ratio coil Green's-function fixture and circular-loop quadrature prototype for early free-boundary coupling tests.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
-- Matplotlib plotting utilities.
+- Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
+- NiceGUI workflow dashboard summaries for solver, validation, plotting, benchmark, and reproduction lanes.
 - Sphinx and Read the Docs setup.
 - GitHub Actions for linting, testing with coverage, docs, and release publishing.
 

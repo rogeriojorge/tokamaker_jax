@@ -8,6 +8,12 @@ import pytest
 from tokamaker_jax.config import CoilConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.free_boundary import (
+    circular_loop_coil_flux,
+    circular_loop_coil_flux_gradient,
+    circular_loop_flux,
+    circular_loop_flux_gradient,
+    circular_loop_response_matrix,
+    circular_loop_vector_potential,
     coil_field,
     coil_flux,
     coil_flux_gradient,
@@ -92,6 +98,74 @@ def test_response_report_and_grid_payload_are_json_ready():
     assert bool(jnp.all(jnp.isfinite(flux)))
 
 
+def test_circular_loop_kernel_is_symmetric_about_coil_midplane():
+    points = jnp.asarray([[1.8, 0.24], [1.8, -0.24]], dtype=jnp.float64)
+
+    vector_potential = circular_loop_vector_potential(points, 1.55, 0.0, core_radius=0.02, n_phi=96)
+    flux = circular_loop_flux(points, 1.55, 0.0, core_radius=0.02, n_phi=96)
+    gradient = circular_loop_flux_gradient(points, 1.55, 0.0, core_radius=0.02, n_phi=96)
+
+    np.testing.assert_allclose(vector_potential[0], vector_potential[1], rtol=1.0e-12)
+    np.testing.assert_allclose(flux[0], flux[1], rtol=1.0e-12)
+    np.testing.assert_allclose(gradient[0, 0], gradient[1, 0], rtol=1.0e-12)
+    np.testing.assert_allclose(gradient[0, 1], -gradient[1, 1], rtol=1.0e-12)
+
+
+def test_circular_loop_response_matrix_is_linear_in_currents():
+    coils = sample_coils()
+    points = jnp.asarray([[1.8, 0.2], [2.4, -0.1], [1.2, -0.35]], dtype=jnp.float64)
+    matrix = circular_loop_response_matrix(points, coils, n_phi=64)
+    currents = jnp.asarray([coil.current for coil in coils], dtype=jnp.float64)
+
+    assert matrix.shape == (3, 2)
+    np.testing.assert_allclose(
+        circular_loop_coil_flux(points, coils, n_phi=64),
+        matrix @ currents,
+        rtol=1.0e-12,
+    )
+    np.testing.assert_allclose(
+        circular_loop_coil_flux(points, (), n_phi=64), np.zeros(3), atol=1.0e-18
+    )
+    assert circular_loop_response_matrix(points, (), n_phi=64).shape == (3, 0)
+
+
+def test_circular_loop_quadrature_converges_to_high_resolution_reference():
+    coils = (
+        CoilConfig(name="PF_A", r=1.52, z=0.03, current=1.3, sigma=0.015),
+        CoilConfig(name="PF_B", r=2.25, z=-0.28, current=-0.7, sigma=0.02),
+    )
+    points = jnp.asarray([[1.72, 0.18], [2.05, -0.22], [1.35, 0.31]], dtype=jnp.float64)
+
+    reference = circular_loop_response_matrix(points, coils, n_phi=512)
+    coarse = circular_loop_response_matrix(points, coils, n_phi=16)
+    fine = circular_loop_response_matrix(points, coils, n_phi=64)
+    coarse_error = jnp.linalg.norm(coarse - reference)
+    fine_error = jnp.linalg.norm(fine - reference)
+
+    assert fine_error < 0.02 * coarse_error
+    np.testing.assert_allclose(fine, reference, rtol=2.0e-3, atol=1.0e-12)
+
+
+def test_circular_loop_gradient_matches_jax_ad_and_is_finite():
+    point = jnp.asarray([1.83, 0.21], dtype=jnp.float64)
+    coil = CoilConfig(name="PF", r=1.55, z=0.02, current=2.5, sigma=0.03)
+
+    ad_gradient = jax.grad(
+        lambda x: circular_loop_flux(x[None, :], coil.r, coil.z, core_radius=coil.sigma, n_phi=96)[
+            0
+        ]
+    )(point)
+    quadrature_gradient = circular_loop_flux_gradient(
+        point[None, :], coil.r, coil.z, core_radius=coil.sigma, n_phi=96
+    )[0]
+    total_gradient = circular_loop_coil_flux_gradient(point[None, :], (coil,), n_phi=96)[0]
+
+    assert bool(jnp.all(jnp.isfinite(ad_gradient)))
+    assert bool(jnp.all(jnp.isfinite(quadrature_gradient)))
+    np.testing.assert_allclose(quadrature_gradient, ad_gradient, rtol=1.0e-10, atol=1.0e-14)
+    np.testing.assert_allclose(total_gradient, coil.current * quadrature_gradient)
+
+
 def test_free_boundary_helpers_validate_inputs():
     with pytest.raises(ValueError, match="points must have shape"):
         coil_flux(jnp.ones((2, 3)), sample_coils())
@@ -99,3 +173,5 @@ def test_free_boundary_helpers_validate_inputs():
         regularized_log_green_function(jnp.ones((2, 2)), 1.0, 0.0, reference_radius=0.0)
     with pytest.raises(ValueError, match="core_radius"):
         regularized_log_green_gradient(jnp.ones((2, 2)), 1.0, 0.0, core_radius=-1.0)
+    with pytest.raises(ValueError, match="n_phi"):
+        circular_loop_flux(jnp.ones((2, 2)), 1.0, 0.0, n_phi=4)

@@ -114,6 +114,8 @@
       "artifact": null,
       "required_checks": [
         "benchmark_result_json_roundtrip",
+        "aggregate_benchmark_report_json",
+        "benchmark_report_example_script",
         "benchmark_validation_errors",
         "small_seed_solve_timing",
         "jitted_local_fem_kernel_timing",
@@ -195,6 +197,47 @@
       }
     },
     {
+      "id": "circular-loop-coil-quadrature-prototype",
+      "category": "free_boundary",
+      "status": "implemented",
+      "description": "Validate a JAX-native finite-radius circular-filament coil flux prototype using fixed toroidal midpoint quadrature before elliptic-integral parity fixtures are added.",
+      "command": "python -m pytest tests/test_free_boundary.py",
+      "artifact": null,
+      "required_checks": [
+        "midplane_symmetry",
+        "linear_superposition",
+        "quadrature_convergence_against_high_resolution_reference",
+        "finite_autodiff_flux_gradient",
+        "autodiff_gradient_matches_exposed_gradient_api",
+        "static_quadrature_shape_compatibility"
+      ],
+      "pass_rule": {
+        "type": "quadrature_reference",
+        "tolerance_source": "tests/test_free_boundary.py"
+      }
+    },
+    {
+      "id": "nonlinear-p1-profile-iteration",
+      "category": "nonlinear_equilibrium",
+      "status": "implemented",
+      "description": "Validate a fixed-boundary p=1 triangular FEM Picard iteration with nonlinear pressure and FF' profile source terms.",
+      "command": "tokamaker-jax verify --gate profile-iteration",
+      "artifact": "docs/_static/profile_iteration.png",
+      "required_checks": [
+        "profile_flux_normalization",
+        "constant_profile_load_oracle",
+        "dirichlet_boundary_enforcement",
+        "free_node_residual_norm",
+        "finite_pressure_scale_gradient",
+        "iteration_history_monotonicity",
+        "json_ready_validation_report"
+      ],
+      "pass_rule": {
+        "type": "analytic_oracle_and_residual_bound",
+        "tolerance_source": "tests/test_fem_equilibrium.py"
+      }
+    },
+    {
       "id": "free-boundary-tokamaker-parity",
       "category": "physics_parity",
       "status": "planned",
@@ -218,13 +261,14 @@
   "literature_anchored_figures": [
     {
       "id": "tokamaker-cpc-seed-equilibrium-family",
-      "status": "planned",
+      "status": "implemented_surrogate",
       "source": "Hansen et al., Computer Physics Communications 298, 109111 (2024)",
-      "figure_id": "selected TokaMaker equilibrium/validation figure",
-      "reproduction_goal": "Reproduce a documented equilibrium family with case TOML, generated figure, and scalar diagnostics.",
-      "command": null,
-      "artifact": null,
-      "comparison_rule": "fixture-specific scalar diagnostics plus visual artifact"
+      "figure_id": "CPC paper equilibrium-family workflow surrogate",
+      "reproduction_goal": "Generate a citation-linked seed fixed-boundary equilibrium family with scalar diagnostics, figure metadata, and explicit surrogate limitations while full OFT parity fixtures are still pending.",
+      "command": "python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family",
+      "artifact": "docs/_static/cpc_seed_family.png",
+      "report": "docs/_static/cpc_seed_family_report.json",
+      "comparison_rule": "source-linked metadata, monotone pressure sweep diagnostics, finite solver residuals, and generated visual artifact; not yet a code-to-code TokaMaker parity claim"
     },
     {
       "id": "openfusiontoolkit-example-parity",

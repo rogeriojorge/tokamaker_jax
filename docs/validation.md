@@ -27,6 +27,8 @@ triangular FEM path:
   profile-source load vectors, and a cylindrical manufactured-solution gate.
 - a reduced free-boundary coil Green's-function fixture with analytic symmetry,
   linearity, derivative, and radial log-ratio checks.
+- a nonlinear p=1 profile Picard iteration gate and a circular-loop coil
+  quadrature prototype for the next free-boundary coupling stage.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -141,7 +143,7 @@ Grad-Shafranov operator. With
 $$
 \Delta^*\psi = R\frac{\partial}{\partial R}
 \left(\frac{1}{R}\frac{\partial \psi}{\partial R}\right)
-\frac{\partial^2\psi}{\partial Z^2},
++\frac{\partial^2\psi}{\partial Z^2},
 $$
 
 the manufactured validation problem is written as
@@ -255,6 +257,65 @@ tokamaker-jax verify --gate coil-green
 ```
 
 ![Reduced coil Green response](_static/coil_green_response.png)
+
+## Circular-Loop Coil Prototype
+
+The next coil-response path evaluates the circular-filament vector potential
+by fixed midpoint quadrature over toroidal angle. For an observation point
+$(R,Z)$ and a source loop at $(R_c,Z_c)$,
+
+$$
+A_\phi(R,Z) =
+\frac{\mu_0 I R_c}{4\pi}
+\int_0^{2\pi}
+\frac{\cos\varphi\,d\varphi}
+{\sqrt{R^2+R_c^2-2RR_c\cos\varphi+(Z-Z_c)^2+\epsilon^2}},
+\qquad
+\psi = R A_\phi .
+$$
+
+This is still a prototype, not the final elliptic-integral parity path. The
+implemented gate verifies midplane symmetry, superposition through the response
+matrix, fixed-quadrature convergence against a higher-resolution reference, and
+JAX automatic differentiation against the analytic quadrature gradient.
+
+## Nonlinear Profile Iteration Gate
+
+The first nonlinear triangular-FEM equilibrium path uses fixed-boundary Picard
+iterations around the implemented p=1 axisymmetric weak form:
+
+$$
+A\psi^{k+1}=b(\bar\psi^k),\qquad
+\bar\psi^k=\frac{\psi^k-\min(\psi^k)}
+{\max(\psi^k)-\min(\psi^k)+\epsilon}.
+$$
+
+Pressure and $FF'$ derivatives use the same clipped power-law profile form as
+the seed source helpers,
+
+$$
+p'(\bar\psi)=C_p(1-\bar\psi)^{\alpha_p\gamma_p},\qquad
+(F^2)'(\bar\psi)=C_F(1-\bar\psi)^{\alpha_F\gamma_F},
+$$
+
+and are inserted into the self-adjoint weak density
+
+$$
+q(R,Z,\bar\psi)=\frac{(F^2)'(\bar\psi)}{2R}+\mu_0 R p'(\bar\psi).
+$$
+
+The validation gate checks that constant profile exponents reduce exactly to
+the existing callable source assembly, the free-node residual decreases over a
+small fixed iteration, diagnostics are JSON-ready, and gradients with respect
+to the pressure scale are finite and positive.
+
+The executable command is:
+
+```bash
+tokamaker-jax verify --gate profile-iteration
+```
+
+![Nonlinear profile iteration](_static/profile_iteration.png)
 
 ## Differentiability Gates
 

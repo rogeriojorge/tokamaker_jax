@@ -1,25 +1,26 @@
 # Progress
 
 `tokamaker-jax` is still a seed port, not a full TokaMaker replacement. The
-current executable solver is a small fixed-boundary rectangular-grid
-implementation used to validate project structure, JAX differentiation,
-configuration loading, plotting, examples, and CI behavior before the
-TokaMaker-equivalent triangular FEM stack is ported.
+current executable solver stack now combines the original rectangular-grid seed
+path with p=1 triangular FEM assembly, manufactured Grad-Shafranov validation,
+a reduced free-boundary coil-response fixture, a circular-loop quadrature
+prototype, nonlinear profile iteration, benchmark reporting, GUI workflow
+summaries, and citation-linked reproduction scaffolding.
 
 ## Status
 
 | Lane | Approx. status | Current state |
 | --- | ---: | --- |
-| M1 mesh/geometry | 80% | `TriMesh`, OFT-style mesh I/O, region primitives, TOML region parsing, canonical sample regions, rectangular triangular refinement fixtures, and geometry previews exist; region-aware production mesh generation remains open. |
-| M2 FEM core | 62% | p=1 reference kernels, dense/sparse/global assembly, matrix-free applies, weighted mass/stiffness matrices, axisymmetric Grad-Shafranov weak-form assembly, load-vector/profile-source assembly, Dirichlet reduction, and manufactured convergence gates now have validation tests; nonlinear free-boundary coupling remains open. |
-| Plotting | 62% | Seed equilibrium plots, mesh/region plots, animation outputs, `FigureRecipe`, JSON metadata, region tables, annotated seed plots, Poisson convergence, Grad-Shafranov convergence, and reduced coil-response figures exist; literature reproduction galleries remain pending. |
-| Docs/examples | 64% | Installation, architecture, porting map, API, examples, progress, validation equations, validation manifest, Poisson/Grad-Shafranov derivations, reduced coil Green's-function derivation, and generated artifacts are present; full derivation atlas and broad tutorials remain pending. |
-| Config/CLI | 56% | TOML runs support solver/grid/source/coil/output settings plus region geometry, `tokamaker-jax validate` checks configs without solving, and `tokamaker-jax verify` runs manufactured and reduced coil Green's-function gates; production schema export and richer case management are pending. |
-| Test infra | 68% | Pytest, coverage, lint, docs, FEM analytic gates, weighted/axisymmetric assembly gates, true quadrature error convergence gates, reduced coil Green's-function gates, validation CLI tests, GUI metadata tests, and benchmark schema tests exist; OpenFUSIONToolkit parity and literature figure gates remain pending. |
-| Differentiability | 45% | Seed solver paths, local FEM kernels, dense/sparse assembly, weighted axisymmetric assembly, matrix-free applies, and reduced coil Green's-function responses are JAX-compatible with focused gradient and finite-difference checks; implicit solver VJPs, topology policies, and optimization workflows remain open. |
-| GUI | 42% | NiceGUI seed equilibrium controls, region-geometry preview, metadata summaries, region tables, validation convergence plots, and reduced coil-response plots exist; case browser, TOML editor, literature gallery, and solver workflow dashboards remain pending. |
-| Performance | 38% | JSON-friendly benchmark helpers exist for the seed fixed-boundary solve, local p=1 FEM kernels, axisymmetric global assembly/matrix-free apply, and reduced coil Green's response; CI baselines and full free-boundary benchmarks remain pending. |
-| Overall | 58% | Repository scaffolding, seed solver, mesh/geometry foundation, p=1 local/global/weighted FEM kernels, axisymmetric Grad-Shafranov weak form, reduced free-boundary coil Green's-function fixture, sparse and matrix-free assembly paths, source/profile loads, Dirichlet solves, true-error manufactured convergence, verification CLI, docs, examples, tests, GUI previews, plotting metadata, and benchmark helpers are in place; the project is still not a full TokaMaker replacement. |
+| M1 mesh/geometry | 84% | `TriMesh`, OFT-style mesh I/O, region primitives, TOML region parsing, canonical sample regions, rectangular triangular refinement fixtures, and geometry previews exist; region-aware production mesh generation and limiter/divertor topology policies remain open. |
+| M2 FEM core | 74% | p=1 reference kernels, dense/sparse/global assembly, matrix-free applies, weighted mass/stiffness matrices, axisymmetric Grad-Shafranov weak-form assembly, load-vector/profile-source assembly, Dirichlet reduction, manufactured convergence gates, and nonlinear profile iteration now have validation tests; full Newton/free-boundary coupling remains open. |
+| Plotting | 76% | Seed equilibrium plots, mesh/region plots, animation outputs, `FigureRecipe`, JSON metadata, region tables, annotated seed plots, Poisson convergence, Grad-Shafranov convergence, reduced coil-response figures, nonlinear profile figures, and a CPC-seed-family reproduction artifact exist. |
+| Docs/examples | 78% | Installation, architecture, porting map, API, examples, progress, validation equations, validation manifest, manufactured derivations, reduced/circular coil notes, nonlinear profile-iteration notes, benchmark reporting, and literature reproduction docs are present; full derivation atlas and broad tutorials remain pending. |
+| Config/CLI | 72% | TOML runs support solver/grid/source/coil/output settings plus region geometry, `tokamaker-jax validate` checks configs without solving, and `tokamaker-jax verify` runs manufactured, reduced coil Green's-function, and nonlinear profile-iteration gates; production schema export and richer case management are pending. |
+| Test infra | 80% | Pytest, coverage, lint, docs, FEM analytic gates, weighted/axisymmetric assembly gates, true quadrature convergence gates, reduced and circular-loop coil gates, nonlinear profile gates, literature surrogate gates, validation CLI tests, GUI workflow tests, and benchmark schema tests exist; OpenFUSIONToolkit parity remains pending. |
+| Differentiability | 70% | Seed solver paths, local FEM kernels, dense/sparse assembly, weighted axisymmetric assembly, matrix-free applies, reduced and circular-loop coil responses, and nonlinear profile pressure-scale sensitivity are JAX-compatible with focused gradient and finite-difference checks; implicit solver VJPs, topology policies, and optimization workflows remain open. |
+| GUI | 68% | NiceGUI seed equilibrium controls, region-geometry preview, metadata summaries, region tables, validation convergence plots, reduced coil-response plots, and workflow-dashboard summaries exist; case browser, TOML editor, and literature gallery controls remain pending. |
+| Performance | 65% | JSON-friendly benchmark helpers and a benchmark-report example exist for the seed fixed-boundary solve, local p=1 FEM kernels, axisymmetric global assembly/matrix-free apply, and reduced coil Green's response; CI baseline comparison, artifact upload, and full free-boundary benchmarks remain pending. |
+| Overall | 75% | Repository scaffolding, seed solver, mesh/geometry foundation, p=1 local/global/weighted FEM kernels, axisymmetric Grad-Shafranov weak form, nonlinear profile iteration, reduced and circular-loop free-boundary coil prototypes, sparse and matrix-free assembly paths, source/profile loads, Dirichlet solves, true-error manufactured convergence, verification CLI, docs, examples, tests, GUI previews, plotting metadata, literature reproduction scaffolding, and benchmark reports are in place; the project is still not a full TokaMaker replacement. |
 
 Percentages are approximate planning markers, not validation metrics.
 
@@ -27,15 +28,20 @@ Percentages are approximate planning markers, not validation metrics.
 
 The next implementation milestone should keep the scope narrow and measurable:
 
-1. Add p=1 nonlinear profile/source iteration around pressure and FF' terms,
-   using the implemented profile-load assembly and manufactured gates as
-   oracles.
-2. Replace the reduced coil Green's-function fixture with a full circular-loop
-   elliptic-kernel path and compare it against OpenFUSIONToolkit fixtures.
-3. Add the first literature-anchored TokaMaker figure reproduction script and
-   artifact with a manifest entry, command, tolerance, and generated docs output.
+1. Replace the circular-loop quadrature prototype with the closed-form
+   elliptic-integral kernel and compare it against OpenFUSIONToolkit fixtures.
+2. Couple the nonlinear p=1 profile iteration to the free-boundary coil
+   response and add Picard/Newton convergence gates on at least one documented
+   equilibrium fixture.
+3. Promote the CPC seed-family surrogate into a code-to-code literature
+   reproduction by importing the exact published/OFT case inputs and recording
+   scalar tolerances.
 4. Add CI-recorded benchmark baselines for sparse assembly, matrix-free apply,
-   reduced/full coil response, and the manufactured Grad-Shafranov solve.
+   profile iteration, circular-loop response, and manufactured
+   Grad-Shafranov solves.
+5. Add a GUI case browser and TOML editor so research users can move directly
+   between examples, validation reports, solver settings, and reproducible
+   plots.
 
 After those pieces pass focused tests, the seed rectangular-grid solver can be
 replaced incrementally by the triangular FEM path described in the architecture

@@ -342,6 +342,7 @@ def plot_equilibrium(
     ax: plt.Axes | None = None,
     show_source: bool = False,
     show_metadata: bool = True,
+    label_contours: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot flux contours, optionally with the source term as a background."""
 
@@ -356,7 +357,8 @@ def plot_equilibrium(
         source = ax.contourf(r_np, z_np, np.asarray(solution.source), levels=levels, cmap="magma")
         fig.colorbar(source, ax=ax, label="source")
     contours = ax.contour(r_np, z_np, psi_np, levels=levels, colors="black", linewidths=0.75)
-    ax.clabel(contours, inline=True, fontsize=7)
+    if label_contours:
+        ax.clabel(contours, inline=True, fontsize=7)
     ax.set_xlabel("R [m]")
     ax.set_ylabel("Z [m]")
     ax.set_aspect("equal", adjustable="box")

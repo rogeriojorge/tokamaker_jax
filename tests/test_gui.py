@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import tokamaker_jax.geometry as geometry
@@ -9,6 +11,10 @@ from tokamaker_jax.gui import (
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
     validation_convergence_figure,
+    validation_gate_rows,
+    workflow_dashboard_data,
+    workflow_next_step_rows,
+    workflow_status_rows,
 )
 
 pytest.importorskip("plotly")
@@ -129,3 +135,59 @@ def test_coil_green_response_figure_attaches_metadata():
     assert fig.layout.meta["n_coils"] == 3
     assert len(fig.data) == 2
     assert fig.data[1].name == "PF coils"
+
+
+def test_workflow_dashboard_data_schema_and_key_values():
+    dashboard = workflow_dashboard_data(
+        pressure_scale=1.0e3,
+        ffp_scale=-0.1,
+        iterations=2,
+        validation_subdivisions=(4, 8),
+    )
+
+    json.dumps(dashboard)
+    assert dashboard["schema_version"] == 1
+    assert dashboard["workflow"]["status"] == "pass"
+    assert [section["id"] for section in dashboard["sections"]] == [
+        "seed_equilibrium",
+        "region_geometry",
+        "validation",
+        "coil_response",
+    ]
+
+    seed = dashboard["seed_equilibrium"]
+    assert seed["status"] == "pass"
+    assert seed["metrics"]["iterations"] == 2
+    assert seed["metrics"]["grid"]["nr"] == 65
+    assert seed["metrics"]["residual_drop_fraction"] > 0.0
+
+    geometry_summary = dashboard["region_geometry"]
+    assert geometry_summary["status"] == "pass"
+    assert geometry_summary["metrics"]["n_regions"] == 3
+    assert geometry_summary["by_kind"]["coil"]["count"] == 1
+
+    gates = {gate["id"]: gate for gate in dashboard["validation"]["gates"]}
+    assert gates["poisson"]["status"] == "pass"
+    assert gates["grad_shafranov"]["command"] == (
+        "tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8"
+    )
+    assert gates["coil_green"]["metrics"]["n_coils"] == 2
+    assert gates["coil_green"]["metrics"]["max_error"] < 1.0e-10
+    assert dashboard["coil_response"]["metrics"]["n_coils"] == 3
+
+    status_rows = workflow_status_rows(dashboard)
+    gate_rows = validation_gate_rows(dashboard)
+    next_step_rows = workflow_next_step_rows(dashboard)
+
+    assert status_rows[0]["section"] == "Seed equilibrium"
+    assert gate_rows[-1]["gate"] == "Coil Green"
+    assert next_step_rows[0] == {
+        "step": "Validate TOML inputs",
+        "status": "open",
+        "command": "tokamaker-jax validate examples/fixed_boundary.toml",
+    }
+
+
+def test_workflow_dashboard_data_validates_subdivisions():
+    with pytest.raises(ValueError, match="validation_subdivisions"):
+        workflow_dashboard_data(iterations=1, validation_subdivisions=(4,))

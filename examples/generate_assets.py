@@ -6,9 +6,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from jax import config as jax_config
 from matplotlib.animation import FuncAnimation, PillowWriter
+from reproduce_cpc_seed_family import generate_cpc_seed_family_artifacts
 
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
 from tokamaker_jax.domain import RectangularGrid
+from tokamaker_jax.fem_equilibrium import (
+    NonlinearProfileParameters,
+    PowerProfile,
+    solve_profile_iteration_on_rectangle,
+)
 from tokamaker_jax.geometry import sample_regions
 from tokamaker_jax.plotting import (
     plot_equilibrium,
@@ -39,6 +45,8 @@ def main() -> None:
     write_manufactured_poisson_convergence()
     write_grad_shafranov_convergence()
     write_coil_green_response()
+    write_profile_iteration()
+    write_cpc_seed_family()
     write_pressure_sweep()
 
 
@@ -96,6 +104,55 @@ def write_coil_green_response() -> None:
         CoilConfig(name="PF_C", r=2.45, z=0.0, current=-1.2e5, sigma=0.08),
     )
     save_coil_green_response_plot(grid, coils, ASSET_DIR / "coil_green_response.png")
+
+
+def write_profile_iteration() -> None:
+    solution = solve_profile_iteration_on_rectangle(
+        subdivisions=16,
+        parameters=NonlinearProfileParameters(
+            pressure=PowerProfile(scale=4.0e3, alpha=1.25, gamma=1.0),
+            ffprime=PowerProfile(scale=-0.25, alpha=1.0, gamma=1.0),
+        ),
+        iterations=5,
+        relaxation=0.85,
+    )
+    fig, ax = plt.subplots(figsize=(6.2, 4.8), constrained_layout=True)
+    contour = ax.tricontourf(
+        np.asarray(solution.nodes[:, 0]),
+        np.asarray(solution.nodes[:, 1]),
+        np.asarray(solution.triangles),
+        np.asarray(solution.psi),
+        levels=24,
+        cmap="viridis",
+    )
+    ax.tricontour(
+        np.asarray(solution.nodes[:, 0]),
+        np.asarray(solution.nodes[:, 1]),
+        np.asarray(solution.triangles),
+        np.asarray(solution.psi),
+        levels=12,
+        colors="black",
+        linewidths=0.45,
+    )
+    fig.colorbar(contour, ax=ax, label="psi")
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("nonlinear p=1 FEM profile iteration")
+    fig.savefig(ASSET_DIR / "profile_iteration.png", dpi=180)
+    plt.close(fig)
+
+
+def write_cpc_seed_family() -> None:
+    generate_cpc_seed_family_artifacts(
+        ASSET_DIR,
+        nr=31,
+        nz=31,
+        iterations=120,
+        report_name="cpc_seed_family_report.json",
+        png_name="cpc_seed_family.png",
+        command="python examples/reproduce_cpc_seed_family.py docs/_static",
+    )
 
 
 def write_pressure_sweep() -> None:

@@ -10,6 +10,7 @@ architecture
 porting_map
 progress
 validation
+literature_reproduction
 examples
 api
 references
