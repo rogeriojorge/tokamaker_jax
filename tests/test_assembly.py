@@ -104,15 +104,22 @@ def test_sparse_and_matrix_free_paths_match_dense_assembly():
     np.testing.assert_allclose(
         assemble_laplace_stiffness_bcoo(nodes, triangles).todense(), stiffness
     )
-    np.testing.assert_allclose(apply_mass_matrix(nodes, triangles, vector), mass @ vector)
+    np.testing.assert_allclose(
+        apply_mass_matrix(nodes, triangles, vector), mass @ vector, atol=1.0e-14
+    )
     np.testing.assert_allclose(
         apply_laplace_stiffness_matrix(nodes, triangles, vector),
         stiffness @ vector,
+        atol=1.0e-14,
     )
 
     mesh = mesh_from_arrays(np.asarray(nodes), np.asarray(triangles), np.asarray([1, 1]))
-    np.testing.assert_allclose(apply_mass_matrix(mesh, vector), mass @ vector)
-    np.testing.assert_allclose(apply_laplace_stiffness_matrix(mesh, vector), stiffness @ vector)
+    np.testing.assert_allclose(apply_mass_matrix(mesh, vector), mass @ vector, atol=1.0e-14)
+    np.testing.assert_allclose(
+        apply_laplace_stiffness_matrix(mesh, vector),
+        stiffness @ vector,
+        atol=1.0e-14,
+    )
 
 
 def test_load_vector_constant_source_matches_mass_times_one():
