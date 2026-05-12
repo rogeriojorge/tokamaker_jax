@@ -21,6 +21,14 @@ This file is both the engineering plan and the running implementation log for a 
 - Added a capability parity matrix, package architecture, data model, TOML schema, solver plan, differentiability plan, GUI plan, validation matrix, milestone acceptance criteria, issue backlog, risk register, and immediate next implementation queue.
 - Refreshed external reference context using OFT docs, the TokaMaker arXiv/CPC paper, FreeGSNKE docs, JAX-FEM, and TORAX.
 
+### 2026-05-12 16:43 WEST
+
+- Added literature-anchored validation gates instead of generic smoke-test planning.
+- Added precise numerical quality bars for FEM operators, solvers, diagnostics, IO, differentiability, and performance.
+- Added planned source-tree and test-tree layouts designed for long-term maintainability and generalization.
+- Added documentation deliverables for full equations, derivations, references, source links, validation reports, and tutorials.
+- Added equation-id validation contracts, fixture schemas, package API ownership, test markers, and explicit citation/source-link documentation rules.
+
 ## Current State
 
 Repository: <https://github.com/rogeriojorge/tokamaker_jax>
@@ -149,6 +157,648 @@ This plan uses the following external sources as design constraints and comparis
 - FreeGSNKE provides a useful product benchmark: static forward, static inverse, evolutive forward, passive structures, probes, and Newton-Krylov/evolutive workflows. Its docs also list JAX-ification of core Newton-Krylov solvers as a roadmap direction: <https://docs.freegsnke.com/>.
 - JAX-FEM demonstrates differentiable FEM in JAX, including triangle elements, automatic differentiation, inverse/design problems, and PETSc integration patterns: <https://github.com/deepmodeling/jax-fem> and <https://arxiv.org/abs/2212.00964>.
 - TORAX is a useful JAX tokamak-code reference for differentiable PDE workflows, compilation, nonlinear PDE sensitivities, trajectory optimization, and data-driven parameter identification: <https://github.com/google-deepmind/torax>.
+- COCOS is the required convention reference for EQDSK, coordinate, and sign handling: Sauter and Medvedev, "Tokamak coordinate conventions: COCOS", DOI <https://doi.org/10.1016/j.cpc.2012.09.010>.
+- Sauter, Angioni, and Lin-Liu provide the baseline neoclassical conductivity and bootstrap current formulas for general axisymmetric equilibria and arbitrary collisionality: DOI <https://doi.org/10.1063/1.873240>.
+- Cerfon and Freidberg provide analytic Solov'ev-family equilibria with realistic tokamak, spherical tokamak, spheromak, field-reversed-configuration, and X-point shapes: DOI <https://doi.org/10.1063/1.3328818>.
+- Redl et al. provide a modern analytic bootstrap/neoclassical conductivity model and compare it to Sauter-style formulas and NEO results: DOI <https://doi.org/10.1063/5.0012664>.
+- Lao et al./EFIT and later EFIT workflows are reconstruction references for magnetic diagnostics, constraints, and reconstruction validation: <https://www.osti.gov/biblio/20854274>.
+
+## Literature-Anchored Validation Program
+
+This project should treat validation as a first-class source module, not as afterthought tests. Each validation family must record:
+
+- citation and exact equation/test origin.
+- assumptions and units.
+- generated fixture inputs.
+- expected value tables or convergence rates.
+- tolerance and reason for that tolerance.
+- whether the test is analytic, cross-code, regression, differentiability, or performance.
+
+Planned validation package:
+
+```text
+validation/
+  references.bib
+  literature_cases/
+    solovev_polynomial.toml
+    cerfon_freidberg_limiter.toml
+    cerfon_freidberg_single_null.toml
+    cerfon_freidberg_double_null.toml
+    circular_green_filament.toml
+    sauter_bootstrap_table.toml
+    redl_bootstrap_table.toml
+    cocos_roundtrip.toml
+  expected/
+    solovev_convergence.json
+    cerfon_freidberg_values.json
+    green_filament_values.json
+    sauter_redl_coefficients.json
+    oft_iter_baseline.json
+    oft_ltx_baseline.json
+  scripts/
+    generate_analytic_fixtures.py
+    generate_oft_reference_outputs.py
+    compare_against_oft.py
+    benchmark_cases.py
+```
+
+### Literature Gates
+
+| Gate | Literature anchor | What is validated | Required pass/fail rule |
+| --- | --- | --- | --- |
+| GS operator identity | Grad-Shafranov equation and TokaMaker paper | sign convention, `Delta*`, plasma/vacuum/coil source terms | pointwise manufactured residual below `5e-12` in float64 for polynomial fields exactly representable by the basis; otherwise convergence slopes below |
+| Solov'ev polynomial equilibria | Solov'ev family as used by TokaMaker tests and analytic GS literature | fixed-boundary solve, source assembly, O/X point search | L2 psi error slope >= `p+0.8`; H1 error slope >= `p-0.2`; p=2/3/4 final errors not worse than OFT reference by more than 20% |
+| Cerfon-Freidberg analytic shapes | Cerfon-Freidberg DOI `10.1063/1.3328818` | limiter, single-null, double-null, spherical tokamak shape handling | boundary psi RMS error < `1e-8` on analytic boundary samples; magnetic-axis location < `1e-5 m` for normalized cases; X-point residual `|grad psi| < 1e-7` |
+| Green's function | TokaMaker `axi_green.F90`, elliptic-integral filament formulas | coil/plasma mutuals, field gradients | relative value error < `1e-10` away from singularity; gradient relative error < `1e-8`; brute-force quadrature cross-check < `1e-7` |
+| COCOS/EQDSK conventions | Sauter and Medvedev COCOS DOI `10.1016/j.cpc.2012.09.010` | sign, normalization, q, Bp/Bt, EQDSK round trip | all 16 COCOS sign/normalization transforms round-trip within `1e-13` scalar and `1e-12` array relative norms |
+| Free-boundary inverse shape | TokaMaker paper, FreeGS/FreeGSNKE examples | isoflux constraints, saddle constraints, coil regularization | ITER/LTX scalar diagnostics within `1e-2` relative initially; tighten to `3e-3` after equivalent FEM order is complete |
+| Reconstruction | EFIT/Lao references and TokaMaker reconstruction test | Ip, flux loops, Mirnov probes, pressure/q constraints | synthetic reconstruction chi-square decreases monotonically after first two iterations; final OFT scalar diagnostics within `1e-2` relative |
+| Wall modes/stability | TokaMaker wall/stability regression tests | passive conductor matrices, wall eigenvalues, growth rates | first five eigenvalues/growth rates within `1e-2` relative of OFT for ITER/LTX |
+| Bootstrap current | Sauter DOI `10.1063/1.873240`, Redl DOI `10.1063/5.0012664`, TokaMaker bootstrap tests | trapped-particle fraction, collisionality, coefficients, j_BS conversion | coefficient tables match published/OFT fixtures within `5e-4` relative for formula-only tests; integrated ITER bootstrap diagnostics within `1e-2` relative |
+| Time-dependent VDE/pulse | TokaMaker CUTE VDE and pulse examples, FreeGSNKE evolutive workflow | conductor coupling, implicit time stepping, waveforms | short trajectory state error < `2e-2` relative against OFT fixture at each saved time; conserved/monotonic quantities documented per case |
+| Differentiable optimization | JAX-FEM and TORAX differentiability practices | gradients through static solves and smooth shape losses | finite-difference agreement below `1e-5` relative for scalar objectives in float64; VJP/JVP dot-product tests below `1e-10` |
+| Performance | TokaMaker speed claims, JAX compilation model, TORAX/JAX practice | solve time, compile time, memory, gradient cost | no PR may regress benchmark medians by >20% without explicit benchmark update; release targets listed below |
+
+### Analytic Fixture Details
+
+Planned analytic fixtures should include symbolic or code-generated references:
+
+- `solovev_polynomial`: polynomial psi with constant `p'` and `FF'`, exercising `Delta*`, source assembly, O/X point search, and exact boundary values.
+- `cerfon_freidberg_limiter`: smooth limiter shape with prescribed elongation/triangularity and no X-point.
+- `cerfon_freidberg_single_null`: single-null diverted shape, validating saddle detection and LCFS tracing.
+- `cerfon_freidberg_double_null`: symmetric double-null, validating multiple saddle handling and topology warnings.
+- `spheromak_bessel`: Bessel-function eigenfunction used by upstream tests, validating non-tokamak convention handling.
+- `filament_green_regular`: coil and evaluation points separated by at least `10 * machine_epsilon` scaled distance.
+- `filament_green_near_axis`: non-singular near-axis points validating robust limiting behavior.
+- `cocos_roundtrip`: synthetic equilibrium arrays with known sign flips and `2*pi` normalization changes.
+
+Generated fixtures must be committed as small JSON/TOML/NPZ files and regenerated by scripts. The scripts must fail if regenerated values differ from committed values unless an explicit `--update` flag is used.
+
+### Cross-Code Reference Fixtures
+
+OFT should be used as the first parity oracle, but the validation design should not depend only on OFT:
+
+- OFT parity fixtures:
+  - ITER baseline/H-mode/reconstruction/wall/stability/bootstrap.
+  - LTX baseline/wall/stability.
+  - CUTE VDE.
+  - HBT vacuum/equilibrium.
+  - DIII-D baseline.
+  - MANTA baseline.
+  - Dipole equilibrium.
+- External cross-check fixtures:
+  - FreeGS for simple free-boundary coil/shape cases.
+  - FreeGSNKE for static forward/inverse/evolutive cases when setup is comparable.
+  - Published analytic solutions for fixed-boundary and topology tests.
+
+Each cross-code fixture must store:
+
+- code version and commit/release.
+- input file.
+- output diagnostics.
+- units and coordinate conventions.
+- tolerance and rationale.
+
+### Validation Data Contracts
+
+Validation data must be machine-readable, reviewable, and reproducible.
+
+```text
+validation/
+  README.md
+  references.bib
+  schemas/
+    analytic_case.schema.json
+    expected_values.schema.json
+    benchmark_result.schema.json
+    oft_fixture_manifest.schema.json
+  cases/
+    analytic/
+    oft/
+    freegs/
+    freegsnke/
+  generated/
+    README.md
+```
+
+Rules:
+
+- Every fixture has a manifest with `name`, `kind`, `citation_keys`, `source_url`, `generator`, `generator_version`, `created_at`, `units`, `cocos`, `dtype`, and `tolerances`.
+- Numeric expected values are stored as arrays plus named diagnostics, never only screenshots.
+- Each fixture includes a minimal TOML case that can be run by the CLI.
+- Generated expected files include a SHA256 hash of the generating input and script.
+- Regeneration scripts support `--check` for CI and `--update` for deliberate fixture refreshes.
+- Any tolerance above `1e-6` relative must include a short rationale in the manifest.
+- Literature-derived formulas are tested independently of OFT before any OFT parity test can be considered a physics gate.
+
+### Equation and Citation Test Contracts
+
+The implementation and docs should share stable equation ids. Tests should cite the equation id they validate so a future change can trace from equation to source to fixture.
+
+| Equation id | Formula or definition | Primary source modules | Required tests |
+| --- | --- | --- | --- |
+| `GS-strong-01` | `Delta* psi = R d/dR(1/R dpsi/dR) + d2psi/dZ2` with source `-mu0 R J_phi` under the project convention | `physics/grad_shafranov.py`, `physics/conventions.py` | manufactured residual, Solov'ev convergence, sign/COCOS tests |
+| `GS-source-01` | plasma source `-0.5 d(F^2)/dpsi - mu0 R^2 dp/dpsi` | `physics/profiles.py`, `physics/grad_shafranov.py` | profile derivative parity, source quadrature tests, OFT static parity |
+| `GS-weak-01` | weak form after integration by parts with `1/R` weighting and documented boundary term | `fem/assembly.py`, `fem/boundary.py` | element matrix symmetry, quadrature exactness, Dirichlet/free-boundary tests |
+| `GREEN-01` | axisymmetric circular-filament Green's function using complete elliptic integrals | `physics/greens.py`, `physics/coils.py` | analytic table, finite-difference gradient, brute-force quadrature cross-check |
+| `COCOS-01` | COCOS sign and normalization transforms for `psi`, `I_p`, `B_phi`, `q`, `F` | `physics/conventions.py`, `io/eqdsk.py` | all-convention round trip, EQDSK read/write/read, known-file parity |
+| `DIAG-01` | `B_R = -1/R dpsi/dZ`, `B_Z = 1/R dpsi/dR`, `B_phi = F/R` | `physics/diagnostics.py`, `physics/flux_surfaces.py` | analytic derivative tests, interpolation exactness, q-profile checks |
+| `RECON-01` | weighted least-squares reconstruction objective with Ip, flux, Mirnov, pressure, q, and saddle residuals | `physics/constraints.py`, `solvers/reconstruction.py` | residual unit tests, synthetic reconstruction convergence, gradient checks |
+| `TD-01` | implicit conductor/plasma current update for coupled wall/source evolution | `physics/conductors.py`, `solvers/time_dependent.py` | CUTE short trajectory, wall-mode eigenvalue parity, scan gradient checks |
+| `BS-01` | Sauter bootstrap/neoclassical coefficients and conversion to toroidal source | `physics/bootstrap.py`, `physics/profiles.py` | coefficient tables, ITER bootstrap parity, branch-boundary tests |
+| `BS-02` | Redl bootstrap/neoclassical coefficients and collisionality corrections | `physics/bootstrap.py` | published table parity, OFT Redl fixture parity, finite-difference smoothness tests |
+| `AD-01` | implicit differentiation of `F(y, theta)=0`: `dy/dtheta = -F_y^{-1} F_theta` | `solvers/autodiff.py`, `solvers/nonlinear.py` | implicit vs unrolled VJP, JVP/VJP dot product, Hessian symmetry |
+
+The docs must include a "validated by" table for each equation page that points to the exact test file and fixture. The source module docstring must point back to the equation page and citation keys.
+
+## Physics Gates and Numerical Quality Bar
+
+These gates are required before marking a milestone complete.
+
+### Operator and FEM Gates
+
+- Reference element tests:
+  - basis partition of unity: `max(abs(sum_i phi_i - 1)) < 1e-14`.
+  - gradient consistency by finite differences: relative error < `1e-8`.
+  - quadrature exactness for documented polynomial degree: absolute error < `1e-13` on reference triangle for normalized monomials.
+- Mesh tests:
+  - all cell areas positive.
+  - boundary edge orientation deterministic.
+  - region masks exactly preserve imported region ids.
+  - element Jacobian determinant relative agreement with independent area formula < `1e-13`.
+- Matrix tests:
+  - mass matrix symmetric relative norm < `1e-13`.
+  - stiffness/operator matrix symmetry or expected nonsymmetry documented; symmetric parts tested where mathematically symmetric.
+  - sparse assembled apply and matrix-free apply relative difference < `1e-12`.
+  - Dirichlet boundary application produces exact prescribed boundary values.
+
+### Solver Gates
+
+- Linear fixed-boundary:
+  - residual norm decreases to requested tolerance.
+  - direct and iterative solves agree within `1e-10` relative on small meshes.
+  - repeated JIT calls produce bitwise-stable outputs on same platform or documented tolerance otherwise.
+- Nonlinear Picard:
+  - update norm and PDE residual recorded separately.
+  - under-relaxation behavior tested.
+  - nonconvergence returns structured status with last residual, not an untyped exception.
+- Newton/Newton-Krylov:
+  - JVP linearization tested against finite differences with relative error < `1e-6`.
+  - line search or damping decisions logged.
+  - fallback to Picard or previous equilibrium documented.
+- Free-boundary:
+  - vacuum solve against coil-only fields matches Green's function references.
+  - isoflux residual before/after solve is stored.
+  - coil bound activation is tested.
+  - LCFS topology status is explicit: limited, diverted, double-null, no-closed-flux, invalid.
+
+### Diagnostics Gates
+
+- `Ip`, `W_MHD`, `beta_pol`, `beta_tor`, `beta_n`, `l_i`, `q_95`, centroid, volume, area, axis, limiter point, X-points each get unit tests on analytic or OFT fixtures.
+- Flux-surface tracing must pass:
+  - closed contour gap < `1e-8 m` for smooth analytic surfaces.
+  - monotonic theta ordering except at documented separatrix handling.
+  - q-profile finite and monotonic/expected for analytic cases.
+- Field evaluators:
+  - `B_R`, `B_Z`, `B_phi`, `j_phi` compare with analytic derivatives.
+  - interpolation is exact for basis-representable functions.
+
+### IO Gates
+
+- EQDSK:
+  - read-write-read preserves dimensions, boundary arrays, limiter arrays, profiles, and 2D psi.
+  - COCOS conversions are tested for sign and `2*pi` normalization.
+  - array relative norm error < `1e-12` for internal round-trip, < `1e-2` for OFT parity until exact formatting parity is implemented.
+- HDF5:
+  - mesh/state files include schema version, units, COCOS, source code version, and git commit if available.
+  - all datasets have documented shapes.
+  - missing optional datasets produce clear validation errors or defaults.
+- TOML:
+  - schema validation reports exact key path.
+  - all examples validate in CI.
+
+## Differentiability Validation Gates
+
+Differentiability must be tested as rigorously as physics.
+
+### Differentiable Parameters
+
+Initial differentiable parameter groups:
+
+- profile coefficients and scale factors.
+- coil currents.
+- coil current regularization weights.
+- smooth target values and weights.
+- diagnostic weights.
+- smooth coil geometry parameters for parametric coils.
+- boundary/control points only when mesh connectivity remains fixed.
+
+Explicitly nondifferentiable or event-differentiable only:
+
+- mesh remeshing.
+- region topology changes.
+- X-point creation/destruction.
+- limiter/diverted transitions.
+- active set changes for hard coil bounds.
+- file parsing and plotting.
+
+### Gradient Test Suite
+
+| Test | Method | Required threshold |
+| --- | --- | --- |
+| scalar objective finite difference | central difference with `h = eps^(1/3) * max(1, |x|)` in float64 | relative error < `1e-5`, absolute fallback < `1e-8` |
+| JVP linearization | compare `f(x + h v)` to `f(x) + h Jv` | relative error decreases linearly; error < `1e-6` at selected h |
+| VJP/JVP dot product | random `v`, `w`; compare `<Jv,w>` and `<v,J^T w>` | relative difference < `1e-10` |
+| implicit VJP vs unrolled | small mesh, fixed iteration count | relative difference < `1e-6` |
+| Hessian symmetry | selected smooth objectives | relative antisymmetric norm < `1e-7` |
+| `jit(grad(f))` and `grad(jit(f))` | selected objectives | values agree < `1e-10` relative |
+| `vmap(grad(f))` | batch over coil current/profile samples | matches loop results < `1e-12` relative |
+
+### Differentiability Release Gates
+
+Before any feature is advertised as differentiable:
+
+- The feature has tests for `grad`, `jit`, and `vmap` where appropriate.
+- Finite-difference checks are present on a small case.
+- The docs state the differentiable inputs and excluded nonsmooth events.
+- Custom VJP/JVP code has both primal parity and adjoint tests.
+
+## Performance Benchmark Gates
+
+Performance must be tracked from the start so JAX compilation and autodiff costs remain visible.
+
+### Benchmark Harness
+
+Planned files:
+
+```text
+benchmarks/
+  conftest.py
+  cases/
+    small_solovev_p1.toml
+    medium_solovev_p2.toml
+    iter_free_boundary_p2.toml
+    ltx_wall_modes.toml
+    cute_vde_short.toml
+    coil_gradient_shape.toml
+  test_pr_benchmarks.py
+  release_benchmarks.py
+  compare_oft.py
+```
+
+Benchmarks record:
+
+- hardware, OS, Python, JAX, jaxlib, backend, dtype.
+- compile time and steady-state time separately.
+- nonlinear iterations and linear iterations.
+- peak memory when available.
+- objective gradient time.
+- output hash/diagnostic values to prevent benchmarking incorrect solves.
+
+### CI Performance Policy
+
+- PR CI runs only small benchmarks with loose wall-clock caps.
+- Release CI/manual benchmark runs all cases.
+- A benchmark regression >20% relative to the checked-in baseline requires either a fix or a committed baseline update explaining the reason.
+- Benchmark results should be published as docs tables for releases.
+
+### Initial Target Budgets
+
+These are planning targets, not current guarantees:
+
+| Case | Backend | Target after compile | Gradient target | Notes |
+| --- | --- | ---: | ---: | --- |
+| small Solov'ev p=1, ~1k cells | CPU | < `0.2 s` | < `1.0 s` | CI smoke |
+| medium Solov'ev p=2, ~10k cells | CPU | < `2 s` | < `10 s` | release benchmark |
+| ITER free-boundary p=2 | CPU | within `2x` OFT wall time initially, then improve | < `8x` primal | parity before speed |
+| coil-current shape objective batch of 32 | GPU | > `5x` CPU throughput after compile | < `5x` primal batch | demonstrates JAX value |
+| CUTE VDE 100 steps | CPU | < `30 s` | checkpointed gradient < `5 min` | release benchmark |
+
+## Planned Source Tree
+
+The source layout should make ownership and testing obvious.
+
+```text
+src/tokamaker_jax/
+  __init__.py
+  _version.py
+  config/
+    __init__.py
+    schema.py
+    loaders.py
+    validators.py
+    migrations.py
+  geometry/
+    __init__.py
+    primitives.py
+    regions.py
+    limiters.py
+    transforms.py
+  mesh/
+    __init__.py
+    types.py
+    hdf5.py
+    builders.py
+    quality.py
+    plotting.py
+  fem/
+    __init__.py
+    reference_triangle.py
+    basis.py
+    quadrature.py
+    assembly.py
+    boundary.py
+    sparse.py
+    matrix_free.py
+  physics/
+    __init__.py
+    constants.py
+    conventions.py
+    grad_shafranov.py
+    greens.py
+    profiles.py
+    bootstrap.py
+    coils.py
+    conductors.py
+    constraints.py
+    diagnostics.py
+    flux_surfaces.py
+  solvers/
+    __init__.py
+    linear.py
+    nonlinear.py
+    fixed_boundary.py
+    free_boundary.py
+    reconstruction.py
+    time_dependent.py
+    stability.py
+    autodiff.py
+  io/
+    __init__.py
+    eqdsk.py
+    ifile.py
+    hdf5_state.py
+    mug.py
+    oft_compat.py
+  plotting/
+    __init__.py
+    equilibrium.py
+    machine.py
+    profiles.py
+    animations.py
+    styles.py
+  cli/
+    __init__.py
+    main.py
+    run.py
+    validate.py
+    benchmark.py
+    compare.py
+    assets.py
+  gui/
+    __init__.py
+    app.py
+    state.py
+    components/
+      case_browser.py
+      mesh_panel.py
+      profile_panel.py
+      constraints_panel.py
+      solve_panel.py
+      plots.py
+  compat/
+    __init__.py
+    tokamaker.py
+    meshing.py
+    reconstruction.py
+  validation/
+    __init__.py
+    analytic.py
+    oft.py
+    finite_difference.py
+    tolerances.py
+```
+
+Test layout:
+
+```text
+tests/
+  unit/
+    test_config_schema.py
+    test_geometry.py
+    test_mesh_import.py
+    test_reference_triangle.py
+    test_quadrature.py
+    test_profiles.py
+    test_greens.py
+    test_cocos.py
+  manufactured/
+    test_operator_manufactured.py
+    test_solovev_convergence.py
+    test_cerfon_freidberg.py
+  parity/
+    test_oft_solovev.py
+    test_oft_coils.py
+    test_oft_iter.py
+    test_oft_ltx.py
+    test_oft_reconstruction.py
+    test_oft_bootstrap.py
+    test_oft_time_dependent.py
+  differentiability/
+    test_profile_gradients.py
+    test_coil_current_gradients.py
+    test_shape_objective_gradients.py
+    test_implicit_vjp.py
+  integration/
+    test_cli_cases.py
+    test_docs_examples.py
+    test_gui_smoke.py
+  performance/
+    test_small_benchmarks.py
+```
+
+Fixture layout:
+
+```text
+tests/fixtures/
+  meshes/
+  eqdsk/
+  ifile/
+  analytic/
+  oft_outputs/
+  toml_cases/
+```
+
+Management rules:
+
+- Every source module gets a matching unit test module.
+- Literature fixtures live under `validation/` or `tests/fixtures/analytic`, not hidden inside tests.
+- OFT-generated fixtures store OFT commit and command line.
+- Large fixtures need an explicit size justification in `tests/fixtures/README.md`.
+- Performance tests must not be mixed with unit tests.
+
+### Module API Contracts
+
+Each planned source file should have a small, explicit responsibility so the port can grow without becoming another monolith.
+
+| File or package | Public contract | Notes for maintainability |
+| --- | --- | --- |
+| `config/schema.py` | typed config objects and versioned schema constants | no solver imports; keep import graph acyclic |
+| `config/loaders.py` | `load_case(path)`, `dump_case(case, path)`, `case_from_dict(data)` | Python 3.10 uses `tomli`; Python 3.11+ uses `tomllib` |
+| `config/validators.py` | structured validation errors with key paths | used by CLI, GUI, and docs examples |
+| `geometry/primitives.py` | analytic geometry primitives with sampling and signed-distance helpers | pure NumPy/JAX-compatible math where possible |
+| `geometry/regions.py` | region labels, ids, and material metadata | stable ids are part of fixture compatibility |
+| `mesh/types.py` | `TriMesh`, `BoundaryEdges`, `RegionMap` pytrees | connectivity static; coordinates optionally differentiable |
+| `mesh/builders.py` | high-level mesh construction from domain definitions | may call non-JAX meshers outside differentiable kernels |
+| `fem/reference_triangle.py` | canonical nodes, basis metadata, quadrature coordinates | one source of truth for element order |
+| `fem/basis.py` | basis values, gradients, interpolation, projection | tested by exact polynomial identities |
+| `fem/assembly.py` | element assembly and global scatter helpers | no physics-specific source terms |
+| `fem/sparse.py` | BCOO construction and apply utilities | source of sparse backend policy |
+| `fem/matrix_free.py` | element-wise apply for large problems | parity against `fem/sparse.py` is required |
+| `physics/conventions.py` | COCOS, sign, and normalization transforms | all IO and diagnostics import from here |
+| `physics/grad_shafranov.py` | operator/source residuals and residual linearizations | no file IO, no plotting, no CLI state |
+| `physics/profiles.py` | profile classes/functions and derivatives | all profiles must expose value/JVP-friendly derivatives |
+| `physics/greens.py` | filament Green's functions and gradients | singular/near-singular behavior documented per function |
+| `physics/coils.py` | coil sets, currents, bounds, inductance helpers | stable dict/vector ordering required |
+| `physics/conductors.py` | passive structures, resistivity, wall matrices | feeds time-dependent and stability solvers |
+| `physics/constraints.py` | isoflux, saddle, reconstruction, and shape residuals | residuals are differentiable where documented |
+| `physics/diagnostics.py` | scalar and profile diagnostics | diagnostics report units and COCOS convention |
+| `physics/flux_surfaces.py` | contours, O/X points, LCFS classification | event logic separated from smooth objectives |
+| `solvers/linear.py` | direct/iterative linear solve wrappers and statuses | shared status object, no hidden print/logging |
+| `solvers/nonlinear.py` | Picard/Newton/Newton-Krylov loops | residual histories are first-class outputs |
+| `solvers/fixed_boundary.py` | fixed-boundary equilibrium workflow | thin orchestration around physics/FEM kernels |
+| `solvers/free_boundary.py` | vacuum/free-boundary/isoflux solve workflow | topology state must be explicit |
+| `solvers/reconstruction.py` | synthetic and diagnostic reconstruction solves | shares residuals with inverse design |
+| `solvers/time_dependent.py` | implicit stepping and `lax.scan` trajectories | benchmark primal and gradient memory separately |
+| `solvers/stability.py` | wall modes and linear stability eigenproblems | deterministic sorting of eigenpairs required |
+| `solvers/autodiff.py` | custom JVP/VJP and implicit-diff utilities | each custom rule has primal and adjoint tests |
+| `io/eqdsk.py` | EQDSK parser/writer with COCOS metadata | formatting parity and physics parity are separate tests |
+| `io/hdf5_state.py` | versioned state/mesh/fixture persistence | all datasets have shape/unit metadata |
+| `plotting/*.py` | static figures, Plotly views, animations | plotting consumes result objects; no solver side effects |
+| `cli/main.py` | default GUI launch, TOML execution when path provided | CLI is a thin layer over public Python API |
+| `gui/*.py` | user workflow state and panels | GUI state serializes to the same TOML schema |
+| `validation/*.py` | fixture loading, tolerances, analytic references | validation helpers are allowed in tests and docs generation |
+
+### Test Taxonomy and Markers
+
+The CI suite should distinguish fast correctness tests from release validation.
+
+| Marker | Scope | CI policy |
+| --- | --- | --- |
+| `unit` | pure functions, schema, small arrays | every PR |
+| `manufactured` | analytic PDE/FEM checks | every PR, small meshes |
+| `literature` | published formula/table checks | every PR unless fixture is large |
+| `parity` | OFT/FreeGS/FreeGSNKE comparison fixtures | every PR for small cases, nightly/release for large cases |
+| `differentiability` | finite-difference, JVP/VJP, implicit gradients | every PR for small cases |
+| `integration` | CLI, docs examples, GUI smoke | every PR |
+| `performance` | timing and memory benchmarks | small benchmark on PR, full benchmark on release/manual |
+| `slow` | large ITER/LTX/CUTE cases | nightly/release/manual |
+
+Coverage policy:
+
+- Overall line coverage remains >= `95%`.
+- `physics`, `fem`, `solvers`, and `io` each need package-level coverage >= `95%` before a stable release.
+- Branch coverage must be tracked for topology, COCOS transforms, schema validation, and bootstrap formula branches.
+- Coverage exclusions require an inline reason and should be limited to backend-specific fallbacks or defensive errors.
+
+## Documentation Deliverables With Equations and Derivations
+
+The docs should include actual equations, derivations, source links, and citation metadata, not just API pages.
+
+Planned docs tree:
+
+```text
+docs/
+  index.md
+  getting_started.md
+  equations/
+    grad_shafranov.md
+    weak_form.md
+    free_boundary.md
+    coils_and_greens.md
+    profiles.md
+    reconstruction.md
+    time_dependent.md
+    bootstrap.md
+    cocos_and_eqdsk.md
+    differentiability.md
+  derivations/
+    fem_reference_triangle.md
+    operator_assembly.md
+    boundary_conditions.md
+    implicit_differentiation.md
+    diagnostics.md
+  validation/
+    overview.md
+    analytic_cases.md
+    oft_parity.md
+    differentiability.md
+    performance.md
+  api/
+    config.md
+    mesh.md
+    fem.md
+    physics.md
+    solvers.md
+    io.md
+    plotting.md
+  tutorials/
+    fixed_boundary_solovev.md
+    free_boundary_iter.md
+    reconstruction_synthetic.md
+    bootstrap_iter_hmode.md
+    time_dependent_cute_vde.md
+    differentiable_shape_optimization.md
+    gui_walkthrough.md
+  references.md
+  references.bib
+```
+
+Required equation documentation:
+
+- Strong form of Grad-Shafranov and definition of `Delta*`.
+- Axisymmetric magnetic field representation and relation to `psi`, `F`, `B_R`, `B_Z`, `B_phi`.
+- Source terms in plasma, coils, passive conductors, and vacuum.
+- Normalized flux conventions and tokamak/spheromak sign choices.
+- Weak form on triangular elements, including integration by parts and boundary terms.
+- Dirichlet, vacuum, and free-boundary boundary conditions.
+- Axisymmetric Green's function and gradient formulas.
+- Coil mutual and self-inductance definitions.
+- Profile function definitions and derivatives.
+- Global diagnostics: `Ip`, `W_MHD`, `beta_pol`, `beta_tor`, `beta_n`, `l_i`, `q`.
+- Reconstruction objective and diagnostic residual definitions.
+- Time-dependent conductor/current equations and implicit Euler form.
+- Bootstrap current equations used for Sauter/Redl paths.
+- COCOS transformations and EQDSK field definitions.
+- Implicit differentiation derivation for `F(x, theta)=0`.
+
+Minimum derivation content:
+
+- `equations/grad_shafranov.md` derives the scalar GS equation from axisymmetric ideal-MHD force balance assumptions used by the code, then states the exact sign convention used internally.
+- `equations/weak_form.md` derives the weighted weak form from `GS-strong-01`, shows the integration-by-parts boundary term, and maps every term to `fem/assembly.py`.
+- `equations/free_boundary.md` derives the decomposition into plasma, coil, conductor, vacuum, and boundary-condition contributions, including the free-boundary Green's-function correction used by TokaMaker.
+- `equations/coils_and_greens.md` gives the circular-filament Green's function, elliptic-integral definitions, gradient formulas, singularity limits, and brute-force quadrature reference.
+- `equations/reconstruction.md` defines every residual term, weight normalization, chi-square convention, and diagnostic coordinate convention.
+- `equations/time_dependent.md` derives the conductor-current evolution, implicit Euler residual, stability eigenproblem, and differentiable `lax.scan` trajectory form.
+- `equations/bootstrap.md` writes the Sauter and Redl coefficient chains in implementation order, including collisionality, trapped-particle fraction, branch limits, and conversion into `j_phi`.
+- `equations/differentiability.md` derives unrolled differentiation, implicit differentiation, custom VJP equations, and the exact smoothness assumptions for topology-sensitive objectives.
+
+Citation/source-link requirements:
+
+- Every docs equation has a label such as `{eq:GS-strong-01}` and at least one citation key from `docs/references.bib`.
+- Every cited external result has a DOI or stable URL when available.
+- Every page has a `Source modules` block with links to the implementing Python files.
+- Every page has a `Validated by` block with links to tests, fixtures, and benchmark cases.
+- Pages that adapt TokaMaker logic link to the upstream OFT source file path and commit used during the porting audit.
+- Pages that compare against FreeGS, FreeGSNKE, JAX-FEM, or TORAX state whether the source is used for parity, design reference, or performance practice.
+
+Documentation quality gates:
+
+- Each equation page links to the source module implementing the equation.
+- Each validation page links to citations and fixture-generating scripts.
+- Every tutorial has a TOML file and a Python equivalent.
+- Every plotted figure is generated by a script in CI or a documented asset-generation command.
+- `references.bib` must include DOI/URL entries for OFT/TokaMaker, COCOS, Cerfon-Freidberg, Sauter, Redl, FreeGS/FreeGSNKE, JAX-FEM, TORAX, and EFIT references.
 
 ## Target Architecture
 
@@ -961,4 +1611,3 @@ Suggested initial issues:
 - Should mesh generation use Triangle, Gmsh, Shapely, or a minimal internal builder for common cases?
 - Should GUI remain NiceGUI after the full workflow is clearer, or move to a different web stack?
 - What should be the first public validation target: fixed-boundary only, ITER free-boundary, or a broader alpha bundle?
-
