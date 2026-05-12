@@ -13,6 +13,7 @@ This file is both the technical plan and the running implementation log for a JA
 - The seed solver is not the full port. It is the executable base used to validate project packaging, differentiability, CLI/GUI shape, plotting, and coverage infrastructure while the full triangular FEM port proceeds.
 - Published public repository: <https://github.com/rogeriojorge/tokamaker_jax>.
 - Validation performed: Ruff formatting/linting passed, `pytest --cov=tokamaker_jax --cov-fail-under=95` passed with 98.66% coverage, and `sphinx -W -b html docs docs/_build/html` passed.
+- Initial GitHub Actions CI and Docs runs succeeded. Added Node 24 opt-in to workflows to avoid the upcoming GitHub Actions Node 20 deprecation.
 
 ## Porting Goal
 
