@@ -38,6 +38,14 @@ from tokamaker_jax.plotting import (
     save_region_plot,
 )
 from tokamaker_jax.solver import solve_from_config
+from tokamaker_jax.upstream_fixed_boundary import (
+    DEFAULT_OPENFUSIONTOOLKIT_ROOT,
+    FIXED_BOUNDARY_EQDSK,
+    FIXED_BOUNDARY_RELATIVE_ROOT,
+    fixed_boundary_report_to_json,
+    fixed_boundary_upstream_report,
+    parse_geqdsk,
+)
 from tokamaker_jax.upstream_fixtures import (
     summarize_upstream_fixtures,
     upstream_fixture_report_to_json,
@@ -72,6 +80,7 @@ def main() -> None:
     write_benchmark_summary()
     write_case_manifest_assets()
     write_upstream_fixture_assets()
+    write_fixed_boundary_upstream_evidence()
     write_upstream_comparison_matrix()
     write_io_artifact_map()
     write_publication_validation_panel()
@@ -414,6 +423,45 @@ def write_upstream_fixture_assets() -> None:
         if value:
             ax.text(value + xmax * 0.015, index - 0.18, f"{int(value)}", va="center", fontsize=8)
     fig.savefig(ASSET_DIR / "upstream_fixture_mesh_sizes.png", dpi=180)
+    plt.close(fig)
+
+
+def write_fixed_boundary_upstream_evidence() -> None:
+    report = fixed_boundary_upstream_report()
+    (ASSET_DIR / "fixed_boundary_upstream_evidence.json").write_text(
+        fixed_boundary_report_to_json(report),
+        encoding="utf-8",
+    )
+
+    geqdsk_path = (
+        DEFAULT_OPENFUSIONTOOLKIT_ROOT / FIXED_BOUNDARY_RELATIVE_ROOT / FIXED_BOUNDARY_EQDSK
+    )
+    if not geqdsk_path.exists():
+        return
+    parsed = parse_geqdsk(geqdsk_path)
+    r_grid = parsed["r_grid"]
+    z_grid = parsed["z_grid"]
+    psi = parsed["psi_grid"]
+    fig, ax = plt.subplots(figsize=(6.2, 5.0), constrained_layout=True)
+    filled = ax.contourf(r_grid, z_grid, psi, levels=32, cmap="viridis")
+    contours = ax.contour(r_grid, z_grid, psi, levels=14, colors="black", linewidths=0.45)
+    ax.clabel(contours, inline=True, fontsize=6)
+    ax.scatter(
+        [parsed["rmaxis"]],
+        [parsed["zmaxis"]],
+        marker="x",
+        color="white",
+        s=48,
+        linewidths=1.4,
+        label="gEQDSK magnetic axis",
+    )
+    ax.set_xlabel("R [m]")
+    ax.set_ylabel("Z [m]")
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title("upstream fixed-boundary gEQDSK source flux")
+    ax.legend(loc="upper right")
+    fig.colorbar(filled, ax=ax, label="poloidal flux")
+    fig.savefig(ASSET_DIR / "fixed_boundary_upstream_geqdsk.png", dpi=180)
     plt.close(fig)
 
 

@@ -4617,7 +4617,7 @@
     "name": "tokamaker-cpc-seed-equilibrium-family",
     "source": "Hansen et al., Computer Physics Communications 298, 109111 (2024)"
   },
-  "generated_at_utc": "2026-05-13T09:12:26.080294+00:00",
+  "generated_at_utc": "2026-05-13T09:59:51.312231+00:00",
   "limitations": [
     "Uses the current rectangular fixed-boundary seed solver, not TokaMaker's triangular FEM stack.",
     "Does not model free-boundary coils, passive structures, reconstruction constraints, or time dependence.",

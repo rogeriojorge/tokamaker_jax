@@ -1,0 +1,110 @@
+{
+  "acceptance_gates": [
+    "Reproduce fixed-boundary mesh and boundary geometry.",
+    "Match solved flux diagnostics against upstream fixed_boundary_ex1 within documented tolerances.",
+    "Match gEQDSK-profile case pressure, FF', q, Ip, magnetic-axis, and boundary diagnostics."
+  ],
+  "artifact_id": "upstream-fixed-boundary-evidence",
+  "checkout_exists": true,
+  "checkout_path": "/Users/rogeriojorge/local/OpenFUSIONToolkit",
+  "claim": "source_evidence_only",
+  "geqdsk": {
+    "bcentr": 9.2,
+    "current": 7799300.71,
+    "exists": true,
+    "nr": 129,
+    "numeric_value_count": 17517,
+    "nz": 129,
+    "path": "src/examples/TokaMaker/fixed_boundary/gNT_example",
+    "profile_length": 129,
+    "psi_max": 4.600214868,
+    "psi_min": -3.852797323,
+    "psi_shape": [
+      129,
+      129
+    ],
+    "qpsi_max": 7.31450488,
+    "qpsi_min": 1.48507094,
+    "rcentr": 3.3,
+    "rdim": 2.825,
+    "rleft": 1.8875,
+    "rmaxis": 3.5226247,
+    "sha256": "8e586dbbc296a66af9a493e7c2696a4408a43845dbcd2f7f38da88625fbf48ef",
+    "sibry": 0.0,
+    "simag": -3.85280775,
+    "zdim": 5.198,
+    "zmaxis": -7.96984474e-06,
+    "zmid": 0.0
+  },
+  "notebooks": [
+    {
+      "exists": true,
+      "f0_expressions": [
+        "0.10752",
+        "EQ_in['rcentr']*EQ_in['bcentr']"
+      ],
+      "fixed_boundary_assignments": 2,
+      "free_boundary_assignments": 0,
+      "imports_tokamaker": true,
+      "init_psi_calls": 2,
+      "ip_target_values": [
+        "120.E3",
+        "EQ_in['ip']"
+      ],
+      "mesh_dx_values": [
+        "0.015",
+        "0.15"
+      ],
+      "n_cells": 46,
+      "n_code_cells": 23,
+      "n_markdown_cells": 23,
+      "path": "src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex1.ipynb",
+      "referenced_outputs": [
+        "plot_mesh",
+        "plot_psi"
+      ],
+      "sha256": "a7e53f5a0e56ecd3a0a7ccb84f300a2ab517b21b09ff373c220ed931fcfd481f",
+      "solve_calls": 3,
+      "title": "TokaMaker Example: Fixed boundary equilibria {#doc_tMaker_fixed_ex1}",
+      "uses_geqdsk": true,
+      "uses_gs_domain": true,
+      "uses_profile_matching": true
+    },
+    {
+      "exists": true,
+      "f0_expressions": [
+        "0.10752"
+      ],
+      "fixed_boundary_assignments": 1,
+      "free_boundary_assignments": 1,
+      "imports_tokamaker": true,
+      "init_psi_calls": 2,
+      "ip_target_values": [
+        "120.E3"
+      ],
+      "mesh_dx_values": [
+        "0.015"
+      ],
+      "n_cells": 54,
+      "n_code_cells": 27,
+      "n_markdown_cells": 27,
+      "path": "src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex2.ipynb",
+      "referenced_outputs": [
+        "plot_machine",
+        "plot_mesh",
+        "plot_psi",
+        "plot_topology"
+      ],
+      "sha256": "47825b5182f3dc51fb6c7f2395a0d7b475ee6b8eb49167872565e40ff5bc5521",
+      "solve_calls": 2,
+      "title": "TokaMaker Example: Bridging fixed- to free-boundary {#doc_tMaker_fixed_ex2}",
+      "uses_geqdsk": true,
+      "uses_gs_domain": true,
+      "uses_profile_matching": false
+    }
+  ],
+  "numeric_parity_claim": false,
+  "parity_level": "source_audit",
+  "schema_version": 1,
+  "source_root": "src/examples/TokaMaker/fixed_boundary"
+}

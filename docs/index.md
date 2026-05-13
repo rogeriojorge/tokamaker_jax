@@ -14,6 +14,7 @@ progress
 validation
 comparisons
 upstream_fixtures
+fixed_boundary_upstream
 io_contract
 case_manifest
 literature_reproduction

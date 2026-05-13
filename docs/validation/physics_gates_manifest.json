@@ -289,6 +289,28 @@
       }
     },
     {
+      "id": "fixed-boundary-upstream-evidence",
+      "category": "physics_parity",
+      "status": "implemented_source_evidence",
+      "description": "Inventory upstream fixed-boundary notebooks and the gNT_example gEQDSK file, including stored upstream mesh counts, print_info scalars, and source workflow markers, without claiming solved-equilibrium parity.",
+      "command": "python docs/validation/build_fixed_boundary_evidence.py --upstream-root /Users/rogeriojorge/local/OpenFUSIONToolkit --output docs/validation/fixed_boundary_upstream_evidence.json",
+      "artifact": "docs/validation/fixed_boundary_upstream_evidence.json",
+      "required_checks": [
+        "fixed_boundary_ex1_notebook_sha256",
+        "fixed_boundary_ex2_notebook_sha256",
+        "gNT_example_sha256",
+        "stored_triangle_mesh_counts",
+        "stored_equilibrium_statistics",
+        "gNT_eqdsk_header_and_profile_ranges",
+        "explicit_no_numeric_parity_claim"
+      ],
+      "pass_rule": {
+        "type": "source_audit_plus_stored_upstream_output",
+        "numeric_parity_claim": false,
+        "tolerance_source": "tests/test_fixed_boundary_evidence.py and tests/test_docs_artifacts.py"
+      }
+    },
+    {
       "id": "free-boundary-tokamaker-parity",
       "category": "physics_parity",
       "status": "planned",

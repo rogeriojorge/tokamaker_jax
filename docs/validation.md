@@ -38,6 +38,9 @@ triangular FEM path:
 - an OpenFUSIONToolkit/TokaMaker comparison probe that records whether the
   original compiled solver is available locally and, when available, compares
   the JAX circular-loop kernel against `TokaMaker.util.eval_green`.
+- a bounded upstream fixed-boundary evidence artifact that inventories the
+  public fixed-boundary notebooks and `gNT_example` gEQDSK file without claiming
+  solved-equilibrium parity.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -218,6 +221,30 @@ tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
 ```
 
 ![Manufactured Grad-Shafranov convergence](_static/manufactured_grad_shafranov_convergence.png)
+
+## Upstream Fixed-Boundary Evidence
+
+The upstream fixed-boundary evidence artifact is:
+
+```bash
+python docs/validation/build_fixed_boundary_evidence.py \
+  --upstream-root /Users/rogeriojorge/local/OpenFUSIONToolkit \
+  --output docs/validation/fixed_boundary_upstream_evidence.json
+```
+
+The committed report is
+[`docs/validation/fixed_boundary_upstream_evidence.json`](validation/fixed_boundary_upstream_evidence.json).
+It reads the two upstream fixed-boundary notebooks and `gNT_example` without
+running the original solver. The current report records:
+
+| Upstream source | Stored upstream evidence | Current local claim |
+| --- | --- | --- |
+| `fixed_boundary_ex1.ipynb` analytic LCFS case | Triangle mesh with 700 points and 1322 cells; stored limited-equilibrium stats with `Ip=1.1999e5 A`, magnetic axis `(0.434, 0.001)`, elongation `1.398`, triangularity `0.375`. | Source-audit evidence only; no psi-vector parity. |
+| `fixed_boundary_ex1.ipynb` + `gNT_example` | gEQDSK header `nr=nz=129`, `Ip=7.79930071e6 A`, `nbbbs=99`; stored TokaMaker gNT solves with magnetic axis near `R=3.52 m`. | EQDSK/profile matching parity is not implemented. |
+| `fixed_boundary_ex2.ipynb` bridge case | Fixed-boundary mesh with 654 points and 1234 cells; free-boundary bridge mesh with 3918 points and 7736 cells; stored coil-current fit with seven kA-turn values. | Reduced Green/profile-coupling gates only; no fixed-to-free workflow parity. |
+
+This artifact is intentionally bounded. It proves that the upstream example
+requirements and stored outputs have been identified and versioned. It does not prove that `tokamaker-jax` reproduces those solved equilibria.
 
 ## Reduced Free-Boundary Coil Gate
 

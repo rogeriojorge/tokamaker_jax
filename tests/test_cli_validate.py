@@ -164,6 +164,60 @@ def test_main_upstream_fixtures_reports_json_without_requiring_checkout(capsys, 
     assert '"checkout_exists": false' in captured.out
 
 
+def test_main_upstream_fixtures_prints_summary(capsys, tmp_path: Path):
+    exit_code = main(["upstream-fixtures", "--root", str(tmp_path / "missing_oft")])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "mesh/geometry inventory only" in captured.out
+    assert "available=no" in captured.out
+
+
+def test_main_fixed_boundary_evidence_reports_json_without_requiring_checkout(
+    capsys,
+    tmp_path: Path,
+):
+    output = tmp_path / "fixed_boundary_evidence.json"
+
+    exit_code = main(
+        [
+            "fixed-boundary-evidence",
+            "--root",
+            str(tmp_path / "missing_oft"),
+            "--json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert output.exists()
+    assert '"artifact_id": "upstream-fixed-boundary-evidence"' in captured.out
+    assert '"claim": "source_evidence_only"' in captured.out
+    assert '"checkout_exists": false' in captured.out
+    assert '"numeric_parity_claim": false' in captured.out
+
+
+def test_main_fixed_boundary_evidence_prints_summary(capsys, tmp_path: Path):
+    root = tmp_path / "OpenFUSIONToolkit"
+    fixed_dir = root / "src/examples/TokaMaker/fixed_boundary"
+    fixed_dir.mkdir(parents=True)
+    values = list(range(34))
+    (fixed_dir / "gNT_example").write_text(
+        "TEST 0 2 2\n" + " ".join(f"{value:.9E}" for value in values),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["fixed-boundary-evidence", "--root", str(root)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "source evidence only" in captured.out
+    assert "fixed_boundary_ex1.ipynb: exists=False" in captured.out
+    assert "gNT_example: 2x2 grid" in captured.out
+
+
 def test_run_verification_gates_validates_subdivisions():
     with pytest.raises(ValueError, match="at least two"):
         run_verification_gates("poisson", (4,))

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -7,14 +8,18 @@ from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.gui import (
     benchmark_report_rows,
     case_manifest_rows,
+    case_validation_run_rows,
     coil_green_response_figure,
+    load_case_source_text,
     load_gui_report_artifacts,
     load_json_report,
     region_geometry_figure,
     region_table_rows,
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
+    toml_validation_rows,
     upstream_fixture_report_rows,
+    validate_toml_text,
     validation_convergence_figure,
     validation_gate_rows,
     validation_report_rows,
@@ -24,6 +29,8 @@ from tokamaker_jax.gui import (
 )
 
 pytest.importorskip("plotly")
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_region_geometry_figure_uses_sample_regions():
@@ -309,6 +316,116 @@ def test_case_manifest_rows_expose_runnable_and_planned_cases():
     assert "tokamaker-jax examples/fixed_boundary.toml" in by_id["fixed-boundary-seed"]["command"]
     assert by_id["iter-baseline-upstream"]["command"] == "planned"
     assert by_id["openfusiontoolkit-green-parity"]["parity_level"] == "kernel_parity"
+
+
+def test_load_case_source_text_reads_full_case_source_and_reports_command_only_case():
+    source_path = REPO_ROOT / "examples" / "fixed_boundary.toml"
+    source = load_case_source_text("fixed-boundary-seed", root=REPO_ROOT)
+
+    assert source["case_id"] == "fixed-boundary-seed"
+    assert source["path"] == "examples/fixed_boundary.toml"
+    assert source["absolute_path"] == str(source_path)
+    assert source["exists"] is True
+    assert source["source_kind"] == "toml"
+    assert source["source"] == source_path.read_text(encoding="utf-8")
+
+    command_only = load_case_source_text("case-manifest-browser", root=REPO_ROOT)
+
+    assert command_only["exists"] is False
+    assert command_only["source"] == ""
+    assert "not a local file" in command_only["message"]
+
+
+def test_validate_toml_text_accepts_edits_without_mutating_case_file():
+    source_path = REPO_ROOT / "examples" / "fixed_boundary.toml"
+    original = source_path.read_text(encoding="utf-8")
+    edited = original.replace("nr = 65", "nr = 9", 1)
+
+    report = validate_toml_text(edited, source_name="examples/fixed_boundary.toml")
+    rows = toml_validation_rows(report)
+
+    assert report["status"] == "pass"
+    assert report["grid_shape"] == [9, 65]
+    assert report["region_count"] == 0
+    assert report["output_paths"][0] == {
+        "label": "npz",
+        "path": "outputs/fixed_boundary.npz",
+    }
+    assert rows[1] == {"check": "grid", "status": "pass", "detail": "9 x 65"}
+    assert "plot=outputs/fixed_boundary.png" in rows[-1]["detail"]
+    assert source_path.read_text(encoding="utf-8") == original
+
+
+def test_validate_toml_text_returns_gui_rows_for_parse_and_validation_errors():
+    bad_report = validate_toml_text(
+        """
+[grid]
+nr = 2
+nz = 9
+
+[source]
+profile = "unsupported"
+pressure_scale = "bad"
+ffp_scale = 1.0
+""",
+        source_name="bad.toml",
+    )
+    bad_rows = toml_validation_rows(bad_report)
+
+    assert bad_report["status"] == "fail"
+    assert any("grid.nr must be at least 3" in error for error in bad_report["errors"])
+    assert any("source.profile must be 'solovev'" in error for error in bad_report["errors"])
+    assert bad_rows[0]["status"] == "fail"
+    assert {row["check"] for row in bad_rows} == {"TOML/config", "validation"}
+
+    parse_report = validate_toml_text("[grid", source_name="broken.toml")
+
+    assert parse_report["status"] == "fail"
+    assert parse_report["errors"][0].startswith("TOML/config parse error")
+
+
+def test_case_validation_run_rows_include_commands_and_block_failed_toml():
+    source = (REPO_ROOT / "examples" / "fixed_boundary.toml").read_text(encoding="utf-8")
+    pass_report = validate_toml_text(source, source_name="examples/fixed_boundary.toml")
+    rows = case_validation_run_rows(
+        "fixed-boundary-seed",
+        root=REPO_ROOT,
+        validation=pass_report,
+    )
+
+    assert rows[0] == {
+        "action": "Validate TOML",
+        "status": "pass",
+        "detail": "TOML config is valid",
+        "command": "tokamaker-jax validate examples/fixed_boundary.toml",
+    }
+    assert rows[1]["action"] == "Run case"
+    assert rows[1]["status"] == "ready"
+    assert rows[1]["command"].startswith("tokamaker-jax examples/fixed_boundary.toml")
+    assert rows[2]["action"] == "Run validation gate"
+
+    fail_rows = case_validation_run_rows(
+        "fixed-boundary-seed",
+        root=REPO_ROOT,
+        validation={
+            "status": "fail",
+            "message": "1 validation error(s)",
+            "errors": ["grid.nr must be at least 3"],
+            "grid_shape": [],
+            "region_count": 0,
+            "output_paths": [],
+        },
+    )
+
+    assert fail_rows[0]["status"] == "fail"
+    assert fail_rows[1]["status"] == "blocked"
+    assert fail_rows[1]["detail"] == "TOML validation must pass before running"
+
+    python_rows = case_validation_run_rows("cpc-seed-family", root=REPO_ROOT)
+
+    assert python_rows[0]["status"] == "n/a"
+    assert python_rows[0]["command"] == ""
+    assert python_rows[1]["status"] == "ready"
 
 
 def test_benchmark_report_rows_reports_missing_artifact():

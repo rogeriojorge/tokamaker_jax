@@ -1,0 +1,707 @@
+{
+  "artifact_id": "fixed-boundary-upstream-evidence",
+  "bounded_local_status": {
+    "implemented_evidence": [
+      "tokamaker-jax fixed_boundary.toml rectangular-grid seed solve",
+      "manufactured axisymmetric Grad-Shafranov p=1 FEM convergence gate",
+      "availability-gated OpenFUSIONToolkit eval_green kernel comparison"
+    ],
+    "not_claimed": [
+      "no fixed-boundary equilibrium vector parity against these notebooks",
+      "no EQDSK import/profile matching parity for gNT_example",
+      "no order=2 triangular TokaMaker FEM solver parity",
+      "no fixed-to-free-boundary workflow parity for fixed_boundary_ex2"
+    ]
+  },
+  "claim": "source_audit_plus_stored_upstream_output",
+  "evidence_matrix": [
+    {
+      "id": "analytic-lcfs-fixed-boundary",
+      "local_status": "manufactured_validation_only",
+      "parity_claim": "none",
+      "upstream_evidence": {
+        "equilibrium_statistics": [
+          {
+            "beta_n_percent": 4.4579,
+            "beta_pol_percent": 52.6527,
+            "beta_tor_percent": 13.9302,
+            "cell_index": 25,
+            "current_centroid_m": [
+              0.418,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015121,
+            "elongation": 1.398,
+            "li": 1.0367,
+            "magnetic_axis_m": [
+              0.434,
+              0.001
+            ],
+            "plasma_volume_m3": 0.246,
+            "pressure_axis_peak_Pa": [
+              14045.0,
+              14045.0
+            ],
+            "q0_q95": [
+              0.379,
+              1.071
+            ],
+            "stored_energy_J": 1340.6,
+            "topology": "Limited",
+            "toroidal_current_A": 119990.0,
+            "toroidal_flux_Wb": 0.028096,
+            "triangularity": 0.375
+          }
+        ],
+        "mesh_outputs": [
+          {
+            "cell_index": 11,
+            "cells": 1322,
+            "points": 700,
+            "regions": 1,
+            "unique_points": 76,
+            "unique_segments": 1
+          }
+        ],
+        "uses_fixed_boundary_false": true
+      },
+      "upstream_source": "fixed_boundary_ex1.ipynb"
+    },
+    {
+      "id": "gnt-eqdsk-fixed-boundary",
+      "local_status": "eqdsk_parity_not_implemented",
+      "parity_claim": "none",
+      "upstream_evidence": {
+        "equilibrium_statistics": [
+          {
+            "beta_n_percent": 1.393,
+            "beta_pol_percent": 93.9533,
+            "beta_tor_percent": 1.0458,
+            "cell_index": 37,
+            "current_centroid_m": [
+              3.474,
+              -0.0
+            ],
+            "diamagnetic_flux_Wb": 0.052126,
+            "elongation": 1.809,
+            "li": 1.089,
+            "magnetic_axis_m": [
+              3.524,
+              -0.0
+            ],
+            "plasma_volume_m3": 141.437,
+            "pressure_axis_peak_Pa": [
+              1427000.0,
+              1427000.0
+            ],
+            "q0_q95": [
+              1.425,
+              4.784
+            ],
+            "stored_energy_J": 74694000.0,
+            "topology": "Limited",
+            "toroidal_current_A": 7799300.0,
+            "toroidal_flux_Wb": 61.095,
+            "triangularity": -0.594
+          },
+          {
+            "beta_n_percent": 1.0919,
+            "beta_pol_percent": 73.6435,
+            "beta_tor_percent": 0.8197,
+            "cell_index": 43,
+            "current_centroid_m": [
+              3.443,
+              -0.0
+            ],
+            "diamagnetic_flux_Wb": 0.12008,
+            "elongation": 1.809,
+            "li": 1.1065,
+            "magnetic_axis_m": [
+              3.522,
+              -0.0
+            ],
+            "plasma_volume_m3": 141.437,
+            "pressure_axis_peak_Pa": [
+              1425500.0,
+              1425500.0
+            ],
+            "q0_q95": [
+              1.441,
+              4.756
+            ],
+            "stored_energy_J": 58548000.0,
+            "topology": "Limited",
+            "toroidal_current_A": 7799300.0,
+            "toroidal_flux_Wb": 61.163,
+            "triangularity": -0.595
+          }
+        ],
+        "gfile_header": {
+          "bcentr_T": 9.2,
+          "case": "FROM CHEASE BUT CO #174823 3500ms20220902",
+          "current_A": 7799300.71,
+          "limitr": 5,
+          "nbbbs": 99,
+          "nr": 129,
+          "nz": 129,
+          "rcentr_m": 3.3,
+          "rdim_m": 2.825,
+          "rleft_m": 1.8875,
+          "rmaxis_m": 3.5226247,
+          "sibry": 0.0,
+          "simag": -3.85280775,
+          "zdim_m": 5.198,
+          "zmaxis_m": -7.96984474e-06,
+          "zmid_m": 0.0
+        },
+        "mesh_outputs": [
+          {
+            "cell_index": 29,
+            "cells": 907,
+            "points": 488,
+            "regions": 1,
+            "unique_points": 67,
+            "unique_segments": 1
+          }
+        ]
+      },
+      "upstream_source": "fixed_boundary_ex1.ipynb + gNT_example"
+    },
+    {
+      "id": "fixed-to-free-boundary-bridge",
+      "local_status": "reduced_green_and_profile_coupling_only",
+      "parity_claim": "none",
+      "upstream_evidence": {
+        "coil_currents_kA_turns": [
+          {
+            "cell_index": 29,
+            "values": [
+              30.4008,
+              -22.2004,
+              22.3988,
+              -68.3032,
+              86.3585,
+              -35.2368,
+              180.2722
+            ]
+          }
+        ],
+        "equilibrium_statistics": [
+          {
+            "beta_n_percent": 4.7414,
+            "beta_pol_percent": 50.548,
+            "beta_tor_percent": 14.8152,
+            "cell_index": 25,
+            "current_centroid_m": [
+              0.426,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015672,
+            "elongation": 1.298,
+            "li": 0.998,
+            "magnetic_axis_m": [
+              0.439,
+              0.0
+            ],
+            "plasma_volume_m3": 0.24,
+            "pressure_axis_peak_Pa": [
+              14520.0,
+              14520.0
+            ],
+            "q0_q95": [
+              0.366,
+              0.864
+            ],
+            "stored_energy_J": 1388.2,
+            "topology": "Limited",
+            "toroidal_current_A": 119990.0,
+            "toroidal_flux_Wb": 0.02604,
+            "triangularity": 0.141
+          },
+          {
+            "beta_n_percent": 4.7504,
+            "beta_pol_percent": 52.3943,
+            "beta_tor_percent": 14.5575,
+            "cell_index": 53,
+            "current_centroid_m": [
+              0.424,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015062,
+            "elongation": 1.316,
+            "li": 0.9996,
+            "magnetic_axis_m": [
+              0.438,
+              -0.0
+            ],
+            "plasma_volume_m3": 0.248,
+            "pressure_axis_peak_Pa": [
+              14454.0,
+              14454.0
+            ],
+            "q0_q95": [
+              0.376,
+              0.921
+            ],
+            "stored_energy_J": 1426.1,
+            "topology": "Limited",
+            "toroidal_current_A": 119970.0,
+            "toroidal_flux_Wb": 0.027153,
+            "triangularity": 0.108
+          }
+        ],
+        "mesh_outputs": [
+          {
+            "cell_index": 11,
+            "cells": 1234,
+            "points": 654,
+            "regions": 1,
+            "unique_points": 72,
+            "unique_segments": 1
+          },
+          {
+            "cell_index": 39,
+            "cells": 7736,
+            "points": 3918,
+            "regions": 21,
+            "unique_points": 412,
+            "unique_segments": 84
+          }
+        ],
+        "uses_eval_green": true,
+        "uses_get_vfixed": true
+      },
+      "upstream_source": "fixed_boundary_ex2.ipynb"
+    }
+  ],
+  "limitations": [
+    "Notebook metrics are read from committed/stored upstream notebook outputs.",
+    "The report does not rerun OpenFUSIONToolkit or compare solved psi vectors.",
+    "The current local fixed-boundary solver remains a seed path unless a separate numeric parity report says otherwise."
+  ],
+  "numeric_parity_claim": false,
+  "parity_level": "source_audit",
+  "schema_version": 1,
+  "upstream_checkout": {
+    "commit": "729a5f9f00723a610f5e13948a15e9dd21011c46",
+    "example_directory": "src/examples/TokaMaker/fixed_boundary",
+    "example_directory_exists": true,
+    "exists": true,
+    "path": "/Users/rogeriojorge/local/OpenFUSIONToolkit"
+  },
+  "upstream_sources": {
+    "gfile": {
+      "array_ranges": {
+        "ffprim": {
+          "max": 45.9158512,
+          "min": -2.48612211
+        },
+        "fpol": {
+          "max": 30.5246231,
+          "min": 30.359594
+        },
+        "pprime": {
+          "max": -43330.0313,
+          "min": -3757363.71
+        },
+        "pres": {
+          "max": 1429881.17,
+          "min": 29373.2381
+        },
+        "psirz": {
+          "max": 4.600214868,
+          "min": -3.852797323
+        },
+        "qpsi": {
+          "max": 7.31450488,
+          "min": 1.48507094
+        }
+      },
+      "boundary_bounds": {
+        "r_max": 4.42993374,
+        "r_min": 2.16992253,
+        "z_max": 2.05938729,
+        "z_min": -2.05957597
+      },
+      "exists": true,
+      "header": {
+        "bcentr_T": 9.2,
+        "case": "FROM CHEASE BUT CO #174823 3500ms20220902",
+        "current_A": 7799300.71,
+        "limitr": 5,
+        "nbbbs": 99,
+        "nr": 129,
+        "nz": 129,
+        "rcentr_m": 3.3,
+        "rdim_m": 2.825,
+        "rleft_m": 1.8875,
+        "rmaxis_m": 3.5226247,
+        "sibry": 0.0,
+        "simag": -3.85280775,
+        "zdim_m": 5.198,
+        "zmaxis_m": -7.96984474e-06,
+        "zmid_m": 0.0
+      },
+      "limiter_bounds": {
+        "r_max": 4.64184816,
+        "r_min": 1.95814293,
+        "z_max": 2.46902531,
+        "z_min": -2.46902531
+      },
+      "line_count": 3509,
+      "path": "src/examples/TokaMaker/fixed_boundary/gNT_example",
+      "sha256": "8e586dbbc296a66af9a493e7c2696a4408a43845dbcd2f7f38da88625fbf48ef",
+      "unconsumed_numeric_tokens": 1
+    },
+    "notebooks": [
+      {
+        "cell_count": 46,
+        "code_cell_count": 23,
+        "coil_currents_kA_turns": [],
+        "equilibrium_statistics": [
+          {
+            "beta_n_percent": 4.4579,
+            "beta_pol_percent": 52.6527,
+            "beta_tor_percent": 13.9302,
+            "cell_index": 25,
+            "current_centroid_m": [
+              0.418,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015121,
+            "elongation": 1.398,
+            "li": 1.0367,
+            "magnetic_axis_m": [
+              0.434,
+              0.001
+            ],
+            "plasma_volume_m3": 0.246,
+            "pressure_axis_peak_Pa": [
+              14045.0,
+              14045.0
+            ],
+            "q0_q95": [
+              0.379,
+              1.071
+            ],
+            "stored_energy_J": 1340.6,
+            "topology": "Limited",
+            "toroidal_current_A": 119990.0,
+            "toroidal_flux_Wb": 0.028096,
+            "triangularity": 0.375
+          },
+          {
+            "beta_n_percent": 1.393,
+            "beta_pol_percent": 93.9533,
+            "beta_tor_percent": 1.0458,
+            "cell_index": 37,
+            "current_centroid_m": [
+              3.474,
+              -0.0
+            ],
+            "diamagnetic_flux_Wb": 0.052126,
+            "elongation": 1.809,
+            "li": 1.089,
+            "magnetic_axis_m": [
+              3.524,
+              -0.0
+            ],
+            "plasma_volume_m3": 141.437,
+            "pressure_axis_peak_Pa": [
+              1427000.0,
+              1427000.0
+            ],
+            "q0_q95": [
+              1.425,
+              4.784
+            ],
+            "stored_energy_J": 74694000.0,
+            "topology": "Limited",
+            "toroidal_current_A": 7799300.0,
+            "toroidal_flux_Wb": 61.095,
+            "triangularity": -0.594
+          },
+          {
+            "beta_n_percent": 1.0919,
+            "beta_pol_percent": 73.6435,
+            "beta_tor_percent": 0.8197,
+            "cell_index": 43,
+            "current_centroid_m": [
+              3.443,
+              -0.0
+            ],
+            "diamagnetic_flux_Wb": 0.12008,
+            "elongation": 1.809,
+            "li": 1.1065,
+            "magnetic_axis_m": [
+              3.522,
+              -0.0
+            ],
+            "plasma_volume_m3": 141.437,
+            "pressure_axis_peak_Pa": [
+              1425500.0,
+              1425500.0
+            ],
+            "q0_q95": [
+              1.441,
+              4.756
+            ],
+            "stored_energy_J": 58548000.0,
+            "topology": "Limited",
+            "toroidal_current_A": 7799300.0,
+            "toroidal_flux_Wb": 61.163,
+            "triangularity": -0.595
+          }
+        ],
+        "exists": true,
+        "markdown_cell_count": 23,
+        "mesh_outputs": [
+          {
+            "cell_index": 11,
+            "cells": 1322,
+            "points": 700,
+            "regions": 1,
+            "unique_points": 76,
+            "unique_segments": 1
+          },
+          {
+            "cell_index": 29,
+            "cells": 907,
+            "points": 488,
+            "regions": 1,
+            "unique_points": 67,
+            "unique_segments": 1
+          }
+        ],
+        "nbformat": 4,
+        "nbformat_minor": 4,
+        "path": "src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex1.ipynb",
+        "sha256": "a7e53f5a0e56ecd3a0a7ccb84f300a2ab517b21b09ff373c220ed931fcfd481f",
+        "solve_traces": [
+          {
+            "cell_index": 23,
+            "iteration_count": 9,
+            "last_iteration": {
+              "iteration": 9,
+              "values": [
+                1.5756,
+                4.6125,
+                6.1035e-07,
+                0.4336,
+                0.0011591,
+                0.0
+              ]
+            },
+            "timing_s": 0.020046999910846353
+          },
+          {
+            "cell_index": 35,
+            "iteration_count": 17,
+            "last_iteration": {
+              "iteration": 17,
+              "values": [
+                3.5053,
+                0.93255,
+                7.0421e-07,
+                3.5243,
+                -0.00031513,
+                0.0
+              ]
+            },
+            "timing_s": 0.01868300000205636
+          },
+          {
+            "cell_index": 43,
+            "iteration_count": 29,
+            "last_iteration": {
+              "iteration": 29,
+              "values": [
+                -8.8369,
+                1.4142,
+                9.3668e-07,
+                3.5221,
+                -0.00022541,
+                0.0
+              ]
+            },
+            "timing_s": 0.03485799999907613
+          }
+        ],
+        "workflow_markers": {
+          "uses_create_isoflux": true,
+          "uses_eval_green": false,
+          "uses_fixed_boundary_false": true,
+          "uses_fixed_boundary_true": false,
+          "uses_get_profiles": true,
+          "uses_get_q": true,
+          "uses_get_vfixed": false,
+          "uses_gs_domain": true,
+          "uses_lstsq_coil_fit": false,
+          "uses_order_2_setup": true,
+          "uses_read_eqdsk": true,
+          "uses_set_coil_currents": false,
+          "uses_set_coil_vsc": false,
+          "uses_set_profiles": true,
+          "uses_set_targets": true
+        }
+      },
+      {
+        "cell_count": 54,
+        "code_cell_count": 27,
+        "coil_currents_kA_turns": [
+          {
+            "cell_index": 29,
+            "values": [
+              30.4008,
+              -22.2004,
+              22.3988,
+              -68.3032,
+              86.3585,
+              -35.2368,
+              180.2722
+            ]
+          }
+        ],
+        "equilibrium_statistics": [
+          {
+            "beta_n_percent": 4.7414,
+            "beta_pol_percent": 50.548,
+            "beta_tor_percent": 14.8152,
+            "cell_index": 25,
+            "current_centroid_m": [
+              0.426,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015672,
+            "elongation": 1.298,
+            "li": 0.998,
+            "magnetic_axis_m": [
+              0.439,
+              0.0
+            ],
+            "plasma_volume_m3": 0.24,
+            "pressure_axis_peak_Pa": [
+              14520.0,
+              14520.0
+            ],
+            "q0_q95": [
+              0.366,
+              0.864
+            ],
+            "stored_energy_J": 1388.2,
+            "topology": "Limited",
+            "toroidal_current_A": 119990.0,
+            "toroidal_flux_Wb": 0.02604,
+            "triangularity": 0.141
+          },
+          {
+            "beta_n_percent": 4.7504,
+            "beta_pol_percent": 52.3943,
+            "beta_tor_percent": 14.5575,
+            "cell_index": 53,
+            "current_centroid_m": [
+              0.424,
+              0.0
+            ],
+            "diamagnetic_flux_Wb": 0.0015062,
+            "elongation": 1.316,
+            "li": 0.9996,
+            "magnetic_axis_m": [
+              0.438,
+              -0.0
+            ],
+            "plasma_volume_m3": 0.248,
+            "pressure_axis_peak_Pa": [
+              14454.0,
+              14454.0
+            ],
+            "q0_q95": [
+              0.376,
+              0.921
+            ],
+            "stored_energy_J": 1426.1,
+            "topology": "Limited",
+            "toroidal_current_A": 119970.0,
+            "toroidal_flux_Wb": 0.027153,
+            "triangularity": 0.108
+          }
+        ],
+        "exists": true,
+        "markdown_cell_count": 27,
+        "mesh_outputs": [
+          {
+            "cell_index": 11,
+            "cells": 1234,
+            "points": 654,
+            "regions": 1,
+            "unique_points": 72,
+            "unique_segments": 1
+          },
+          {
+            "cell_index": 39,
+            "cells": 7736,
+            "points": 3918,
+            "regions": 21,
+            "unique_points": 412,
+            "unique_segments": 84
+          }
+        ],
+        "nbformat": 4,
+        "nbformat_minor": 4,
+        "path": "src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex2.ipynb",
+        "sha256": "47825b5182f3dc51fb6c7f2395a0d7b475ee6b8eb49167872565e40ff5bc5521",
+        "solve_traces": [
+          {
+            "cell_index": 23,
+            "iteration_count": 8,
+            "last_iteration": {
+              "iteration": 8,
+              "values": [
+                1.6456,
+                4.6323,
+                9.4082e-07,
+                0.43923,
+                1.4121e-05,
+                0.0
+              ]
+            },
+            "timing_s": 0.019148000050336123
+          },
+          {
+            "cell_index": 51,
+            "iteration_count": 18,
+            "last_iteration": {
+              "iteration": 18,
+              "values": [
+                1.5226,
+                4.6427,
+                8.4112e-07,
+                0.438,
+                -2.439e-13,
+                15.994
+              ]
+            },
+            "timing_s": 0.1149809998460114
+          }
+        ],
+        "workflow_markers": {
+          "uses_create_isoflux": true,
+          "uses_eval_green": true,
+          "uses_fixed_boundary_false": true,
+          "uses_fixed_boundary_true": true,
+          "uses_get_profiles": false,
+          "uses_get_q": false,
+          "uses_get_vfixed": true,
+          "uses_gs_domain": true,
+          "uses_lstsq_coil_fit": true,
+          "uses_order_2_setup": true,
+          "uses_read_eqdsk": true,
+          "uses_set_coil_currents": true,
+          "uses_set_coil_vsc": true,
+          "uses_set_profiles": false,
+          "uses_set_targets": true
+        }
+      }
+    ]
+  }
+}

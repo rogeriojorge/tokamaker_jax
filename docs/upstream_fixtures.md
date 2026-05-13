@@ -36,6 +36,14 @@ bounds, area diagnostics, region-cell counts, region areas, and SHA-256. For
 each geometry JSON it records top-level sections, coil/vessel counts,
 coordinate-pair counts, bounds, and SHA-256.
 
+The upstream `fixed_boundary` directory does not ship HDF5/JSON machine
+fixtures. Its evidence is tracked separately in
+[`docs/validation/fixed_boundary_upstream_evidence.json`](validation/fixed_boundary_upstream_evidence.json),
+which extracts notebook workflow markers, stored mesh counts, stored
+equilibrium statistics, the `gNT_example` gEQDSK header, and the
+`fixed_boundary_ex2.ipynb` coil-current fit. That artifact remains a
+source-audit/stored-output record, not a full equilibrium parity claim.
+
 ## Current Extracted Counts
 
 | Fixture | Nodes | Cells | Regions | Coils | Conductors |

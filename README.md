@@ -49,6 +49,7 @@ Summarize exact upstream OpenFUSIONToolkit/TokaMaker mesh and geometry files:
 
 ```bash
 tokamaker-jax upstream-fixtures
+tokamaker-jax fixed-boundary-evidence
 ```
 
 Use from Python:
@@ -99,6 +100,8 @@ tokamaker-jax verify --gate free-boundary-profile
 
 ![Upstream mesh fixture inventory](docs/_static/upstream_fixture_mesh_sizes.png)
 
+![Upstream fixed-boundary gEQDSK flux](docs/_static/fixed_boundary_upstream_geqdsk.png)
+
 ![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
 
 ![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
@@ -125,6 +128,7 @@ tokamaker-jax verify --gate free-boundary-profile
 - CLI that launches the GUI by default and runs TOML files when supplied.
 - Case manifest browser exposed through the CLI, GUI, docs, and committed JSON artifacts.
 - Availability-gated upstream fixture inventory for exact TokaMaker mesh/geometry files.
+- Source-evidence artifact for upstream fixed-boundary notebooks and the `gNT_example` gEQDSK case.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
 - NiceGUI workflow dashboard summaries and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
 - Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, and publication-ready generated figures.

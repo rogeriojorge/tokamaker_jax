@@ -33,6 +33,10 @@ Current `tokamaker-jax` status:
 
 The committed comparison report is
 `docs/_static/openfusiontoolkit_comparison_report.json`.
+The bounded fixed-boundary source and stored-output evidence report is
+`docs/validation/fixed_boundary_upstream_evidence.json`; it inventories
+`fixed_boundary_ex1.ipynb`, `fixed_boundary_ex2.ipynb`, and `gNT_example`
+without asserting solved-equilibrium parity.
 The case-by-case upstream fixture inventory is in [](case_manifest.md) and
 `docs/_static/case_manifest.json`. Exact mesh/geometry summaries for upstream
 example files are in [](upstream_fixtures.md) and

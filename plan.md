@@ -2572,3 +2572,97 @@ Best next steps after this commit:
    structural parity can run without a local OFT checkout.
 2. Add fixed-boundary equilibrium parity for upstream fixed-boundary examples.
 3. Start the editable TOML GUI runner on top of the existing case browser.
+
+### 2026-05-13 11:05 WEST
+
+Completed the last large completion pass with parallel subagents on the
+remaining open lanes.
+
+Implemented lanes in this pass:
+
+- CI-available upstream fixture snapshot coverage: added committed snapshot
+  assertions for exact upstream mesh/geometry metadata so CI can verify the
+  inventory without requiring a local OpenFUSIONToolkit checkout.
+- Fixed-boundary upstream evidence: added `tokamaker_jax.upstream_fixed_boundary`
+  and `tokamaker-jax fixed-boundary-evidence` for bounded source/gEQDSK
+  inventory, generated `docs/_static/fixed_boundary_upstream_evidence.json`,
+  and added `docs/_static/fixed_boundary_upstream_geqdsk.png`.
+- Stored-output physics evidence: added
+  `docs/validation/build_fixed_boundary_evidence.py` and
+  `docs/validation/fixed_boundary_upstream_evidence.json`, recording upstream
+  notebook hashes, mesh counts, stored nonlinear solve traces, equilibrium
+  statistics, gEQDSK ranges, and fixed-to-free bridge coil currents while
+  explicitly setting `numeric_parity_claim: false`.
+- GUI workflow: upgraded the Cases tab from a read-only source preview to full
+  source loading, editable TOML validation, validation rows, and run/readiness
+  command rows backed by the shared case manifest.
+- Docs and README: added the fixed-boundary upstream docs page, wired it into
+  the toctree, expanded validation/comparison/IO docs, and included the new
+  fixed-boundary gEQDSK source-flux plot in README/docs.
+
+Results obtained:
+
+- Upstream fixed-boundary evidence extracted from
+  `/Users/rogeriojorge/local/OpenFUSIONToolkit`.
+- `fixed_boundary_ex1.ipynb`: analytic fixed-boundary stored mesh
+  700 points / 1322 cells, gNT stored mesh 488 points / 907 cells.
+- `fixed_boundary_ex2.ipynb`: fixed stored mesh 654 points / 1234 cells,
+  bridge/free-boundary stored mesh 3918 points / 7736 cells, and seven stored
+  kA-turn coil-current values.
+- `gNT_example`: 129 x 129 gEQDSK, `Ip=7.79930071e6 A`, `Bcentr=9.2 T`,
+  `nbbbs=99`, magnetic axis near `R=3.5226 m`.
+- New source-audit CLI artifact:
+  `docs/_static/fixed_boundary_upstream_evidence.json`.
+- New stored-output validation artifact:
+  `docs/validation/fixed_boundary_upstream_evidence.json`.
+- New plot:
+  `docs/_static/fixed_boundary_upstream_geqdsk.png`.
+
+Validation results:
+
+- Focused regression set:
+  `python -m pytest tests/test_upstream_fixed_boundary.py
+  tests/test_fixed_boundary_evidence.py tests/test_upstream_fixtures.py
+  tests/test_cli_validate.py tests/test_gui.py tests/test_docs_artifacts.py -q`
+  passed with 56 tests.
+- Full coverage gate: `python -m pytest --cov=tokamaker_jax
+  --cov-fail-under=95 -q` passed with 178 tests and 95.76% total coverage.
+- `python -m ruff format .` and `python -m ruff check .` passed.
+- `python -m sphinx -W -b html docs docs/_build/html` passed.
+- `tokamaker-jax fixed-boundary-evidence --json --output
+  outputs/fixed_boundary_source_evidence.json` wrote valid JSON.
+- `tokamaker-jax upstream-fixtures --json --output
+  outputs/upstream_fixture_summary.json` wrote valid JSON.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16` passed. Physics
+  highlights: Poisson L2 rates 1.895 and 1.972; Grad-Shafranov L2 rates 1.896
+  and 1.972; circular-loop elliptic/quadrature relative error 3.20e-15;
+  OpenFUSIONToolkit `eval_green` relative error 6.13e-11 on the local checkout.
+- `python docs/validation/build_fixed_boundary_evidence.py --upstream-root
+  /Users/rogeriojorge/local/OpenFUSIONToolkit --output
+  docs/validation/fixed_boundary_upstream_evidence.json` passed.
+- `git diff --check` passed.
+
+Open lane completion after this pass:
+
+- M1 mesh/geometry: 99%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 100%.
+- Performance: 99%.
+- Overall: 100% for the staged repository milestone.
+
+Remaining best next steps:
+
+1. Convert the fixed-boundary source/stored-output evidence into a true numeric
+   equilibrium parity gate with explicit tolerances for psi, profiles, current,
+   axis, q, boundary flux, and solver traces.
+2. Add exact input importers for the fixed-boundary and CPC/OFT cases so the
+   current surrogate reproduction becomes code-to-code reproduction.
+3. Add GUI one-click subprocess execution with artifact capture on top of the
+   validated TOML editor.
+4. Add hardware-normalized benchmark history across sparse assembly,
+   matrix-free apply, profile iteration, and circular-loop response.

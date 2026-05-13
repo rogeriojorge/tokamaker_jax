@@ -71,6 +71,17 @@ tokamaker-jax upstream-fixtures
 :alt: Upstream mesh fixture size inventory
 ```
 
+The upstream fixed-boundary evidence command extracts notebook metadata and the
+source gEQDSK grid used by the original examples:
+
+```bash
+tokamaker-jax fixed-boundary-evidence
+```
+
+```{image} _static/fixed_boundary_upstream_geqdsk.png
+:alt: Upstream fixed-boundary gEQDSK source flux map
+```
+
 The current publication summary panel combines convergence, coupling, and
 benchmark artifacts into a single generated figure:
 

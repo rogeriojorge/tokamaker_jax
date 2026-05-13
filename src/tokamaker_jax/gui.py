@@ -12,11 +12,24 @@ import numpy as np
 
 from tokamaker_jax.cases import (
     CaseManifest,
-    case_source_preview,
     case_table_rows,
     default_case_manifest,
 )
-from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
+from tokamaker_jax.cli import (
+    _validate_coils,
+    _validate_grid,
+    _validate_outputs,
+    _validate_solver,
+    _validate_source,
+)
+from tokamaker_jax.config import (
+    CoilConfig,
+    GridConfig,
+    RunConfig,
+    SolverConfig,
+    SourceConfig,
+    config_from_dict,
+)
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
@@ -30,6 +43,11 @@ from tokamaker_jax.verification import (
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
 )
+
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10 CI
+    import tomli as tomllib
 
 _DEFAULT_VALIDATION_SUBDIVISIONS = (4, 8, 16)
 _CONVERGENCE_RATE_THRESHOLDS = {"l2": 1.8, "h1": 0.85}
@@ -165,7 +183,12 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
 
             preview_options = [entry.case_id for entry in manifest.entries if entry.path]
             initial_case = preview_options[0]
-            preview = case_source_preview(initial_case, manifest=manifest, root=_PROJECT_ROOT)
+            source_payload = load_case_source_text(
+                initial_case,
+                manifest=manifest,
+                root=_PROJECT_ROOT,
+            )
+            validation = _case_editor_validation(source_payload)
             selector = ui.select(
                 preview_options,
                 value=initial_case,
@@ -173,23 +196,86 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             ).classes("w-96")
             source_box = (
                 ui.textarea(
-                    "Source preview",
-                    value=str(preview["source"]),
+                    "Source editor",
+                    value=str(source_payload["source"]),
                 )
                 .classes("w-full font-mono")
-                .props("readonly autogrow")
+                .props("autogrow")
             )
             command_label = ui.label(_case_preview_label(initial_case, manifest))
+            validation_table = ui.table(
+                columns=[
+                    {"name": "check", "label": "Check", "field": "check"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "detail", "label": "Detail", "field": "detail"},
+                ],
+                rows=toml_validation_rows(validation),
+            ).classes("w-full")
+            command_table = ui.table(
+                columns=[
+                    {"name": "action", "label": "Action", "field": "action"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "detail", "label": "Detail", "field": "detail"},
+                    {"name": "command", "label": "Command", "field": "command"},
+                ],
+                rows=case_validation_run_rows(
+                    initial_case,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                    validation=validation,
+                ),
+            ).classes("w-full")
 
             def update_preview() -> None:
                 case_id = str(selector.value)
-                preview = case_source_preview(case_id, manifest=manifest, root=_PROJECT_ROOT)
-                source_box.value = str(preview["source"])
+                source_payload = load_case_source_text(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                )
+                validation = _case_editor_validation(source_payload)
+                source_box.value = str(source_payload["source"])
                 source_box.update()
                 command_label.text = _case_preview_label(case_id, manifest)
                 command_label.update()
+                validation_table.rows = toml_validation_rows(validation)
+                validation_table.update()
+                command_table.rows = case_validation_run_rows(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                    validation=validation,
+                )
+                command_table.update()
+
+            def validate_editor() -> None:
+                case_id = str(selector.value)
+                entry = manifest.by_id(case_id)
+                path = entry.path or "<editor>"
+                if not path.lower().endswith(".toml"):
+                    validation = {
+                        "source_name": path,
+                        "status": "n/a",
+                        "message": "source file is not a TOML config",
+                        "errors": [],
+                        "grid_shape": [],
+                        "region_count": 0,
+                        "output_paths": [],
+                    }
+                else:
+                    validation = validate_toml_text(str(source_box.value or ""), source_name=path)
+                validation_table.rows = toml_validation_rows(validation)
+                validation_table.update()
+                command_table.rows = case_validation_run_rows(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                    validation=validation,
+                )
+                command_table.update()
 
             selector.on_value_change(lambda _: update_preview())
+            ui.button("Validate editor text", on_click=validate_editor)
         with ui.tab_panel(reports_tab):
             artifacts = load_gui_report_artifacts()
             ui.label("Validation reports").classes("text-subtitle2")
@@ -540,10 +626,259 @@ def case_manifest_rows(manifest: CaseManifest | None = None) -> list[dict[str, s
     return rows
 
 
+def load_case_source_text(
+    case_id: str,
+    *,
+    manifest: CaseManifest | None = None,
+    root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Load the full source text for a manifest case without truncating it."""
+
+    if manifest is None:
+        case_manifest = default_case_manifest(_PROJECT_ROOT if root is None else root)
+    else:
+        case_manifest = manifest
+    root_path = Path(root) if root is not None else case_manifest.root
+    entry = case_manifest.by_id(case_id)
+    payload: dict[str, Any] = {
+        "case_id": entry.case_id,
+        "title": entry.title,
+        "status": entry.status,
+        "category": entry.category,
+        "parity_level": entry.parity_level,
+        "path": entry.path or "",
+        "absolute_path": "",
+        "exists": False,
+        "source_kind": "",
+        "source": "",
+        "message": "",
+    }
+    if entry.path is None:
+        payload["message"] = (
+            "This case is represented by a command or upstream fixture, not a local file."
+        )
+        return payload
+
+    relative_path = Path(entry.path)
+    source_path = relative_path if relative_path.is_absolute() else root_path / relative_path
+    payload["absolute_path"] = str(source_path.resolve(strict=False))
+    payload["source_kind"] = source_path.suffix.lstrip(".") or "source"
+    if not source_path.exists():
+        payload["message"] = f"Case file is not present: {entry.path}"
+        return payload
+
+    try:
+        payload["source"] = source_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        payload["message"] = f"Case file could not be read: {exc}"
+        return payload
+    payload["exists"] = True
+    return payload
+
+
+def validate_toml_text(
+    toml_text: str,
+    *,
+    source_name: str = "<editor>",
+    output: str | Path | None = None,
+    plot: str | Path | None = None,
+) -> dict[str, Any]:
+    """Validate TOML text in memory without writing a temporary config file."""
+
+    source_label = str(source_name)
+    try:
+        config = config_from_dict(tomllib.loads(toml_text))
+    except Exception as exc:
+        message = f"TOML/config parse error: {exc}"
+        return {
+            "source_name": source_label,
+            "status": "fail",
+            "message": message,
+            "errors": [message],
+            "grid_shape": [],
+            "region_count": 0,
+            "output_paths": [],
+        }
+
+    errors: list[str] = []
+    _validate_grid(config.grid, errors)
+    _validate_source(config, errors)
+    _validate_solver(config.solver, errors)
+    _validate_coils(config.coils, errors)
+    output_paths = _validate_outputs(config.output, output=output, plot=plot, errors=errors)
+    payload = {
+        "source_name": source_label,
+        "status": "pass" if not errors else "fail",
+        "message": "TOML config is valid" if not errors else f"{len(errors)} validation error(s)",
+        "errors": errors,
+        "grid_shape": [config.grid.nr, config.grid.nz],
+        "region_count": 0 if config.regions is None else len(config.regions.regions),
+        "output_paths": [{"label": str(label), "path": str(path)} for label, path in output_paths],
+    }
+    return payload
+
+
+def toml_validation_rows(validation: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Return GUI-ready rows for an in-memory TOML validation report."""
+
+    status = str(validation.get("status", "unknown"))
+    errors = validation.get("errors")
+    if status == "pass":
+        grid_shape = validation.get("grid_shape", [])
+        grid_detail = (
+            f"{grid_shape[0]} x {grid_shape[1]}"
+            if isinstance(grid_shape, Sequence) and len(grid_shape) == 2
+            else "n/a"
+        )
+        return [
+            {
+                "check": "TOML/config",
+                "status": "pass",
+                "detail": str(validation.get("message", "")),
+            },
+            {"check": "grid", "status": "pass", "detail": grid_detail},
+            {
+                "check": "regions",
+                "status": "pass",
+                "detail": str(validation.get("region_count", 0)),
+            },
+            {
+                "check": "outputs",
+                "status": "pass",
+                "detail": _validation_output_detail(validation.get("output_paths", [])),
+            },
+        ]
+    if isinstance(errors, Sequence) and not isinstance(errors, str) and errors:
+        return [
+            {
+                "check": "TOML/config" if index == 0 else "validation",
+                "status": status,
+                "detail": str(error),
+            }
+            for index, error in enumerate(errors)
+        ]
+    return [
+        {
+            "check": "TOML/config",
+            "status": status,
+            "detail": str(validation.get("message", "")),
+        }
+    ]
+
+
+def case_validation_run_rows(
+    case_id: str,
+    *,
+    manifest: CaseManifest | None = None,
+    root: str | Path | None = None,
+    validation: Mapping[str, Any] | None = None,
+) -> list[dict[str, str]]:
+    """Return GUI-ready validation and run command rows for a manifest case."""
+
+    if manifest is None:
+        case_manifest = default_case_manifest(_PROJECT_ROOT if root is None else root)
+    else:
+        case_manifest = manifest
+    source = load_case_source_text(case_id, manifest=case_manifest, root=root)
+    entry = case_manifest.by_id(case_id)
+    path = entry.path or ""
+    is_toml = path.lower().endswith(".toml")
+    if not path:
+        validate_status = "n/a"
+        validate_detail = "case has no local TOML config"
+        validate_command = ""
+    elif not is_toml:
+        validate_status = "n/a"
+        validate_detail = f"source file is {Path(path).suffix or 'not TOML'}"
+        validate_command = ""
+    elif not source["exists"]:
+        validate_status = "missing"
+        validate_detail = str(source["message"])
+        validate_command = f"tokamaker-jax validate {path}"
+    else:
+        validate_status = str(validation.get("status", "ready")) if validation else "ready"
+        validate_detail = (
+            str(validation.get("message", "local TOML file")) if validation else "local TOML file"
+        )
+        validate_command = f"tokamaker-jax validate {path}"
+
+    run_command = entry.command or ""
+    run_status = "planned"
+    run_detail = entry.title
+    if run_command:
+        run_status = "blocked" if validate_status in {"fail", "missing"} else "ready"
+        if run_status == "blocked":
+            run_detail = "TOML validation must pass before running"
+
+    rows = [
+        {
+            "action": "Validate TOML",
+            "status": validate_status,
+            "detail": validate_detail,
+            "command": validate_command,
+        },
+        {
+            "action": "Run case",
+            "status": run_status,
+            "detail": run_detail,
+            "command": run_command or "planned",
+        },
+    ]
+    if entry.validation_gate:
+        rows.append(
+            {
+                "action": "Run validation gate",
+                "status": "ready" if entry.runnable else "planned",
+                "detail": entry.parity_level,
+                "command": entry.validation_gate,
+            }
+        )
+    return rows
+
+
 def _case_preview_label(case_id: str, manifest: CaseManifest) -> str:
     entry = manifest.by_id(case_id)
     command = entry.command or entry.validation_gate or "planned"
     return f"{entry.title}: {entry.status}; {entry.parity_level}; {command}"
+
+
+def _validation_output_detail(output_paths: Any) -> str:
+    if not isinstance(output_paths, Sequence) or isinstance(output_paths, str):
+        return "none configured"
+    parts = []
+    for output in output_paths:
+        if isinstance(output, Mapping):
+            label = str(output.get("label", "output"))
+            path = str(output.get("path", ""))
+            if path:
+                parts.append(f"{label}={path}")
+    return ", ".join(parts) if parts else "none configured"
+
+
+def _case_editor_validation(source: Mapping[str, Any]) -> dict[str, Any]:
+    path = str(source.get("path", ""))
+    if not source.get("exists"):
+        message = str(source.get("message", "case source is unavailable"))
+        return {
+            "source_name": path or "<case>",
+            "status": "missing",
+            "message": message,
+            "errors": [message],
+            "grid_shape": [],
+            "region_count": 0,
+            "output_paths": [],
+        }
+    if not path.lower().endswith(".toml"):
+        return {
+            "source_name": path or "<case>",
+            "status": "n/a",
+            "message": "source file is not a TOML config",
+            "errors": [],
+            "grid_shape": [],
+            "region_count": 0,
+            "output_paths": [],
+        }
+    return validate_toml_text(str(source.get("source", "")), source_name=path)
 
 
 def load_json_report(path: str | Path) -> dict[str, Any]:

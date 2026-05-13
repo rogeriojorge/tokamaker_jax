@@ -131,6 +131,14 @@ from tokamaker_jax.solver import (
     solve_fixed_boundary,
     solve_from_config,
 )
+from tokamaker_jax.upstream_fixed_boundary import (
+    fixed_boundary_report_to_json,
+    fixed_boundary_upstream_report,
+    parse_geqdsk,
+    summarize_fixed_boundary_notebook,
+    summarize_geqdsk,
+    write_fixed_boundary_upstream_report,
+)
 from tokamaker_jax.upstream_fixtures import (
     UpstreamFixture,
     default_upstream_fixtures,
@@ -258,6 +266,8 @@ __all__ = [
     "default_case_manifest",
     "default_upstream_fixtures",
     "evaluate_coil_green_response",
+    "fixed_boundary_report_to_json",
+    "fixed_boundary_upstream_report",
     "gaussian_coil_source",
     "grad_shafranov_weak_source_density",
     "linear_basis",
@@ -278,6 +288,7 @@ __all__ = [
     "normalized_flux",
     "normalize_profile_flux",
     "observed_rates",
+    "parse_geqdsk",
     "polygon_region",
     "poisson_error_metrics",
     "probe_openfusiontoolkit",
@@ -305,6 +316,8 @@ __all__ = [
     "solve_profile_iteration_on_rectangle",
     "solve_sine_poisson",
     "solovev_source",
+    "summarize_fixed_boundary_notebook",
+    "summarize_geqdsk",
     "summarize_upstream_fixture",
     "summarize_upstream_fixtures",
     "triangle_area",
@@ -314,5 +327,6 @@ __all__ = [
     "upstream_fixture_report_to_json",
     "upstream_fixture_rows",
     "write_case_manifest",
+    "write_fixed_boundary_upstream_report",
     "write_upstream_fixture_summary",
 ]

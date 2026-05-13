@@ -30,8 +30,12 @@ from tokamaker_jax.config import (
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.plotting import save_equilibrium_plot
 from tokamaker_jax.solver import EquilibriumSolution, solve_from_config
-from tokamaker_jax.upstream_fixtures import (
+from tokamaker_jax.upstream_fixed_boundary import (
     DEFAULT_OPENFUSIONTOOLKIT_ROOT,
+    fixed_boundary_report_to_json,
+    fixed_boundary_upstream_report,
+)
+from tokamaker_jax.upstream_fixtures import (
     summarize_upstream_fixtures,
     upstream_fixture_report_to_json,
     upstream_fixture_rows,
@@ -76,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         return _main_cases(args_list[1:])
     if args_list[:1] == ["upstream-fixtures"]:
         return _main_upstream_fixtures(args_list[1:])
+    if args_list[:1] == ["fixed-boundary-evidence"]:
+        return _main_fixed_boundary_evidence(args_list[1:])
     if args_list[:1] == ["validate"]:
         return _main_validate(args_list[1:])
     if args_list[:1] == ["verify"]:
@@ -182,6 +188,51 @@ def _upstream_fixture_summary_lines(report: dict[str, Any]) -> tuple[str, ...]:
         lines.append(
             f"- {row['fixture_id']}: available={row['available']}; "
             f"mesh={row['mesh']}; geometry={row['geometry']}"
+        )
+    return tuple(lines)
+
+
+def _main_fixed_boundary_evidence(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="tokamaker-jax fixed-boundary-evidence")
+    parser.add_argument(
+        "--root",
+        default=str(DEFAULT_OPENFUSIONTOOLKIT_ROOT),
+        help="OpenFUSIONToolkit checkout root.",
+    )
+    parser.add_argument("--json", action="store_true", help="Print the evidence report as JSON.")
+    parser.add_argument("--output", "-o", help="Write the evidence report JSON to this path.")
+    args = parser.parse_args(argv)
+
+    report = fixed_boundary_upstream_report(root=args.root)
+    text = fixed_boundary_report_to_json(report)
+    if args.output:
+        path = Path(args.output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    if args.json:
+        print(text, end="")
+    else:
+        for line in _fixed_boundary_evidence_summary_lines(report):
+            print(line)
+    return 0
+
+
+def _fixed_boundary_evidence_summary_lines(report: dict[str, Any]) -> tuple[str, ...]:
+    lines = [
+        f"fixed-boundary evidence from {report['checkout_path']}",
+        "Claim: source evidence only; no full fixed-boundary equilibrium parity claim.",
+    ]
+    for notebook in report["notebooks"]:
+        lines.append(
+            f"- {Path(notebook['path']).name}: exists={notebook['exists']}; "
+            f"solve_calls={notebook.get('solve_calls', 0)}; "
+            f"fixed_boundary_assignments={notebook.get('fixed_boundary_assignments', 0)}"
+        )
+    geqdsk = report.get("geqdsk")
+    if isinstance(geqdsk, dict):
+        lines.append(
+            f"- {Path(geqdsk['path']).name}: {geqdsk['nr']}x{geqdsk['nz']} grid; "
+            f"Ip={geqdsk['current']:.6g}; Bcentr={geqdsk['bcentr']:.6g}"
         )
     return tuple(lines)
 
