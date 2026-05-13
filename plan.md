@@ -2666,3 +2666,116 @@ Remaining best next steps:
    validated TOML editor.
 4. Add hardware-normalized benchmark history across sparse assembly,
    matrix-free apply, profile iteration, and circular-loop response.
+
+### 2026-05-13 11:41 WEST
+
+Completed the GUI/UX audit and cross-platform launch pass after reproducing the
+reported `http://127.0.0.1:8080/` internal-server-error path.
+
+Implemented lanes in this pass:
+
+- GUI launch reliability: fixed NiceGUI script-mode startup by launching with a
+  root function, so importing and launching `launch_gui()` from scripts or the
+  console no longer serves a 500 at `/`.
+- Cross-platform GUI entry point: added `tokamaker-jax gui` with `--host`,
+  `--port`, `--reload`, and `--no-browser`, while preserving `tokamaker-jax` as
+  the default GUI launcher and `tokamaker-jax case.toml` as the headless run
+  path.
+- GUI polish: added a modern research-dashboard header, status badges, KPI
+  cards, cleaner tab/panel/table/plot styling, responsive layout rules, cached
+  validation/seed computations, and a committed dashboard screenshot at
+  `docs/_static/gui_workflow_dashboard.png`.
+- GUI functionality: promoted the case browser to safe saved-TOML execution via
+  `tokamaker_jax.gui_runner`, including validation-first behavior,
+  `shell=False` subprocess execution, stdout/stderr/return-code/duration
+  capture, artifact refresh, and a guard that blocks valid but unsaved editor
+  text from being run as if it were the saved manifest file.
+- Physics gates: added `tokamaker-jax verify --gate fixed-boundary-geqdsk` and a
+  GUI dashboard row for committed upstream `gNT_example` diagnostics with
+  explicit current, central-field, grid/profile, axis, flux, and q-profile
+  tolerances while preserving `numeric_parity_claim: false`.
+- IO/performance infrastructure: added a reusable EQDSK/gEQDSK parser and
+  benchmark-history JSON/JSONL helpers plus schema, tests, and documentation.
+- Docs: added `docs/gui.md`, updated getting-started, README, design decisions,
+  case manifest, IO contract, validation docs, progress accounting, API docs,
+  and the physics-gate manifest.
+
+Browser/UI results:
+
+- `curl http://127.0.0.1:8080/` now returns `200` in about 0.15 s on the
+  warmed local server.
+- Browser audit confirmed the first viewport shows the header, validation
+  badges, four KPI cards, seven tabs, workflow state, validation gates, and the
+  fixed-boundary gEQDSK gate.
+- Browser audit confirmed the `Cases` tab validates invalid TOML in-place,
+  blocks valid unsaved edits before running, and successfully runs the saved
+  fixed-boundary TOML case through the GUI.
+- Browser audit confirmed the `Reports` tab exposes stored validation,
+  OpenFUSIONToolkit parity, benchmark, and upstream fixture artifacts.
+
+Validation results so far:
+
+- `python -m pytest tests/test_cli_plotting.py tests/test_gui.py
+  tests/test_gui_runner.py tests/test_verification.py tests/test_cli_validate.py
+  tests/test_eqdsk.py tests/test_benchmark_history.py -q`: 70 passed.
+- Focused `ruff check` for the touched source and test files: passed.
+- `python -m json.tool` for the physics-gate manifest and benchmark-history
+  schema: passed.
+- Browser screenshot captured and saved:
+  `docs/_static/gui_workflow_dashboard.png`.
+
+Open lane completion after this pass:
+
+- M1 mesh/geometry: 99%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 100%.
+- Performance: 100%.
+- Overall: 100% for the staged repository milestone.
+
+Best next steps before committing:
+
+1. Run full lint, full coverage, docs build, all verification gates, GUI HTTP
+   smoke, and representative CLI commands.
+2. Commit and push this pass.
+3. Watch GitHub Actions CI and Docs to completion.
+
+### 2026-05-13 11:46 WEST
+
+Completed full local validation for the GUI/UX audit pass.
+
+Validation results:
+
+- `python -m ruff format .`: no changes required after the final test edits.
+- `python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95 -q`: 201 passed,
+  95.32% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed.
+- `tokamaker-jax verify --gate fixed-boundary-geqdsk`: passed with
+  `numeric_parity_claim: false`, `nr=nz=129`, `Ip=7.79930071e6 A`, `Bcentr=9.2
+  T`, and zero current/axis errors against the committed diagnostic artifact.
+- `curl http://127.0.0.1:8080/`: returned `200` from the restarted GUI server.
+- `python examples/benchmark_history.py docs/_static/benchmark_report.json
+  /tmp/tokamaker_benchmark_history.jsonl --threshold-report
+  docs/_static/benchmark_threshold_report.json --timestamp
+  2026-05-13T11:45:00+00:00 --replace`: passed and produced valid JSON.
+- `tokamaker-jax cases --runnable-only`: passed and listed the four executable
+  manifest entries.
+- `git diff --check`: passed.
+
+Browser audit artifacts:
+
+- Captured a first-viewport GUI screenshot from the in-app browser and saved it
+  as `docs/_static/gui_workflow_dashboard.png`.
+- Confirmed Workflow, Cases, Reports, Seed equilibrium, Region geometry,
+  Validation, and Coil response tabs render and expose expected controls/tables.
+
+Best next steps:
+
+1. Commit and push this validated pass.
+2. Watch GitHub Actions CI and Docs to completion.

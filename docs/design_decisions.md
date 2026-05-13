@@ -79,8 +79,11 @@ marketing landing page:
 - keep every GUI action reproducible as a command.
 
 The current GUI provides seed controls, region previews, validation plots,
-coil-response plots, workflow summaries, and stored report tables. The next
-step is a case browser and TOML editor.
+coil-response plots, workflow summaries, a manifest-backed case browser, editable
+TOML validation, saved-file run execution with artifact capture, and stored
+report tables. The explicit `tokamaker-jax gui` command exposes host, port,
+reload, and no-browser controls for Windows, Linux, macOS, WSL, containers, and
+remote sessions.
 
 ## Documentation Strategy
 

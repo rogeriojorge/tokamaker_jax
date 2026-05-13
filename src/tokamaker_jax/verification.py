@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import jax
@@ -37,6 +39,34 @@ from tokamaker_jax.free_boundary import (
     regularized_log_green_function,
 )
 from tokamaker_jax.profiles import MU0
+from tokamaker_jax.upstream_fixed_boundary import (
+    DEFAULT_OPENFUSIONTOOLKIT_ROOT,
+    FIXED_BOUNDARY_EQDSK,
+    FIXED_BOUNDARY_RELATIVE_ROOT,
+    parse_geqdsk,
+    summarize_geqdsk,
+)
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_FIXED_BOUNDARY_ARTIFACT = (
+    _PROJECT_ROOT / "docs/_static/fixed_boundary_upstream_evidence.json"
+)
+_DEFAULT_FIXED_BOUNDARY_GEQDSK = (
+    DEFAULT_OPENFUSIONTOOLKIT_ROOT / FIXED_BOUNDARY_RELATIVE_ROOT / FIXED_BOUNDARY_EQDSK
+)
+_FIXED_BOUNDARY_GEQDSK_EXPECTED = {
+    "nr": 129,
+    "nz": 129,
+    "current": 7_799_300.71,
+    "bcentr": 9.2,
+    "rmaxis": 3.5226247,
+    "zmaxis": -7.96984474e-06,
+}
+_FIXED_BOUNDARY_GEQDSK_TOLERANCES = {
+    "current_relative": 1.0e-10,
+    "bcentr_absolute": 1.0e-12,
+    "axis_absolute_m": 1.0e-8,
+}
 
 
 @dataclass(frozen=True)
@@ -204,6 +234,61 @@ class FreeBoundaryProfileCouplingValidation:
             "update_final": self.update_final,
             "psi_abs_max": self.psi_abs_max,
             "coil_flux_abs_max": self.coil_flux_abs_max,
+        }
+
+
+@dataclass(frozen=True)
+class FixedBoundaryGeqdskValidation:
+    """Numeric diagnostics for the upstream fixed-boundary gEQDSK seed."""
+
+    status: str
+    source: str
+    source_kind: str
+    nr: int
+    nz: int
+    profile_length: int
+    current_A: float
+    bcentr_T: float
+    rmaxis_m: float
+    zmaxis_m: float
+    psi_min: float
+    psi_max: float
+    qpsi_min: float
+    qpsi_max: float
+    current_relative_error: float
+    bcentr_absolute_error: float
+    axis_error_m: float
+    shape_matches: bool
+    q_positive: bool
+    psi_range_positive: bool
+    numeric_parity_claim: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-friendly representation."""
+
+        return {
+            "status": self.status,
+            "source": self.source,
+            "source_kind": self.source_kind,
+            "nr": self.nr,
+            "nz": self.nz,
+            "profile_length": self.profile_length,
+            "current_A": self.current_A,
+            "bcentr_T": self.bcentr_T,
+            "rmaxis_m": self.rmaxis_m,
+            "zmaxis_m": self.zmaxis_m,
+            "psi_min": self.psi_min,
+            "psi_max": self.psi_max,
+            "qpsi_min": self.qpsi_min,
+            "qpsi_max": self.qpsi_max,
+            "current_relative_error": self.current_relative_error,
+            "bcentr_absolute_error": self.bcentr_absolute_error,
+            "axis_error_m": self.axis_error_m,
+            "shape_matches": self.shape_matches,
+            "q_positive": self.q_positive,
+            "psi_range_positive": self.psi_range_positive,
+            "numeric_parity_claim": self.numeric_parity_claim,
+            "tolerances": dict(_FIXED_BOUNDARY_GEQDSK_TOLERANCES),
         }
 
 
@@ -690,6 +775,143 @@ def run_free_boundary_profile_coupling_validation() -> FreeBoundaryProfileCoupli
         psi_abs_max=float(jnp.max(jnp.abs(solution.psi))),
         coil_flux_abs_max=float(jnp.max(jnp.abs(coil_flux_direct))),
     )
+
+
+def run_fixed_boundary_geqdsk_validation(
+    source: str | Path | None = None,
+) -> FixedBoundaryGeqdskValidation:
+    """Validate fixed-boundary gEQDSK source diagnostics against explicit tolerances.
+
+    The default path is CI-safe: it reads the committed docs artifact. When a
+    local OpenFUSIONToolkit checkout is present, callers can pass the direct
+    ``gNT_example`` path to validate parser output from the source file.
+    """
+
+    metrics = _load_fixed_boundary_geqdsk_metrics(source)
+    expected = _FIXED_BOUNDARY_GEQDSK_EXPECTED
+    tolerances = _FIXED_BOUNDARY_GEQDSK_TOLERANCES
+
+    nr = int(metrics["nr"])
+    nz = int(metrics["nz"])
+    current = float(metrics["current"])
+    bcentr = float(metrics["bcentr"])
+    rmaxis = float(metrics["rmaxis"])
+    zmaxis = float(metrics["zmaxis"])
+    psi_min = float(metrics["psi_min"])
+    psi_max = float(metrics["psi_max"])
+    qpsi_min = float(metrics["qpsi_min"])
+    qpsi_max = float(metrics["qpsi_max"])
+    profile_length = int(metrics["profile_length"])
+
+    current_relative_error = abs(current - expected["current"]) / abs(expected["current"])
+    bcentr_absolute_error = abs(bcentr - expected["bcentr"])
+    axis_error_m = float(
+        jnp.linalg.norm(
+            jnp.asarray(
+                [rmaxis - expected["rmaxis"], zmaxis - expected["zmaxis"]],
+                dtype=jnp.float64,
+            )
+        )
+    )
+    shape_matches = (nr, nz, profile_length) == (
+        expected["nr"],
+        expected["nz"],
+        expected["nr"],
+    )
+    q_positive = qpsi_min > 0.0 and qpsi_max > qpsi_min
+    psi_range_positive = psi_max > psi_min
+    passed = (
+        shape_matches
+        and q_positive
+        and psi_range_positive
+        and current_relative_error <= tolerances["current_relative"]
+        and bcentr_absolute_error <= tolerances["bcentr_absolute"]
+        and axis_error_m <= tolerances["axis_absolute_m"]
+    )
+    return FixedBoundaryGeqdskValidation(
+        status="pass" if passed else "fail",
+        source=str(metrics["source"]),
+        source_kind=str(metrics["source_kind"]),
+        nr=nr,
+        nz=nz,
+        profile_length=profile_length,
+        current_A=current,
+        bcentr_T=bcentr,
+        rmaxis_m=rmaxis,
+        zmaxis_m=zmaxis,
+        psi_min=psi_min,
+        psi_max=psi_max,
+        qpsi_min=qpsi_min,
+        qpsi_max=qpsi_max,
+        current_relative_error=float(current_relative_error),
+        bcentr_absolute_error=float(bcentr_absolute_error),
+        axis_error_m=axis_error_m,
+        shape_matches=shape_matches,
+        q_positive=q_positive,
+        psi_range_positive=psi_range_positive,
+        numeric_parity_claim=False,
+    )
+
+
+def _load_fixed_boundary_geqdsk_metrics(source: str | Path | None) -> dict[str, Any]:
+    if source is None:
+        if _DEFAULT_FIXED_BOUNDARY_ARTIFACT.exists():
+            return _geqdsk_metrics_from_artifact(_DEFAULT_FIXED_BOUNDARY_ARTIFACT)
+        if _DEFAULT_FIXED_BOUNDARY_GEQDSK.exists():
+            return _geqdsk_metrics_from_file(_DEFAULT_FIXED_BOUNDARY_GEQDSK)
+        raise FileNotFoundError(
+            "No fixed-boundary gEQDSK source available; pass a gEQDSK file or "
+            "a fixed_boundary_upstream_evidence.json artifact."
+        )
+
+    path = Path(source)
+    if not path.exists():
+        raise FileNotFoundError(path)
+    if path.suffix == ".json":
+        return _geqdsk_metrics_from_artifact(path)
+    return _geqdsk_metrics_from_file(path)
+
+
+def _geqdsk_metrics_from_artifact(path: Path) -> dict[str, Any]:
+    report = json.loads(path.read_text(encoding="utf-8"))
+    geqdsk = report.get("geqdsk")
+    if not isinstance(geqdsk, dict):
+        raise ValueError(f"artifact does not contain a geqdsk object: {path}")
+    return {
+        "source": str(path),
+        "source_kind": "committed_artifact",
+        "nr": geqdsk["nr"],
+        "nz": geqdsk["nz"],
+        "profile_length": geqdsk["profile_length"],
+        "current": geqdsk["current"],
+        "bcentr": geqdsk["bcentr"],
+        "rmaxis": geqdsk["rmaxis"],
+        "zmaxis": geqdsk["zmaxis"],
+        "psi_min": geqdsk["psi_min"],
+        "psi_max": geqdsk["psi_max"],
+        "qpsi_min": geqdsk["qpsi_min"],
+        "qpsi_max": geqdsk["qpsi_max"],
+    }
+
+
+def _geqdsk_metrics_from_file(path: Path) -> dict[str, Any]:
+    parsed = parse_geqdsk(path)
+    summary = summarize_geqdsk(path, root=path.parent)
+    return {
+        "source": str(path),
+        "source_kind": "geqdsk_file",
+        "nr": parsed["nr"],
+        "nz": parsed["nz"],
+        "profile_length": int(parsed["fpol"].shape[0]),
+        "current": parsed["current"],
+        "bcentr": parsed["bcentr"],
+        "rmaxis": parsed["rmaxis"],
+        "zmaxis": parsed["zmaxis"],
+        "psi_min": summary["psi_min"],
+        "psi_max": summary["psi_max"],
+        "qpsi_min": summary["qpsi_min"],
+        "qpsi_max": summary["qpsi_max"],
+    }
 
 
 def observed_rates(errors: list[float], mesh_sizes: list[float]) -> tuple[float, ...]:

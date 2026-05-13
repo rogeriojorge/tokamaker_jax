@@ -22,6 +22,13 @@ Launch the GUI:
 tokamaker-jax
 ```
 
+Or choose an explicit host/port, which is useful on remote Linux sessions, WSL,
+containers, or when port 8080 is already in use:
+
+```bash
+tokamaker-jax gui --host 127.0.0.1 --port 8081 --no-browser
+```
+
 Run a TOML configuration:
 
 ```bash

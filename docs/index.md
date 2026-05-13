@@ -9,6 +9,7 @@ getting_started
 architecture
 equations
 design_decisions
+gui
 porting_map
 progress
 validation

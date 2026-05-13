@@ -18,6 +18,7 @@ publication figures remain reproducible.
 | Python API | `load_config`, `solve_from_config` | Uses the same dataclasses as the CLI. |
 | Docs asset script | `python examples/generate_assets.py` | Regenerates committed docs images and JSON reports. |
 | Benchmark script | `python examples/benchmark_report.py --output outputs/benchmark_report.json` | Writes benchmark JSON and optional threshold comparison. |
+| Benchmark history | `python examples/benchmark_history.py outputs/benchmark_report.json outputs/benchmark_history.jsonl` | Appends hardware/context metadata and per-lane benchmark timings to JSONL. |
 | Literature script | `python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family` | Writes surrogate figure and JSON recipe. |
 
 ## TOML Schema Summary
@@ -106,6 +107,25 @@ The report contains:
 - lane metadata such as grid sizes and number of elements.
 
 Threshold comparison reports contain one pass/fail record per lane.
+
+### Benchmark History
+
+Produced by:
+
+```bash
+python examples/benchmark_history.py \
+  outputs/benchmark_report.json \
+  outputs/benchmark_history.jsonl \
+  --threshold-report outputs/benchmark_threshold_report.json
+```
+
+Each JSONL row contains one benchmark run with:
+
+- schema version;
+- suite name and source report schema version;
+- platform, Python version, machine, processor, and timestamp;
+- lane metrics in seconds;
+- lane metadata and optional threshold status.
 
 ### Figure Recipe
 

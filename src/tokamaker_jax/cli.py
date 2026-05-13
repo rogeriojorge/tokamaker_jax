@@ -76,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     """
 
     args_list = sys.argv[1:] if argv is None else list(argv)
+    if args_list[:1] == ["gui"]:
+        return _main_gui(args_list[1:])
     if args_list[:1] == ["cases"]:
         return _main_cases(args_list[1:])
     if args_list[:1] == ["upstream-fixtures"]:
@@ -99,6 +101,24 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     solution = run_config(args.config, output=args.output, plot=args.plot)
     print(json.dumps(solution.stats(), indent=2, sort_keys=True))
+    return 0
+
+
+def _main_gui(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="tokamaker-jax gui")
+    parser.add_argument("--host", default="127.0.0.1", help="Interface to bind.")
+    parser.add_argument("--port", type=int, default=8080, help="Port to bind.")
+    parser.add_argument("--reload", action="store_true", help="Enable NiceGUI reload mode.")
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Start the server without opening a browser window.",
+    )
+    args = parser.parse_args(argv)
+
+    from tokamaker_jax.gui import launch_gui
+
+    launch_gui(host=args.host, port=args.port, reload=args.reload, show=not args.no_browser)
     return 0
 
 
@@ -250,6 +270,7 @@ def _main_verify(argv: list[str]) -> int:
             "oft-parity",
             "profile-iteration",
             "free-boundary-profile",
+            "fixed-boundary-geqdsk",
         ),
         default="all",
         help="Manufactured validation gate to run.",
@@ -292,6 +313,7 @@ def run_verification_gates(
     from tokamaker_jax.verification import (
         run_circular_loop_green_function_validation,
         run_coil_green_function_validation,
+        run_fixed_boundary_geqdsk_validation,
         run_free_boundary_profile_coupling_validation,
         run_grad_shafranov_convergence_study,
         run_poisson_convergence_study,
@@ -317,10 +339,13 @@ def run_verification_gates(
         payload["gates"]["free_boundary_profile"] = (
             run_free_boundary_profile_coupling_validation().to_dict()
         )
+    if gate in {"all", "fixed-boundary-geqdsk"}:
+        payload["gates"]["fixed_boundary_geqdsk"] = run_fixed_boundary_geqdsk_validation().to_dict()
     if not payload["gates"]:
         raise ValueError(
             "gate must be one of: all, poisson, grad-shafranov, coil-green, "
-            "circular-loop, oft-parity, profile-iteration, free-boundary-profile"
+            "circular-loop, oft-parity, profile-iteration, free-boundary-profile, "
+            "fixed-boundary-geqdsk"
         )
     return payload
 

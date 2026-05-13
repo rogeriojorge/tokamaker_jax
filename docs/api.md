@@ -13,7 +13,13 @@
 .. automodule:: tokamaker_jax.benchmarks
    :members:
 
+.. automodule:: tokamaker_jax.benchmark_history
+   :members:
+
 .. automodule:: tokamaker_jax.domain
+   :members:
+
+.. automodule:: tokamaker_jax.eqdsk
    :members:
 
 .. automodule:: tokamaker_jax.fem

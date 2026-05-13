@@ -42,6 +42,18 @@ def test_main_without_toml_launches_gui(monkeypatch):
     assert called["value"] is True
 
 
+def test_main_gui_subcommand_passes_host_port_and_browser_flags(monkeypatch):
+    called = {}
+
+    def fake_launch_gui(*, host, port, reload, show):
+        called.update({"host": host, "port": port, "reload": reload, "show": show})
+
+    monkeypatch.setattr(tokamaker_jax.gui, "launch_gui", fake_launch_gui)
+
+    assert main(["gui", "--host", "0.0.0.0", "--port", "8091", "--reload", "--no-browser"]) == 0
+    assert called == {"host": "0.0.0.0", "port": 8091, "reload": True, "show": False}
+
+
 def test_run_config_uses_toml_output_defaults(tmp_path: Path):
     config_path = tmp_path / "case.toml"
     output_path = tmp_path / "from_config.npz"

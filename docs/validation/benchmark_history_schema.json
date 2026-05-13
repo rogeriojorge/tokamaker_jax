@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokamaker-jax.readthedocs.io/validation/benchmark_history_schema.json",
+  "title": "TokaMaker JAX benchmark history",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/historyEntry"
+    },
+    {
+      "$ref": "#/$defs/historyDocument"
+    }
+  ],
+  "$defs": {
+    "historyDocument": {
+      "type": "object",
+      "required": ["schema_version", "entries"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/historyEntry"
+          }
+        }
+      }
+    },
+    "historyEntry": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "suite",
+        "source_schema_version",
+        "time_unit",
+        "environment",
+        "lanes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "suite": {
+          "type": "string"
+        },
+        "source_schema_version": {
+          "type": ["integer", "null"]
+        },
+        "time_unit": {
+          "type": "string"
+        },
+        "environment": {
+          "$ref": "#/$defs/environment"
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lane"
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["platform", "python", "machine", "processor", "timestamp"],
+      "additionalProperties": true,
+      "properties": {
+        "platform": {
+          "type": "string"
+        },
+        "python": {
+          "type": "string"
+        },
+        "machine": {
+          "type": "string"
+        },
+        "processor": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      }
+    },
+    "lane": {
+      "type": "object",
+      "required": ["lane", "name", "metrics", "metadata"],
+      "additionalProperties": false,
+      "properties": {
+        "lane": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/metrics"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "threshold": {
+          "$ref": "#/$defs/threshold"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["best_s", "median_s", "worst_s", "repeats", "warmups"],
+      "additionalProperties": false,
+      "properties": {
+        "best_s": {
+          "type": "number"
+        },
+        "median_s": {
+          "type": "number"
+        },
+        "worst_s": {
+          "type": "number"
+        },
+        "repeats": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warmups": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "required": ["status", "ratio", "max_median_s"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "ratio": {
+          "type": "number"
+        },
+        "max_median_s": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

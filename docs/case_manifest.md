@@ -60,11 +60,19 @@ The GUI opens with:
 tokamaker-jax
 ```
 
+For explicit server control:
+
+```bash
+tokamaker-jax gui --host 127.0.0.1 --port 8081 --no-browser
+```
+
 The `Cases` tab shows the same table as the CLI, including status,
-category, parity level, command, and validation gate. It also includes a
-read-only source preview for local TOML or Python example files, which keeps
-research users close to the actual inputs rather than hiding the run setup
-behind a purely visual workflow.
+category, parity level, command, and validation gate. It includes a source
+preview/editor for local TOML files, validates editor text without mutating the
+case file, and runs only the saved manifest TOML after confirming the editor
+matches disk. The result table captures process status, stdout/stderr, duration,
+return code, and artifact existence so GUI runs remain reproducible from the
+printed CLI command.
 
 ## Next Numeric Gates
 

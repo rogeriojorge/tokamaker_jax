@@ -13,6 +13,7 @@ from tokamaker_jax.verification import (
     rectangular_triangles,
     run_circular_loop_green_function_validation,
     run_coil_green_function_validation,
+    run_fixed_boundary_geqdsk_validation,
     run_free_boundary_profile_coupling_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
@@ -121,6 +122,24 @@ def test_free_boundary_profile_coupling_validation_schema_and_tolerances():
     assert result.update_final < 1.0
     assert result.psi_abs_max > 0.0
     assert result.coil_flux_abs_max > 0.0
+
+
+def test_fixed_boundary_geqdsk_validation_schema_and_tolerances():
+    result = run_fixed_boundary_geqdsk_validation()
+    payload = result.to_dict()
+
+    assert json.loads(json.dumps(payload)) == payload
+    assert result.status == "pass"
+    assert result.numeric_parity_claim is False
+    assert result.nr == 129
+    assert result.nz == 129
+    assert result.profile_length == 129
+    assert result.shape_matches is True
+    assert result.q_positive is True
+    assert result.psi_range_positive is True
+    assert result.current_relative_error < 1.0e-10
+    assert result.bcentr_absolute_error < 1.0e-12
+    assert result.axis_error_m < 1.0e-8
 
 
 def test_verification_validation_errors():

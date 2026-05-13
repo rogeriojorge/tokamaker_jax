@@ -109,18 +109,21 @@
       "id": "seed-and-local-fem-benchmarks",
       "category": "performance",
       "status": "implemented",
-      "description": "Validate executable benchmark helpers and JSON-friendly timing outputs without asserting hardware-independent speed.",
-      "command": "python -m pytest tests/test_benchmarks.py",
+      "description": "Validate executable benchmark helpers, JSON-friendly timing outputs, threshold reports, and benchmark-history JSONL entries without asserting hardware-independent speed.",
+      "command": "python -m pytest tests/test_benchmarks.py tests/test_benchmark_history.py",
       "artifact": "docs/_static/benchmark_summary.png",
       "report": "docs/_static/benchmark_report.json",
       "threshold_report": "docs/_static/benchmark_threshold_report.json",
       "thresholds": "docs/validation/benchmark_thresholds.json",
+      "history_schema": "docs/validation/benchmark_history_schema.json",
       "required_checks": [
         "benchmark_result_json_roundtrip",
         "aggregate_benchmark_report_json",
         "benchmark_report_example_script",
         "benchmark_validation_errors",
         "benchmark_threshold_report",
+        "benchmark_history_jsonl_roundtrip",
+        "benchmark_history_threshold_status",
         "ci_benchmark_artifact_upload",
         "small_seed_solve_timing",
         "jitted_local_fem_kernel_timing",
@@ -308,6 +311,32 @@
         "type": "source_audit_plus_stored_upstream_output",
         "numeric_parity_claim": false,
         "tolerance_source": "tests/test_fixed_boundary_evidence.py and tests/test_docs_artifacts.py"
+      }
+    },
+    {
+      "id": "fixed-boundary-geqdsk-diagnostics",
+      "category": "physics_parity",
+      "status": "implemented_input_numeric_gate",
+      "description": "Validate committed gNT_example gEQDSK diagnostics from the upstream fixed-boundary examples against explicit shape, current, magnetic-axis, field, flux-range, and q-profile tolerances without claiming solved-equilibrium parity.",
+      "command": "tokamaker-jax verify --gate fixed-boundary-geqdsk",
+      "artifact": "docs/_static/fixed_boundary_upstream_evidence.json",
+      "required_checks": [
+        "grid_shape_129_by_129",
+        "profile_length_129",
+        "plasma_current_relative_error",
+        "center_field_absolute_error",
+        "magnetic_axis_euclidean_error",
+        "positive_nonconstant_q_profile",
+        "positive_flux_span",
+        "explicit_no_numeric_equilibrium_parity_claim"
+      ],
+      "pass_rule": {
+        "type": "committed_input_diagnostic_tolerance",
+        "numeric_parity_claim": false,
+        "current_relative_tolerance": 1e-10,
+        "bcentr_absolute_tolerance": 1e-12,
+        "axis_absolute_tolerance_m": 1e-8,
+        "tolerance_source": "tests/test_verification.py and tests/test_cli_validate.py"
       }
     },
     {

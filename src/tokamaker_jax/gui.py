@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,7 @@ from tokamaker_jax.config import (
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
+from tokamaker_jax.gui_runner import GuiCommandResult, run_manifest_toml_case
 from tokamaker_jax.plotting import equilibrium_metadata_summary, region_table_data
 from tokamaker_jax.solver import solve_from_config
 from tokamaker_jax.upstream_fixtures import upstream_fixture_rows
@@ -40,6 +42,7 @@ from tokamaker_jax.verification import (
     GradShafranovConvergenceStudy,
     PoissonConvergenceStudy,
     run_coil_green_function_validation,
+    run_fixed_boundary_geqdsk_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
 )
@@ -59,25 +62,227 @@ _DEFAULT_REPORT_ARTIFACTS = {
     "upstream_fixtures": Path("docs/_static/upstream_fixture_summary.json"),
     "benchmark": Path("docs/_static/benchmark_report.json"),
 }
+_GUI_HEAD_STYLE = """
+:root {
+  --tm-ink: #17202a;
+  --tm-muted: #596579;
+  --tm-border: #d8dee8;
+  --tm-panel: #ffffff;
+  --tm-soft: #f4f7fb;
+  --tm-cyan: #007f8f;
+  --tm-green: #2f7d50;
+  --tm-amber: #ad6b00;
+}
+body, .q-page {
+  background: var(--tm-soft);
+  color: var(--tm-ink);
+}
+.nicegui-content {
+  max-width: 1520px;
+  margin: 0 auto;
+  padding: 18px 22px 34px;
+}
+.tm-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--tm-border);
+  color: var(--tm-ink);
+}
+.tm-header-row {
+  width: min(1520px, 100%);
+  margin: 0 auto;
+  padding: 12px 22px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.tm-title {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.tm-subtitle {
+  color: var(--tm-muted);
+  font-size: 0.88rem;
+}
+.tm-status-row {
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tm-badge {
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  font-weight: 650;
+  color: #ffffff;
+}
+.tm-badge.pass { background: var(--tm-green); }
+.tm-badge.info { background: var(--tm-cyan); }
+.tm-badge.warn { background: var(--tm-amber); }
+.tm-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 6px 0 14px;
+}
+.tm-kpi {
+  background: var(--tm-panel);
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: 88px;
+}
+.tm-kpi-label {
+  color: var(--tm-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tm-kpi-value {
+  font-size: 1.28rem;
+  font-weight: 720;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+.tm-kpi-detail {
+  color: var(--tm-muted);
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+.tm-tabs {
+  background: var(--tm-panel);
+  border: 1px solid var(--tm-border);
+  border-radius: 8px 8px 0 0;
+  padding: 0 8px;
+}
+.tm-tabs .q-tab {
+  min-height: 46px;
+  font-weight: 650;
+}
+.tm-tabs .q-tab--active {
+  color: var(--tm-cyan);
+}
+.tm-panels {
+  background: var(--tm-panel);
+  border: 1px solid var(--tm-border);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+.tm-panels .q-tab-panel {
+  padding: 16px;
+}
+.tm-section-title {
+  color: var(--tm-ink);
+  font-weight: 700;
+  margin: 8px 0 2px;
+}
+.q-table__container {
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  box-shadow: none;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.q-table th {
+  color: var(--tm-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f8fafc;
+}
+.q-table tbody tr:nth-child(even) {
+  background: #fbfcfe;
+}
+.q-table td {
+  vertical-align: top;
+  white-space: normal;
+}
+.js-plotly-plot {
+  background: #ffffff;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.q-btn {
+  border-radius: 8px;
+  font-weight: 650;
+}
+.q-field--outlined .q-field__control,
+.q-textarea .q-field__control {
+  border-radius: 8px;
+}
+@media (max-width: 900px) {
+  .nicegui-content { padding: 12px; }
+  .tm-header-row { padding: 10px 12px; }
+  .tm-kpi-row { grid-template-columns: 1fr; }
+}
+"""
 
 
-def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) -> None:
-    """Launch a small interactive GUI.
-
-    The complete GUI is planned as a richer workflow builder; this seed UI keeps
-    the default CLI behavior useful while the solver port matures.
-    """
+def launch_gui(
+    host: str = "127.0.0.1",
+    port: int = 8080,
+    reload: bool = False,
+    show: bool = True,
+) -> None:
+    """Launch the interactive GUI."""
 
     try:
         from nicegui import ui
     except ImportError as exc:  # pragma: no cover - optional dependency path
         raise SystemExit("Install GUI dependencies with: pip install tokamaker-jax") from exc
 
-    ui.page_title("tokamaker-jax")
-    ui.label("tokamaker-jax").classes("text-h4")
-    ui.label("Differentiable fixed-boundary seed equilibrium").classes("text-subtitle1")
+    def root() -> None:
+        _build_gui(ui)
 
-    with ui.tabs().classes("w-full") as tabs:
+    ui.run(root=root, host=host, port=port, reload=reload, show=show)
+
+
+def _build_gui(ui: Any) -> None:
+    """Build the NiceGUI interface for one client session."""
+
+    ui.add_head_html(f"<style>{_GUI_HEAD_STYLE}</style>")
+    ui.page_title("tokamaker-jax")
+    overview_dashboard = workflow_dashboard_data(iterations=80)
+    with ui.header(elevated=False).classes("tm-header"), ui.row().classes("tm-header-row"):
+        with ui.column().classes("gap-0"):
+            ui.label("tokamaker-jax").classes("tm-title")
+            ui.label("Differentiable Grad-Shafranov workflows for research iteration").classes(
+                "tm-subtitle"
+            )
+        with ui.row().classes("tm-status-row"):
+            ui.label("seed solver").classes("tm-badge info")
+            ui.label("validation gates pass").classes("tm-badge pass")
+            ui.label("upstream parity bounded").classes("tm-badge warn")
+
+    with ui.row().classes("tm-kpi-row"):
+        _kpi_card(
+            ui,
+            "Workflow",
+            str(overview_dashboard["workflow"]["status"]),
+            "current session rollup",
+        )
+        _kpi_card(
+            ui,
+            "Validation",
+            str(overview_dashboard["validation"]["status"]),
+            f"{len(overview_dashboard['validation']['gates'])} executable gates",
+        )
+        _kpi_card(
+            ui,
+            "Seed solve",
+            _format_number(overview_dashboard["seed_equilibrium"]["metrics"]["residual_final"]),
+            "final residual",
+        )
+        _kpi_card(
+            ui,
+            "Coils",
+            str(overview_dashboard["coil_response"]["metrics"]["n_coils"]),
+            "response preview",
+        )
+
+    with ui.tabs().classes("w-full tm-tabs") as tabs:
         workflow_tab = ui.tab("Workflow")
         equilibrium_tab = ui.tab("Seed equilibrium")
         geometry_tab = ui.tab("Region geometry")
@@ -86,10 +291,10 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
         cases_tab = ui.tab("Cases")
         reports_tab = ui.tab("Reports")
 
-    with ui.tab_panels(tabs, value=workflow_tab).classes("w-full"):
+    with ui.tab_panels(tabs, value=workflow_tab).classes("w-full tm-panels"):
         with ui.tab_panel(workflow_tab):
-            dashboard = workflow_dashboard_data(iterations=120)
-            ui.label("Workflow state").classes("text-subtitle2")
+            dashboard = overview_dashboard
+            ui.label("Workflow state").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "section", "label": "Section", "field": "section"},
@@ -99,7 +304,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=workflow_status_rows(dashboard),
             ).classes("w-full")
-            ui.label("Validation gates").classes("text-subtitle2")
+            ui.label("Validation gates").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "gate", "label": "Gate", "field": "gate"},
@@ -109,7 +314,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=validation_gate_rows(dashboard),
             ).classes("w-full")
-            ui.label("Open next steps").classes("text-subtitle2")
+            ui.label("Open next steps").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "step", "label": "Step", "field": "step"},
@@ -122,7 +327,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             with ui.row().classes("items-end"):
                 pressure = ui.number("pressure scale", value=5.0e3, min=0.0, step=250.0)
                 ffp = ui.number("dF2/dpsi scale", value=-0.35, step=0.05)
-                iterations = ui.number("iterations", value=450, min=1, max=3000, step=50)
+                iterations = ui.number("iterations", value=80, min=1, max=3000, step=40)
 
             figure, summary = _seed_equilibrium_payload(
                 float(pressure.value), float(ffp.value), int(iterations.value)
@@ -145,10 +350,10 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 summary_table.rows = seed_equilibrium_summary_rows(summary)
                 summary_table.update()
 
-            ui.button("Run", on_click=update)
+            ui.button("Run", on_click=update).props("color=primary")
 
         with ui.tab_panel(geometry_tab):
-            ui.label("Sample machine regions").classes("text-subtitle2")
+            ui.label("Sample machine regions").classes("tm-section-title")
             regions = _sample_regions()
             ui.plotly(region_geometry_figure(regions)).classes("w-full h-[620px]")
             ui.table(
@@ -168,7 +373,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             ui.plotly(coil_green_response_figure()).classes("w-full h-[620px]")
         with ui.tab_panel(cases_tab):
             manifest = default_case_manifest()
-            ui.label("Runnable cases and upstream parity targets").classes("text-subtitle2")
+            ui.label("Runnable cases and upstream parity targets").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "case_id", "label": "Case", "field": "case_id"},
@@ -225,6 +430,14 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                     validation=validation,
                 ),
             ).classes("w-full")
+            run_result_table = ui.table(
+                columns=[
+                    {"name": "item", "label": "Item", "field": "item"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "detail", "label": "Detail", "field": "detail"},
+                ],
+                rows=case_run_result_rows(None),
+            ).classes("w-full")
 
             def update_preview() -> None:
                 case_id = str(selector.value)
@@ -247,6 +460,8 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                     validation=validation,
                 )
                 command_table.update()
+                run_result_table.rows = case_run_result_rows(None)
+                run_result_table.update()
 
             def validate_editor() -> None:
                 case_id = str(selector.value)
@@ -273,12 +488,61 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                     validation=validation,
                 )
                 command_table.update()
+                run_result_table.rows = case_run_result_rows(None)
+                run_result_table.update()
+
+            def run_selected_case() -> None:
+                case_id = str(selector.value)
+                validation = validate_toml_text(
+                    str(source_box.value or ""),
+                    source_name=manifest.by_id(case_id).path or "<editor>",
+                )
+                validation_table.rows = toml_validation_rows(validation)
+                validation_table.update()
+                command_table.rows = case_validation_run_rows(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                    validation=validation,
+                )
+                command_table.update()
+                if validation.get("status") != "pass":
+                    run_result_table.rows = case_run_result_rows(
+                        None,
+                        message="TOML validation must pass before running",
+                    )
+                    run_result_table.update()
+                    return
+                disk_source = load_case_source_text(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                )
+                if str(source_box.value or "") != str(disk_source.get("source", "")):
+                    run_result_table.rows = case_run_result_rows(
+                        None,
+                        message=(
+                            "Editor has unsaved changes; run uses the saved manifest TOML file"
+                        ),
+                    )
+                    run_result_table.update()
+                    return
+                result = run_manifest_toml_case(
+                    case_id,
+                    manifest=manifest,
+                    root=_PROJECT_ROOT,
+                    timeout_s=120.0,
+                )
+                run_result_table.rows = case_run_result_rows(result)
+                run_result_table.update()
 
             selector.on_value_change(lambda _: update_preview())
-            ui.button("Validate editor text", on_click=validate_editor)
+            with ui.row().classes("items-center gap-2"):
+                ui.button("Validate editor text", on_click=validate_editor).props("outline")
+                ui.button("Run saved TOML", on_click=run_selected_case).props("color=primary")
         with ui.tab_panel(reports_tab):
             artifacts = load_gui_report_artifacts()
-            ui.label("Validation reports").classes("text-subtitle2")
+            ui.label("Validation reports").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "gate", "label": "Gate", "field": "gate"},
@@ -288,7 +552,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=validation_report_rows(artifacts),
             ).classes("w-full")
-            ui.label("Benchmark report").classes("text-subtitle2")
+            ui.label("Benchmark report").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "lane", "label": "Lane", "field": "lane"},
@@ -299,7 +563,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=benchmark_report_rows(artifacts.get("benchmark")),
             ).classes("w-full")
-            ui.label("Upstream fixture inventory").classes("text-subtitle2")
+            ui.label("Upstream fixture inventory").classes("tm-section-title")
             ui.table(
                 columns=[
                     {"name": "fixture_id", "label": "Fixture", "field": "fixture_id"},
@@ -311,7 +575,13 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                 ],
                 rows=upstream_fixture_report_rows(artifacts.get("upstream_fixtures")),
             ).classes("w-full")
-    ui.run(host=host, port=port, reload=reload, show=True)
+
+
+def _kpi_card(ui: Any, label: str, value: str, detail: str) -> None:
+    with ui.column().classes("tm-kpi"):
+        ui.label(label).classes("tm-kpi-label")
+        ui.label(value).classes("tm-kpi-value")
+        ui.label(detail).classes("tm-kpi-detail")
 
 
 def region_geometry_figure(
@@ -403,7 +673,7 @@ def validation_convergence_figure(gate: str = "grad-shafranov"):
     import plotly.graph_objects as go
 
     if gate == "poisson":
-        study = run_poisson_convergence_study((4, 8, 16))
+        study = _cached_poisson_convergence_study((4, 8, 16))
         return _convergence_figure_from_study(
             go,
             "p=1 manufactured Poisson convergence",
@@ -413,7 +683,7 @@ def validation_convergence_figure(gate: str = "grad-shafranov"):
             h1_rates=study.h1_rates,
         )
     if gate == "grad-shafranov":
-        study = run_grad_shafranov_convergence_study((4, 8, 16))
+        study = _cached_grad_shafranov_convergence_study((4, 8, 16))
         return _convergence_figure_from_study(
             go,
             "axisymmetric Grad-Shafranov weak-form convergence",
@@ -836,10 +1106,86 @@ def case_validation_run_rows(
     return rows
 
 
+def case_run_result_rows(
+    result: GuiCommandResult | Mapping[str, Any] | None,
+    *,
+    message: str = "case has not been run in this GUI session",
+) -> list[dict[str, str]]:
+    """Return GUI-ready rows for a one-click case run result."""
+
+    if result is None:
+        return [{"item": "Run result", "status": "not_run", "detail": message}]
+
+    payload = result.to_dict() if isinstance(result, GuiCommandResult) else result
+    command = payload.get("command", [])
+    command_text = " ".join(str(part) for part in command) if isinstance(command, Sequence) else ""
+    rows = [
+        {
+            "item": "Validation",
+            "status": str(payload.get("validation_status", "unknown")),
+            "detail": str(payload.get("validation_message", "")),
+        },
+        {
+            "item": "Process",
+            "status": str(payload.get("status", "unknown")),
+            "detail": _case_run_process_detail(payload, command_text),
+        },
+    ]
+    stdout = str(payload.get("stdout", "")).strip()
+    stderr = str(payload.get("stderr", "")).strip()
+    if stdout:
+        rows.append({"item": "stdout", "status": "captured", "detail": _clip_text(stdout)})
+    if stderr:
+        rows.append({"item": "stderr", "status": "captured", "detail": _clip_text(stderr)})
+    artifacts = payload.get("artifacts", [])
+    if isinstance(artifacts, Sequence) and not isinstance(artifacts, str):
+        rows.extend(_case_run_artifact_rows(artifacts))
+    return rows
+
+
 def _case_preview_label(case_id: str, manifest: CaseManifest) -> str:
     entry = manifest.by_id(case_id)
     command = entry.command or entry.validation_gate or "planned"
     return f"{entry.title}: {entry.status}; {entry.parity_level}; {command}"
+
+
+def _case_run_process_detail(payload: Mapping[str, Any], command_text: str) -> str:
+    duration = payload.get("duration_s", 0.0)
+    returncode = payload.get("returncode")
+    timed_out = bool(payload.get("timed_out", False))
+    dry_run = bool(payload.get("dry_run", False))
+    mode = "dry run" if dry_run else "run"
+    timeout = "; timed out" if timed_out else ""
+    code = "n/a" if returncode is None else str(returncode)
+    return f"{mode}; returncode={code}; {float(duration):.2f}s{timeout}; {command_text}"
+
+
+def _case_run_artifact_rows(artifacts: Sequence[Any]) -> list[dict[str, str]]:
+    rows = []
+    for artifact in artifacts:
+        if not isinstance(artifact, Mapping):
+            continue
+        label = str(artifact.get("label", "artifact"))
+        path = str(artifact.get("path", ""))
+        exists = bool(artifact.get("exists", False))
+        size = artifact.get("size_bytes")
+        detail = path
+        if exists and size is not None:
+            detail = f"{path} ({size} bytes)"
+        rows.append(
+            {
+                "item": f"artifact:{label}",
+                "status": "present" if exists else "missing",
+                "detail": detail,
+            }
+        )
+    return rows
+
+
+def _clip_text(text: str, *, limit: int = 400) -> str:
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 3]}..."
 
 
 def _validation_output_detail(output_paths: Any) -> str:
@@ -1111,9 +1457,10 @@ def _region_geometry_dashboard(regions: tuple[Region, ...]) -> dict[str, Any]:
 
 
 def _validation_dashboard(subdivisions: tuple[int, ...]) -> dict[str, Any]:
-    poisson = run_poisson_convergence_study(subdivisions)
-    grad_shafranov = run_grad_shafranov_convergence_study(subdivisions)
+    poisson = _cached_poisson_convergence_study(subdivisions)
+    grad_shafranov = _cached_grad_shafranov_convergence_study(subdivisions)
     coil_green = run_coil_green_function_validation()
+    fixed_boundary = run_fixed_boundary_geqdsk_validation()
     gates = [
         _convergence_gate_summary(
             "poisson",
@@ -1134,6 +1481,7 @@ def _validation_dashboard(subdivisions: tuple[int, ...]) -> dict[str, Any]:
             command=_validation_command("grad-shafranov", subdivisions),
         ),
         _coil_green_gate_summary(coil_green),
+        _fixed_boundary_geqdsk_gate_summary(fixed_boundary),
     ]
     return {
         "status": _rollup_status(gate["status"] for gate in gates),
@@ -1179,6 +1527,20 @@ def _coil_response_dashboard() -> dict[str, Any]:
             "flux_all_finite": finite,
         },
     }
+
+
+@lru_cache(maxsize=8)
+def _cached_poisson_convergence_study(
+    subdivisions: tuple[int, ...],
+) -> PoissonConvergenceStudy:
+    return run_poisson_convergence_study(subdivisions)
+
+
+@lru_cache(maxsize=8)
+def _cached_grad_shafranov_convergence_study(
+    subdivisions: tuple[int, ...],
+) -> GradShafranovConvergenceStudy:
+    return run_grad_shafranov_convergence_study(subdivisions)
 
 
 def _convergence_gate_summary(
@@ -1247,6 +1609,30 @@ def _coil_green_gate_summary(validation) -> dict[str, Any]:
     }
 
 
+def _fixed_boundary_geqdsk_gate_summary(validation) -> dict[str, Any]:
+    metrics = validation.to_dict()
+    max_reference_error = max(
+        float(metrics["current_relative_error"]),
+        float(metrics["bcentr_absolute_error"]),
+        float(metrics["axis_error_m"]),
+    )
+    return {
+        "id": "fixed_boundary_geqdsk",
+        "label": "Fixed-boundary gEQDSK",
+        "status": str(metrics["status"]),
+        "command": "tokamaker-jax verify --gate fixed-boundary-geqdsk",
+        "summary": (
+            f"{metrics['nr']} x {metrics['nz']}; "
+            f"Ip err {_format_number(float(metrics['current_relative_error']))}; "
+            f"axis err {_format_number(float(metrics['axis_error_m']))} m"
+        ),
+        "metrics": {**metrics, "max_reference_error": max_reference_error},
+        "thresholds": metrics["tolerances"],
+        "results": [],
+    }
+
+
+@lru_cache(maxsize=16)
 def _seed_equilibrium_payload(
     pressure_scale: float,
     ffp_scale: float,

@@ -120,6 +120,10 @@ python examples/benchmark_report.py \
   --output outputs/benchmark_report.json \
   --thresholds docs/validation/benchmark_thresholds.json \
   --comparison-output outputs/benchmark_threshold_report.json
+python examples/benchmark_history.py \
+  outputs/benchmark_report.json \
+  outputs/benchmark_history.jsonl \
+  --threshold-report outputs/benchmark_threshold_report.json
 python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family
 ```
 

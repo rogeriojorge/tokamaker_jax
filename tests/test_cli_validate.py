@@ -120,6 +120,16 @@ def test_main_verify_runs_free_boundary_profile_gate(capsys):
     assert "coil_linearity_relative_error" in captured.out
 
 
+def test_main_verify_runs_fixed_boundary_geqdsk_gate(capsys):
+    exit_code = main(["verify", "--gate", "fixed-boundary-geqdsk"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "fixed_boundary_geqdsk" in captured.out
+    assert '"numeric_parity_claim": false' in captured.out
+    assert '"status": "pass"' in captured.out
+
+
 def test_main_cases_lists_manifest_and_writes_json(capsys, tmp_path: Path):
     output = tmp_path / "cases.json"
 

@@ -8,6 +8,7 @@ from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.gui import (
     benchmark_report_rows,
     case_manifest_rows,
+    case_run_result_rows,
     case_validation_run_rows,
     coil_green_response_figure,
     load_case_source_text,
@@ -186,6 +187,8 @@ def test_workflow_dashboard_data_schema_and_key_values():
     )
     assert gates["coil_green"]["metrics"]["n_coils"] == 2
     assert gates["coil_green"]["metrics"]["max_error"] < 1.0e-10
+    assert gates["fixed_boundary_geqdsk"]["status"] == "pass"
+    assert gates["fixed_boundary_geqdsk"]["metrics"]["numeric_parity_claim"] is False
     assert dashboard["coil_response"]["metrics"]["n_coils"] == 3
 
     status_rows = workflow_status_rows(dashboard)
@@ -193,7 +196,7 @@ def test_workflow_dashboard_data_schema_and_key_values():
     next_step_rows = workflow_next_step_rows(dashboard)
 
     assert status_rows[0]["section"] == "Seed equilibrium"
-    assert gate_rows[-1]["gate"] == "Coil Green"
+    assert gate_rows[-1]["gate"] == "Fixed-boundary gEQDSK"
     assert next_step_rows[0] == {
         "step": "Validate TOML inputs",
         "status": "open",
@@ -426,6 +429,51 @@ def test_case_validation_run_rows_include_commands_and_block_failed_toml():
     assert python_rows[0]["status"] == "n/a"
     assert python_rows[0]["command"] == ""
     assert python_rows[1]["status"] == "ready"
+
+
+def test_case_run_result_rows_summarize_process_streams_and_artifacts():
+    rows = case_run_result_rows(
+        {
+            "validation_status": "pass",
+            "validation_message": "TOML config is valid",
+            "status": "pass",
+            "returncode": 0,
+            "duration_s": 0.125,
+            "timed_out": False,
+            "dry_run": False,
+            "command": ["tokamaker-jax", "case.toml"],
+            "stdout": "residual_final=0.1\n",
+            "stderr": "",
+            "artifacts": [
+                {
+                    "label": "npz",
+                    "path": "/tmp/out.npz",
+                    "exists": True,
+                    "size_bytes": 12,
+                }
+            ],
+        }
+    )
+
+    assert rows[0] == {
+        "item": "Validation",
+        "status": "pass",
+        "detail": "TOML config is valid",
+    }
+    assert rows[1]["item"] == "Process"
+    assert rows[1]["status"] == "pass"
+    assert "returncode=0" in rows[1]["detail"]
+    assert rows[2] == {
+        "item": "stdout",
+        "status": "captured",
+        "detail": "residual_final=0.1",
+    }
+    assert rows[3] == {
+        "item": "artifact:npz",
+        "status": "present",
+        "detail": "/tmp/out.npz (12 bytes)",
+    }
+    assert case_run_result_rows(None)[0]["status"] == "not_run"
 
 
 def test_benchmark_report_rows_reports_missing_artifact():

@@ -25,6 +25,17 @@ from tokamaker_jax.assembly import (
     linear_load_vector,
     solve_dirichlet_system,
 )
+from tokamaker_jax.benchmark_history import (
+    BENCHMARK_HISTORY_COMPARISON_SCHEMA_VERSION,
+    BENCHMARK_HISTORY_SCHEMA_VERSION,
+    benchmark_history_document,
+    benchmark_history_entry,
+    benchmark_history_to_json,
+    benchmark_history_to_jsonl,
+    compare_benchmark_history,
+    read_benchmark_history_jsonl,
+    write_benchmark_history_jsonl,
+)
 from tokamaker_jax.benchmarks import (
     BENCHMARK_REPORT_SCHEMA_VERSION,
     BENCHMARK_THRESHOLD_SCHEMA_VERSION,
@@ -57,6 +68,7 @@ from tokamaker_jax.comparison import (
 )
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, load_config
 from tokamaker_jax.domain import RectangularGrid
+from tokamaker_jax.eqdsk import Eqdsk, diagnose_eqdsk, parse_eqdsk
 from tokamaker_jax.fem import (
     TriangleQuadrature,
     linear_basis,
@@ -151,6 +163,7 @@ from tokamaker_jax.upstream_fixtures import (
 from tokamaker_jax.verification import (
     CircularLoopGreenFunctionValidation,
     CoilGreenFunctionValidation,
+    FixedBoundaryGeqdskValidation,
     FreeBoundaryProfileCouplingValidation,
     GradShafranovConvergenceResult,
     GradShafranovConvergenceStudy,
@@ -164,6 +177,7 @@ from tokamaker_jax.verification import (
     rectangular_triangles,
     run_circular_loop_green_function_validation,
     run_coil_green_function_validation,
+    run_fixed_boundary_geqdsk_validation,
     run_free_boundary_profile_coupling_validation,
     run_grad_shafranov_convergence_study,
     run_poisson_convergence_study,
@@ -177,6 +191,8 @@ from tokamaker_jax.verification import (
 __all__ = [
     "BenchmarkResult",
     "BENCHMARK_REPORT_SCHEMA_VERSION",
+    "BENCHMARK_HISTORY_COMPARISON_SCHEMA_VERSION",
+    "BENCHMARK_HISTORY_SCHEMA_VERSION",
     "BENCHMARK_THRESHOLD_SCHEMA_VERSION",
     "CaseManifest",
     "CaseManifestEntry",
@@ -185,9 +201,11 @@ __all__ = [
     "CoilGreenFunctionValidation",
     "CircularLoopGreenFunctionValidation",
     "DirichletSystem",
+    "Eqdsk",
     "EquilibriumSolution",
     "FemProfileIterationSolution",
     "FigureRecipe",
+    "FixedBoundaryGeqdskValidation",
     "FreeBoundaryProfileCouplingValidation",
     "GradShafranovConvergenceResult",
     "GradShafranovConvergenceStudy",
@@ -237,6 +255,10 @@ __all__ = [
     "benchmark_callable",
     "benchmark_circular_loop_elliptic_response",
     "benchmark_coil_green_response",
+    "benchmark_history_document",
+    "benchmark_history_entry",
+    "benchmark_history_to_json",
+    "benchmark_history_to_jsonl",
     "benchmark_local_fem_kernel",
     "benchmark_report_to_json",
     "benchmark_seed_equilibrium",
@@ -262,9 +284,11 @@ __all__ = [
     "coil_flux_on_grid",
     "coil_response_matrix",
     "complete_elliptic_integrals_agm",
+    "compare_benchmark_history",
     "constant_profile_load_oracle",
     "default_case_manifest",
     "default_upstream_fixtures",
+    "diagnose_eqdsk",
     "evaluate_coil_green_response",
     "fixed_boundary_report_to_json",
     "fixed_boundary_upstream_report",
@@ -289,9 +313,11 @@ __all__ = [
     "normalize_profile_flux",
     "observed_rates",
     "parse_geqdsk",
+    "parse_eqdsk",
     "polygon_region",
     "poisson_error_metrics",
     "probe_openfusiontoolkit",
+    "read_benchmark_history_jsonl",
     "rectangular_triangles",
     "rectangle_region",
     "reference_triangle_nodes",
@@ -299,6 +325,7 @@ __all__ = [
     "regularized_log_green_gradient",
     "run_coil_green_function_validation",
     "run_circular_loop_green_function_validation",
+    "run_fixed_boundary_geqdsk_validation",
     "run_free_boundary_profile_coupling_validation",
     "run_grad_shafranov_convergence_study",
     "run_openfusiontoolkit_green_comparison",
@@ -327,6 +354,7 @@ __all__ = [
     "upstream_fixture_report_to_json",
     "upstream_fixture_rows",
     "write_case_manifest",
+    "write_benchmark_history_jsonl",
     "write_fixed_boundary_upstream_report",
     "write_upstream_fixture_summary",
 ]

@@ -41,6 +41,10 @@ triangular FEM path:
 - a bounded upstream fixed-boundary evidence artifact that inventories the
   public fixed-boundary notebooks and `gNT_example` gEQDSK file without claiming
   solved-equilibrium parity.
+- a CI-safe fixed-boundary gEQDSK numeric gate that validates the committed
+  `gNT_example` source diagnostics against explicit shape, current, magnetic
+  axis, center-field, flux-range, and q-profile tolerances without claiming
+  solved-equilibrium parity.
 - TOML parsing and `tokamaker-jax validate` checks for grid, solver, coil,
   output, and region-geometry inputs.
 - fixed-boundary seed solver tests, including JAX differentiation checks on the
@@ -217,6 +221,7 @@ $$
 The executable command is:
 
 ```bash
+tokamaker-jax verify --gate fixed-boundary-geqdsk
 tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16
 ```
 
@@ -244,7 +249,33 @@ running the original solver. The current report records:
 | `fixed_boundary_ex2.ipynb` bridge case | Fixed-boundary mesh with 654 points and 1234 cells; free-boundary bridge mesh with 3918 points and 7736 cells; stored coil-current fit with seven kA-turn values. | Reduced Green/profile-coupling gates only; no fixed-to-free workflow parity. |
 
 This artifact is intentionally bounded. It proves that the upstream example
-requirements and stored outputs have been identified and versioned. It does not prove that `tokamaker-jax` reproduces those solved equilibria.
+requirements and stored outputs have been identified and versioned. It does not
+prove that `tokamaker-jax` reproduces those solved equilibria.
+This does not prove that `tokamaker-jax` reproduces those solved equilibria.
+
+The first numeric gate extracted from this evidence is the fixed-boundary
+gEQDSK source diagnostic gate:
+
+```bash
+tokamaker-jax verify --gate fixed-boundary-geqdsk
+```
+
+It validates the committed `docs/_static/fixed_boundary_upstream_evidence.json`
+copy of `gNT_example`. The current tolerance checks are:
+
+| Quantity | Expected value | Tolerance |
+| --- | ---: | ---: |
+| grid shape | `129 x 129` | exact |
+| profile length | `129` | exact |
+| plasma current | `7.79930071e6 A` | relative `1e-10` |
+| center field | `9.2 T` | absolute `1e-12` |
+| magnetic axis | `(3.5226247, -7.96984474e-06) m` | Euclidean `1e-8 m` |
+| q profile | positive and nonconstant | logical |
+| source flux range | positive span | logical |
+
+The gate currently reports `numeric_parity_claim=false`: it validates exact
+input ingestion and reference diagnostics, not a solved TokaMaker-vs-JAX
+equilibrium vector.
 
 ## Reduced Free-Boundary Coil Gate
 
@@ -489,10 +520,23 @@ python examples/benchmark_report.py \
   --fail-on-threshold
 ```
 
+Benchmark-history entries can be recorded from any benchmark report:
+
+```bash
+python examples/benchmark_history.py \
+  outputs/benchmark_report.json \
+  outputs/benchmark_history.jsonl \
+  --threshold-report outputs/benchmark_threshold_report.json
+```
+
+The history helpers store platform, Python version, timestamp, lane metadata,
+timings, and threshold status in JSONL so CI/release jobs can compare one run to
+another without treating raw wall-clock times as universal physics metrics.
+
 ![Benchmark summary](_static/benchmark_summary.png)
 
-Future gates should add hardware-normalized historical baselines and full
-free-boundary solve timings.
+Future gates should add full free-boundary solve timings and release-managed
+baseline histories for each supported backend.
 
 ## Literature-Anchored Figure Gates
 

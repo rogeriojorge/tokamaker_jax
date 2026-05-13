@@ -26,6 +26,12 @@ Launch the GUI:
 tokamaker-jax
 ```
 
+Use an explicit host/port when needed:
+
+```bash
+tokamaker-jax gui --host 127.0.0.1 --port 8081 --no-browser
+```
+
 Run a TOML case and write a plot:
 
 ```bash
@@ -90,6 +96,8 @@ tokamaker-jax verify --gate free-boundary-profile
 
 ## Visual Overview
 
+![GUI workflow dashboard](docs/_static/gui_workflow_dashboard.png)
+
 ![Publication validation panel](docs/_static/publication_validation_panel.png)
 
 ![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
@@ -129,8 +137,10 @@ tokamaker-jax verify --gate free-boundary-profile
 - Case manifest browser exposed through the CLI, GUI, docs, and committed JSON artifacts.
 - Availability-gated upstream fixture inventory for exact TokaMaker mesh/geometry files.
 - Source-evidence artifact for upstream fixed-boundary notebooks and the `gNT_example` gEQDSK case.
+- Reusable EQDSK/gEQDSK importer and committed fixed-boundary diagnostic gate.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
-- NiceGUI workflow dashboard summaries and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
+- NiceGUI workflow dashboard summaries, editable TOML validation, saved-case execution, and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
+- Benchmark-history JSON/JSONL helpers for recording hardware/context metadata with timing reports.
 - Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, and publication-ready generated figures.
 - Sphinx and Read the Docs setup.
 - GitHub Actions for linting, testing with coverage, benchmark artifact upload, docs, and release publishing.
