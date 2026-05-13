@@ -3103,3 +3103,33 @@ Completion after this pass:
 
 - Grad-Shafranov educational explorer lane: 100% locally, pending remote
   CI/Docs/Pages after push.
+
+### 2026-05-13 18:07 WEST
+
+Expanded the static GitHub Pages UI into a cleaner multi-tab MHD teaching
+explorer without restoring overview, milestone, or project-status dashboards.
+
+Implemented:
+
+- Kept Grad-Shafranov as the first and primary tab.
+- Added focused tabs for free-boundary coil Green responses, nonlinear
+  profiles, FEM/mesh assembly, verification/IO, and examples/CLI workflows.
+- Reworked the visual design with a simpler top bar, pill tabs, compact metric
+  cards, wider canvases, clearer right-side equations/prompts, and responsive
+  layouts.
+- Connected each tab to the relevant package surfaces: `solver.py`,
+  `profiles.py`, `free_boundary.py`, `fem_equilibrium.py`, `fem.py`,
+  `assembly.py`, `mesh.py`, `verification.py`, `eqdsk.py`, `config.py`,
+  `cli.py`, `examples.py`, and `plotting.py`.
+- Improved clipboard behavior with an async clipboard path, textarea fallback,
+  and download fallback for stricter browser permission models.
+- Updated browser-explorer docs, README wording, GUI/examples references,
+  progress docs, and docs artifact tests for the new tabbed educational scope.
+
+Validation completed locally:
+
+- `node --check` on the extracted explorer script: passed.
+- `python -m pytest tests/test_docs_artifacts.py -q`: 9 passed.
+- In-app browser loaded the local explorer with no console errors, verified all
+  tab transitions, exercised the Grad-Shafranov mode switch, animation, and
+  TOML copy, and re-captured the first-viewport screenshot.

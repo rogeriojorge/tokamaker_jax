@@ -29,13 +29,22 @@ def test_static_browser_explorer_is_self_contained_and_linked():
     )
 
     assert "tokamaker_jax_explorer.html" in explorer_docs
-    assert "Grad-Shafranov Explorer" in explorer
+    assert "MHD Solver Explorer" in explorer
+    assert "tokamaker-jax educational browser companion" in explorer
     assert "J x B = grad(p) -> Delta* psi" in explorer
     assert "Delta* psi = -mu0 R^2 p'(psi) - F(psi) F'(psi)" in explorer
-    assert "Flux surfaces" in explorer
-    assert "Source terms" in explorer
+    assert "Free-boundary coils" in explorer
     assert "Profiles" in explorer
+    assert "FEM and mesh" in explorer
+    assert "Verification and IO" in explorer
+    assert "Examples and CLI" in explorer
+    assert "Flux Surfaces" in explorer
+    assert "Source terms" in explorer
     assert "Relaxation" in explorer
+    assert "Coil Green Response" in explorer
+    assert "Triangular Mesh and Regions" in explorer
+    assert "Validation Curve" in explorer
+    assert "Feature Map" in explorer
     assert "What to try" in explorer
     assert "Copy TOML" in explorer
     assert "benchmark" not in explorer.lower()

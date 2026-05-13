@@ -23,9 +23,11 @@ Use `--no-browser` for remote Linux sessions, CI smoke checks, WSL, containers,
 or any machine where the server should start without opening a local browser
 window. Use `--port` when another local service already occupies port 8080.
 
-For static hosting, use the focused browser-side Grad-Shafranov explorer instead
-of the NiceGUI server: [](browser_explorer.md). It can be served by GitHub Pages
-because it is a self-contained HTML teaching tool.
+For static hosting, use the browser-side MHD solver explorer instead of the
+NiceGUI server: [](browser_explorer.md). It can be served by GitHub Pages
+because it is a self-contained HTML teaching tool. The Grad-Shafranov tab is
+first, and companion tabs cover coil Green functions, nonlinear profiles,
+FEM/mesh assembly, verification/IO, and examples/CLI commands.
 
 ## First Screen
 

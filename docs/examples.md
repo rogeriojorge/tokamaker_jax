@@ -14,8 +14,9 @@ tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
 tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
 ```
 
-The same core Grad-Shafranov ideas are available as a focused static teaching
-page in the [](browser_explorer.md), suitable for GitHub Pages.
+The same core Grad-Shafranov ideas, plus coil-response, nonlinear-profile,
+FEM/mesh, verification, IO, and CLI teaching views, are available in the static
+[](browser_explorer.md), suitable for GitHub Pages.
 
 ```{image} _static/fixed_boundary_seed.png
 :alt: Fixed-boundary seed equilibrium contours

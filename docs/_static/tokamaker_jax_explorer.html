@@ -3,22 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Grad-Shafranov Explorer | tokamaker-jax</title>
+  <title>tokamaker-jax MHD Explorer</title>
   <style>
     :root {
       color-scheme: light;
-      --ink: #111827;
-      --muted: #5d687a;
-      --line: #d8e0ea;
-      --panel: #ffffff;
-      --page: #f3f6fa;
+      --ink: #142033;
+      --muted: #5b6678;
+      --subtle: #7a8494;
+      --line: #dbe2eb;
+      --page: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #f9fbfd;
       --teal: #007f8f;
-      --teal-dark: #006c78;
+      --teal-dark: #006b78;
       --blue: #315f9a;
-      --amber: #ad6b00;
+      --amber: #b66e00;
       --green: #2f7d55;
-      --red: #b33a3a;
-      --shadow: 0 16px 44px rgba(22, 34, 56, 0.10);
+      --red: #b34343;
+      --violet: #6750a4;
+      --shadow: 0 16px 40px rgba(20, 32, 51, 0.09);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -26,11 +29,15 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
       color: var(--ink);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.70), rgba(243, 246, 250, 0.86)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(245, 247, 251, 0.92)),
         var(--page);
     }
 
@@ -42,68 +49,145 @@
     }
 
     .shell {
-      width: min(1500px, calc(100vw - 32px));
+      width: min(1560px, calc(100vw - 32px));
       margin: 0 auto;
-      padding: 22px 0 34px;
+      padding: 20px 0 34px;
     }
 
-    header {
+    .topbar {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 16px;
+      gap: 18px;
       align-items: end;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--teal-dark);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(2rem, 3.4vw, 3.4rem);
-      line-height: 1.02;
+      font-size: clamp(2rem, 3.5vw, 3.75rem);
+      line-height: 1;
       letter-spacing: 0;
     }
 
     .subtitle {
-      max-width: 880px;
+      max-width: 940px;
       margin: 9px 0 0;
       color: var(--muted);
-      font-size: 1.02rem;
+      font-size: clamp(0.98rem, 1.1vw, 1.08rem);
       line-height: 1.55;
     }
 
-    .equation-pill {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #ffffff;
-      padding: 10px 13px;
-      color: #253149;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.82rem;
-      white-space: nowrap;
-      box-shadow: 0 8px 24px rgba(22, 34, 56, 0.07);
+    .header-stack {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
     }
 
-    .layout {
+    .equation-pill,
+    .module-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: #253149;
+      padding: 9px 12px;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(20, 32, 51, 0.07);
+    }
+
+    .equation-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.78rem;
+    }
+
+    .module-pill {
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0 12px;
+      background: linear-gradient(180deg, rgba(245, 247, 251, 0.96), rgba(245, 247, 251, 0.82));
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: #29364a;
+      cursor: pointer;
+      font-weight: 850;
+      padding: 8px 13px;
+      transition: background 0.14s ease, color 0.14s ease, border 0.14s ease, transform 0.14s ease;
+    }
+
+    .tab-button:hover,
+    .tab-button:focus-visible {
+      transform: translateY(-1px);
+      outline: none;
+      border-color: rgba(0, 127, 143, 0.42);
+    }
+
+    .tab-button.active {
+      background: #142033;
+      border-color: #142033;
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(20, 32, 51, 0.15);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
       display: grid;
-      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(300px, 380px);
+      grid-template-columns: minmax(300px, 355px) minmax(0, 1fr) minmax(300px, 380px);
       gap: 16px;
       align-items: start;
     }
 
     .panel {
-      background: var(--panel);
+      background: var(--surface);
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
     }
 
+    .panel-pad {
+      padding: 14px;
+    }
+
     .controls {
       position: sticky;
-      top: 12px;
+      top: 66px;
       padding: 16px;
     }
 
-    .panel-pad {
-      padding: 14px;
+    .side {
+      display: grid;
+      gap: 14px;
+    }
+
+    .viewer {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
     }
 
     .head {
@@ -121,23 +205,24 @@
     }
 
     h2 {
-      font-size: 1.05rem;
+      font-size: 1.04rem;
     }
 
     h3 {
-      font-size: 0.96rem;
+      font-size: 0.95rem;
     }
 
     .note {
-      color: var(--muted);
-      font-size: 0.84rem;
-      font-weight: 760;
+      color: var(--subtle);
+      font-size: 0.76rem;
+      font-weight: 850;
+      text-transform: uppercase;
     }
 
     .field {
       display: grid;
       gap: 7px;
-      margin: 14px 0;
+      margin: 13px 0;
     }
 
     label {
@@ -145,7 +230,7 @@
       justify-content: space-between;
       gap: 10px;
       color: #3f4b60;
-      font-size: 0.79rem;
+      font-size: 0.77rem;
       font-weight: 900;
       text-transform: uppercase;
     }
@@ -153,6 +238,7 @@
     .value {
       color: var(--teal);
       font-variant-numeric: tabular-nums;
+      text-transform: none;
     }
 
     input[type="range"] {
@@ -185,49 +271,33 @@
       margin-top: 16px;
     }
 
-    button {
-      border: 1px solid rgba(18, 24, 38, 0.14);
+    .button-row.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .action-button {
+      min-height: 42px;
+      border: 1px solid rgba(20, 32, 51, 0.15);
       border-radius: 6px;
-      background: #ffffff;
+      background: var(--surface);
       color: #1d2a3f;
       cursor: pointer;
       font-weight: 850;
-      min-height: 42px;
       padding: 9px 11px;
       transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
 
-    button:hover,
-    button:focus-visible {
+    .action-button:hover,
+    .action-button:focus-visible {
       transform: translateY(-1px);
       box-shadow: 0 9px 18px rgba(24, 36, 58, 0.13);
       outline: none;
     }
 
-    button.primary {
+    .action-button.primary {
       background: var(--teal);
       border-color: var(--teal-dark);
       color: #ffffff;
-    }
-
-    .message {
-      min-height: 22px;
-      margin: 12px 0 0;
-      color: var(--green);
-      font-size: 0.84rem;
-      font-weight: 820;
-    }
-
-    .command {
-      margin-top: 12px;
-      border-radius: 6px;
-      background: #111827;
-      color: #e6edf7;
-      padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.78rem;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
     }
 
     .metric-grid {
@@ -241,13 +311,13 @@
       min-height: 78px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
+      background: var(--surface);
       padding: 11px 12px;
     }
 
     .metric span {
       display: block;
-      color: var(--muted);
+      color: var(--subtle);
       font-size: 0.70rem;
       font-weight: 900;
       text-transform: uppercase;
@@ -256,14 +326,15 @@
     .metric strong {
       display: block;
       margin-top: 8px;
-      font-size: clamp(0.94rem, 1.5vw, 1.23rem);
-      line-height: 1.15;
+      font-size: clamp(0.92rem, 1.35vw, 1.18rem);
+      line-height: 1.16;
       font-variant-numeric: tabular-nums;
     }
 
-    #psiMetric {
-      font-size: clamp(0.82rem, 1.04vw, 0.98rem);
-      white-space: nowrap;
+    .metric-line {
+      display: block;
+      font-size: 0.84em;
+      line-height: 1.18;
     }
 
     canvas {
@@ -272,11 +343,12 @@
       height: auto;
       border: 1px solid #e2e8f2;
       border-radius: 6px;
-      background: #ffffff;
+      background: var(--surface);
     }
 
-    .viewer {
+    .plot-pair {
       display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.62fr);
       gap: 12px;
     }
 
@@ -288,9 +360,14 @@
     }
 
     .mode-button {
-      min-height: 36px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: #27364d;
+      cursor: pointer;
+      font-weight: 830;
       padding: 7px 11px;
-      background: #ffffff;
     }
 
     .mode-button.active {
@@ -300,38 +377,48 @@
       box-shadow: none;
     }
 
-    .side {
-      display: grid;
-      gap: 14px;
-    }
-
-    .card {
+    .info {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
-      padding: 13px;
+      background: var(--surface-2);
+      padding: 12px;
     }
 
-    .card p {
-      margin: 8px 0 0;
+    .info + .info {
+      margin-top: 10px;
+    }
+
+    .info p {
+      margin: 7px 0 0;
       color: var(--muted);
       font-size: 0.88rem;
       line-height: 1.5;
     }
 
-    .card code {
-      display: block;
+    .info code,
+    .code-block {
       color: #162033;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.81rem;
-      line-height: 1.52;
-      white-space: normal;
+      font-size: 0.80rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
-    .two {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .code-block {
+      display: block;
+      border-radius: 6px;
+      background: #111827;
+      color: #e8eef7;
+      padding: 12px;
+    }
+
+    .message {
+      min-height: 22px;
+      margin: 12px 0 0;
+      color: var(--green);
+      font-size: 0.84rem;
+      font-weight: 820;
     }
 
     table {
@@ -381,10 +468,54 @@
       background: var(--green);
     }
 
-    @media (max-width: 1180px) {
-      header,
-      .layout {
+    .legend .blue::before {
+      background: var(--blue);
+    }
+
+    .legend .red::before {
+      background: var(--red);
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .feature-list li {
+      display: grid;
+      grid-template-columns: 9px 1fr;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .feature-list li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-top: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .compact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 1220px) {
+      .topbar,
+      .tab-panel.active {
         grid-template-columns: 1fr;
+      }
+
+      .header-stack {
+        justify-items: start;
       }
 
       .controls {
@@ -392,86 +523,98 @@
       }
     }
 
-    @media (max-width: 820px) {
+    @media (max-width: 860px) {
       .shell {
-        width: min(100vw - 20px, 1500px);
+        width: min(100vw - 20px, 1560px);
         padding-top: 12px;
       }
 
       .metric-grid,
-      .two {
+      .plot-pair,
+      .compact-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
-    @media (max-width: 520px) {
+    @media (max-width: 560px) {
       .metric-grid,
+      .plot-pair,
+      .compact-grid,
       .button-row,
-      .two {
+      .button-row.three {
         grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        position: static;
       }
     }
   </style>
 </head>
 <body>
   <main class="shell">
-    <header>
+    <header class="topbar">
       <div>
-        <h1>Grad-Shafranov Explorer</h1>
+        <p class="eyebrow">tokamaker-jax educational browser companion</p>
+        <h1>MHD Solver Explorer</h1>
         <p class="subtitle">
-          Explore an axisymmetric MHD equilibrium by changing pressure, toroidal-field source, and shaping coils. The browser solve is a reduced fixed-boundary model; the exported TOML runs through tokamaker-jax for reproducible Python/JAX calculations.
+          A self-contained interface for learning the pieces of tokamaker-jax: Grad-Shafranov equilibria, free-boundary coil responses, nonlinear profiles, triangular FEM assembly, validation gates, TOML inputs, and CLI workflows.
         </p>
       </div>
-      <div class="equation-pill">J x B = grad(p) -> Delta* psi</div>
+      <div class="header-stack">
+        <div class="equation-pill">J x B = grad(p) -> Delta* psi = -mu0 R^2 p'(psi) - F F'(psi)</div>
+        <div class="module-pill" id="activeModule">solver.py + profiles.py</div>
+      </div>
     </header>
 
-    <section class="layout">
+    <nav class="tabs" aria-label="Explorer tabs">
+      <button class="tab-button active" data-tab="equilibrium" type="button">Grad-Shafranov</button>
+      <button class="tab-button" data-tab="coils" type="button">Free-boundary coils</button>
+      <button class="tab-button" data-tab="profiles" type="button">Profiles</button>
+      <button class="tab-button" data-tab="fem" type="button">FEM and mesh</button>
+      <button class="tab-button" data-tab="verification" type="button">Verification and IO</button>
+      <button class="tab-button" data-tab="examples" type="button">Examples and CLI</button>
+    </nav>
+
+    <section class="tab-panel active" id="tab-equilibrium" data-testid="tab-equilibrium">
       <aside class="panel controls">
         <div class="head">
-          <h2>Inputs</h2>
+          <h2>Equilibrium Inputs</h2>
           <span class="note">fixed boundary</span>
         </div>
-
         <div class="field">
-          <label for="scenario">Case</label>
-          <select id="scenario">
+          <label for="gsScenario">Case</label>
+          <select id="gsScenario">
             <option value="standard">Teaching equilibrium</option>
             <option value="pressure">High beta pressure</option>
             <option value="coil">Strong shaping coils</option>
             <option value="hollow">Hollow current profile</option>
           </select>
         </div>
-
         <div class="field">
           <label for="pressure">-dp/dpsi <span class="value" id="pressureValue"></span></label>
           <input id="pressure" type="range" min="0" max="10" step="0.1" value="5">
         </div>
-
         <div class="field">
           <label for="ffp">-F dF/dpsi <span class="value" id="ffpValue"></span></label>
           <input id="ffp" type="range" min="0" max="8" step="0.1" value="3.5">
         </div>
-
         <div class="field">
           <label for="current">PF coil current <span class="value" id="currentValue"></span></label>
           <input id="current" type="range" min="0" max="30" step="0.25" value="15">
         </div>
-
         <div class="field">
           <label for="elongation">Elongation <span class="value" id="elongationValue"></span></label>
           <input id="elongation" type="range" min="1.0" max="2.2" step="0.02" value="1.55">
         </div>
-
         <div class="field">
           <label for="triangularity">Triangularity <span class="value" id="triangularityValue"></span></label>
           <input id="triangularity" type="range" min="-0.45" max="0.55" step="0.01" value="0.18">
         </div>
-
         <div class="field">
           <label for="iterations">Relaxation steps <span class="value" id="iterationsValue"></span></label>
           <input id="iterations" type="range" min="30" max="220" step="5" value="90">
         </div>
-
         <div class="field">
           <label for="grid">Browser grid</label>
           <select id="grid">
@@ -480,13 +623,12 @@
             <option value="91">91 x 91</option>
           </select>
         </div>
-
         <div class="button-row">
-          <button class="primary" id="animate">Animate solve</button>
-          <button id="copyToml">Copy TOML</button>
+          <button class="action-button primary" id="animateGs" type="button">Animate solve</button>
+          <button class="action-button" id="copyGsToml" type="button">Copy TOML</button>
         </div>
-        <p class="message" id="message"></p>
-        <div class="command" id="command"></div>
+        <p class="message" id="gsMessage"></p>
+        <div class="code-block" id="gsCommand"></div>
       </aside>
 
       <section class="viewer">
@@ -496,23 +638,21 @@
           <div class="metric"><span>Magnetic axis</span><strong id="axisMetric"></strong></div>
           <div class="metric"><span>Plasma shaping</span><strong id="shapeMetric"></strong></div>
         </div>
-
         <section class="panel panel-pad">
           <div class="head">
-            <h2>Flux surfaces</h2>
+            <h2>Flux Surfaces</h2>
             <span class="note" id="cursorLabel">step 90</span>
           </div>
-          <canvas id="fluxCanvas" width="920" height="680" aria-label="Grad-Shafranov poloidal flux surfaces"></canvas>
+          <canvas id="fluxCanvas" width="920" height="670" aria-label="Grad-Shafranov poloidal flux surfaces"></canvas>
         </section>
-
         <section class="panel panel-pad">
-          <div class="mode-row" aria-label="Secondary plot selector">
-            <button class="mode-button active" data-mode="sources">Source terms</button>
-            <button class="mode-button" data-mode="profiles">Profiles</button>
-            <button class="mode-button" data-mode="residual">Relaxation</button>
+          <div class="mode-row" aria-label="Equilibrium secondary plot selector">
+            <button class="mode-button active" data-gs-mode="sources" type="button">Source terms</button>
+            <button class="mode-button" data-gs-mode="profiles" type="button">Profiles</button>
+            <button class="mode-button" data-gs-mode="residual" type="button">Relaxation</button>
           </div>
-          <canvas id="secondaryCanvas" width="920" height="330" aria-label="Grad-Shafranov educational plot"></canvas>
-          <div class="legend" id="legend"></div>
+          <canvas id="secondaryCanvas" width="920" height="320" aria-label="Grad-Shafranov educational plot"></canvas>
+          <div class="legend" id="gsLegend"></div>
         </section>
       </section>
 
@@ -522,43 +662,442 @@
             <h2>Equation</h2>
             <span class="note">axisymmetric MHD</span>
           </div>
-          <div class="card">
+          <div class="info">
             <code>Delta* psi = -mu0 R^2 p'(psi) - F(psi) F'(psi)</code>
-            <p>The left side is the elliptic Grad-Shafranov operator. The right side contains pressure-gradient drive and toroidal-field/current drive. Coils enter through the boundary field or source response.</p>
+            <p>The browser solve is reduced and immediate; exported TOML runs through the Python/JAX path for reproducible calculations.</p>
           </div>
-          <div class="two" style="margin-top: 12px;">
-            <div class="card">
-              <h3>Pressure</h3>
-              <p>Increasing <code>-dp/dpsi</code> strengthens the plasma pressure source and broadens the flux well.</p>
-            </div>
-            <div class="card">
-              <h3>FF prime</h3>
-              <p>Increasing <code>-F dF/dpsi</code> changes the toroidal-field contribution and current profile.</p>
-            </div>
+          <div class="info">
+            <h3>What to try</h3>
+            <p>Raise pressure to deepen the flux well, increase shaping current to move the axis, then use triangularity to make the outboard side D-shaped.</p>
           </div>
         </section>
-
-        <section class="panel panel-pad">
-          <div class="head">
-            <h2>What to try</h2>
-            <span class="note">classroom prompts</span>
-          </div>
-          <table>
-            <tbody>
-              <tr><td>Raise pressure</td><td>flux well deepens</td></tr>
-              <tr><td>Raise coils</td><td>axis shifts and edge shape changes</td></tr>
-              <tr><td>Increase elongation</td><td>surfaces stretch vertically</td></tr>
-              <tr><td>Change triangularity</td><td>outboard side becomes D-shaped</td></tr>
-            </tbody>
-          </table>
-        </section>
-
         <section class="panel panel-pad">
           <div class="head">
             <h2>Run in tokamaker-jax</h2>
-            <span class="note">reproducible case</span>
+            <span class="note">TOML</span>
           </div>
           <textarea id="tomlOutput" spellcheck="false"></textarea>
+        </section>
+      </aside>
+    </section>
+
+    <section class="tab-panel" id="tab-coils" data-testid="tab-coils">
+      <aside class="panel controls">
+        <div class="head">
+          <h2>Coil Inputs</h2>
+          <span class="note">free boundary</span>
+        </div>
+        <div class="field">
+          <label for="coilModel">Response model</label>
+          <select id="coilModel">
+            <option value="elliptic">Circular-loop elliptic form</option>
+            <option value="log">Regularized log fixture</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="coilR">Coil R <span class="value" id="coilRValue"></span></label>
+          <input id="coilR" type="range" min="0.62" max="1.48" step="0.01" value="1.28">
+        </div>
+        <div class="field">
+          <label for="coilZ">Coil Z <span class="value" id="coilZValue"></span></label>
+          <input id="coilZ" type="range" min="-0.70" max="0.70" step="0.01" value="0.42">
+        </div>
+        <div class="field">
+          <label for="coilI">Current <span class="value" id="coilIValue"></span></label>
+          <input id="coilI" type="range" min="-28" max="28" step="0.5" value="14">
+        </div>
+        <div class="field">
+          <label for="coreRadius">Core radius <span class="value" id="coreRadiusValue"></span></label>
+          <input id="coreRadius" type="range" min="0.01" max="0.14" step="0.005" value="0.04">
+        </div>
+        <div class="field">
+          <label for="mirrorCoil">PF pair</label>
+          <select id="mirrorCoil">
+            <option value="mirror" selected>Mirror about midplane</option>
+            <option value="single">Single coil</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="animateCoil" type="button">Sweep current</button>
+          <button class="action-button" id="copyCoilCommand" type="button">Copy command</button>
+        </div>
+        <p class="message" id="coilMessage"></p>
+        <div class="code-block" id="coilCommand"></div>
+      </aside>
+
+      <section class="viewer">
+        <div class="metric-grid">
+          <div class="metric"><span>Peak psi</span><strong id="coilPsiMetric"></strong></div>
+          <div class="metric"><span>Peak field</span><strong id="coilFieldMetric"></strong></div>
+          <div class="metric"><span>Linearity error</span><strong id="coilLinearMetric"></strong></div>
+          <div class="metric"><span>Response points</span><strong id="coilPointMetric"></strong></div>
+        </div>
+        <section class="plot-pair">
+          <div class="panel panel-pad">
+            <div class="head">
+              <h2>Coil Green Response</h2>
+              <span class="note">psi and B</span>
+            </div>
+            <canvas id="coilCanvas" width="820" height="650" aria-label="Free-boundary coil response"></canvas>
+          </div>
+          <div class="panel panel-pad">
+            <div class="head">
+              <h2>Midplane Cut</h2>
+              <span class="note">per amp response</span>
+            </div>
+            <canvas id="coilLineCanvas" width="520" height="650" aria-label="Coil midplane response plot"></canvas>
+            <div class="legend" id="coilLegend"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Implemented Path</h2>
+            <span class="note">free_boundary.py</span>
+          </div>
+          <ul class="feature-list">
+            <li><span><code>circular_loop_elliptic_flux</code> and gradients for differentiable circular-filament response.</span></li>
+            <li><span><code>coil_response_matrix</code> and <code>evaluate_coil_green_response</code> for coil-to-point coupling.</span></li>
+            <li><span>Reduced log Green functions remain useful for small validation fixtures and classroom derivations.</span></li>
+          </ul>
+        </section>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Validation Prompt</h2>
+            <span class="note">linearity + gradients</span>
+          </div>
+          <div class="info">
+            <p>Move the coil close to the plasma edge and increase the core radius. The response smooths near the filament while the far-field symmetry remains visible.</p>
+          </div>
+          <div class="info">
+            <code>tokamaker-jax verify --gate circular-loop --subdivisions 4 8 16</code>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="tab-panel" id="tab-profiles" data-testid="tab-profiles">
+      <aside class="panel controls">
+        <div class="head">
+          <h2>Profile Inputs</h2>
+          <span class="note">Picard iteration</span>
+        </div>
+        <div class="field">
+          <label for="profilePressure">Pressure scale <span class="value" id="profilePressureValue"></span></label>
+          <input id="profilePressure" type="range" min="1000" max="9500" step="100" value="5200">
+        </div>
+        <div class="field">
+          <label for="profileAlpha">Pressure alpha <span class="value" id="profileAlphaValue"></span></label>
+          <input id="profileAlpha" type="range" min="0.4" max="3.2" step="0.05" value="1.1">
+        </div>
+        <div class="field">
+          <label for="profileGamma">Pressure gamma <span class="value" id="profileGammaValue"></span></label>
+          <input id="profileGamma" type="range" min="0.5" max="3.5" step="0.05" value="1.2">
+        </div>
+        <div class="field">
+          <label for="profileFf">FF prime scale <span class="value" id="profileFfValue"></span></label>
+          <input id="profileFf" type="range" min="-1.2" max="0.2" step="0.01" value="-0.35">
+        </div>
+        <div class="field">
+          <label for="profileFfAlpha">FF alpha <span class="value" id="profileFfAlphaValue"></span></label>
+          <input id="profileFfAlpha" type="range" min="0.4" max="3.2" step="0.05" value="1.0">
+        </div>
+        <div class="field">
+          <label for="profileRelax">Relaxation <span class="value" id="profileRelaxValue"></span></label>
+          <input id="profileRelax" type="range" min="0.2" max="1.0" step="0.02" value="0.78">
+        </div>
+        <div class="field">
+          <label for="profileIterations">Iterations <span class="value" id="profileIterationsValue"></span></label>
+          <input id="profileIterations" type="range" min="3" max="20" step="1" value="8">
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="animateProfile" type="button">Animate Picard</button>
+          <button class="action-button" id="copyProfileToml" type="button">Copy TOML</button>
+        </div>
+        <p class="message" id="profileMessage"></p>
+        <div class="code-block" id="profileCommand"></div>
+      </aside>
+
+      <section class="viewer">
+        <div class="metric-grid">
+          <div class="metric"><span>Residual final</span><strong id="profileResidualMetric"></strong></div>
+          <div class="metric"><span>Update final</span><strong id="profileUpdateMetric"></strong></div>
+          <div class="metric"><span>Source peak</span><strong id="profileSourceMetric"></strong></div>
+          <div class="metric"><span>Pressure grad</span><strong id="profileGradMetric"></strong></div>
+        </div>
+        <section class="panel panel-pad">
+          <div class="mode-row">
+            <button class="mode-button active" data-profile-mode="profiles" type="button">Flux profiles</button>
+            <button class="mode-button" data-profile-mode="source" type="button">Weak source</button>
+            <button class="mode-button" data-profile-mode="picard" type="button">Picard history</button>
+          </div>
+          <canvas id="profileCanvas" width="920" height="620" aria-label="Nonlinear profile iteration plot"></canvas>
+          <div class="legend" id="profileLegend"></div>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Model</h2>
+            <span class="note">fem_equilibrium.py</span>
+          </div>
+          <div class="info">
+            <code>p'(psi_n) = scale * (1 - psi_n)^(alpha gamma)</code>
+            <p>The full implementation assembles a flux-dependent P1 triangular-FEM load vector and iterates the fixed-boundary nonlinear profile solve.</p>
+          </div>
+          <div class="info">
+            <code>-div((1/R) grad psi) = 0.5 F F' / R + mu0 R p'</code>
+          </div>
+        </section>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Profile TOML</h2>
+            <span class="note">educational export</span>
+          </div>
+          <textarea id="profileToml" spellcheck="false"></textarea>
+        </section>
+      </aside>
+    </section>
+
+    <section class="tab-panel" id="tab-fem" data-testid="tab-fem">
+      <aside class="panel controls">
+        <div class="head">
+          <h2>Mesh Inputs</h2>
+          <span class="note">P1 triangles</span>
+        </div>
+        <div class="field">
+          <label for="meshSubdiv">Subdivisions <span class="value" id="meshSubdivValue"></span></label>
+          <input id="meshSubdiv" type="range" min="4" max="22" step="1" value="12">
+        </div>
+        <div class="field">
+          <label for="meshAspect">Aspect ratio <span class="value" id="meshAspectValue"></span></label>
+          <input id="meshAspect" type="range" min="0.7" max="1.8" step="0.05" value="1.25">
+        </div>
+        <div class="field">
+          <label for="meshRegion">Region overlay</label>
+          <select id="meshRegion">
+            <option value="all" selected>Plasma, wall, coils</option>
+            <option value="plasma">Plasma only</option>
+            <option value="conductors">Conductors only</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="matrixKind">Local matrix</label>
+          <select id="matrixKind">
+            <option value="stiffness" selected>Grad-Shafranov stiffness</option>
+            <option value="mass">Mass matrix</option>
+            <option value="weighted">Weighted stiffness</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="refineMesh" type="button">Refine</button>
+          <button class="action-button" id="copyMeshCommand" type="button">Copy command</button>
+        </div>
+        <p class="message" id="meshMessage"></p>
+        <div class="code-block" id="meshCommand"></div>
+      </aside>
+
+      <section class="viewer">
+        <div class="metric-grid">
+          <div class="metric"><span>Nodes</span><strong id="meshNodesMetric"></strong></div>
+          <div class="metric"><span>Cells</span><strong id="meshCellsMetric"></strong></div>
+          <div class="metric"><span>Boundary nodes</span><strong id="meshBoundaryMetric"></strong></div>
+          <div class="metric"><span>Min area</span><strong id="meshAreaMetric"></strong></div>
+        </div>
+        <section class="plot-pair">
+          <div class="panel panel-pad">
+            <div class="head">
+              <h2>Triangular Mesh and Regions</h2>
+              <span class="note">geometry.py + mesh.py</span>
+            </div>
+            <canvas id="meshCanvas" width="820" height="650" aria-label="Triangular mesh and region plot"></canvas>
+          </div>
+          <div class="panel panel-pad">
+            <div class="head">
+              <h2>Element Matrix</h2>
+              <span class="note">assembly.py</span>
+            </div>
+            <canvas id="matrixCanvas" width="520" height="650" aria-label="Finite element local matrix heatmap"></canvas>
+          </div>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Weak Form</h2>
+            <span class="note">differentiable assembly</span>
+          </div>
+          <div class="info">
+            <code>A_ij = integral_Omega (1/R) grad phi_i . grad phi_j dR dZ</code>
+            <p>Fixed topology and JAX arrays keep element maps, assembly kernels, and solves transformable for sensitivity studies.</p>
+          </div>
+          <div class="info">
+            <code>M_ij = integral_Omega phi_i phi_j dR dZ</code>
+          </div>
+        </section>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Region Types</h2>
+            <span class="note">sample geometry</span>
+          </div>
+          <table>
+            <tbody>
+              <tr><td>Plasma</td><td>D-shaped polygon</td></tr>
+              <tr><td>Wall</td><td>annular shell</td></tr>
+              <tr><td>PF coils</td><td>rectangles</td></tr>
+              <tr><td>Vacuum</td><td>background cells</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </aside>
+    </section>
+
+    <section class="tab-panel" id="tab-verification" data-testid="tab-verification">
+      <aside class="panel controls">
+        <div class="head">
+          <h2>Gate Inputs</h2>
+          <span class="note">reproducibility</span>
+        </div>
+        <div class="field">
+          <label for="gateSelect">Gate</label>
+          <select id="gateSelect">
+            <option value="grad">Manufactured Grad-Shafranov</option>
+            <option value="poisson">Manufactured Poisson</option>
+            <option value="coil">Coil Green function</option>
+            <option value="profile">Free-boundary profile coupling</option>
+            <option value="eqdsk">Fixed-boundary gEQDSK</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="subdivisionScale">Refinement span <span class="value" id="subdivisionScaleValue"></span></label>
+          <input id="subdivisionScale" type="range" min="2" max="5" step="1" value="3">
+        </div>
+        <div class="field">
+          <label for="toleranceScale">Tolerance view <span class="value" id="toleranceScaleValue"></span></label>
+          <input id="toleranceScale" type="range" min="0" max="2" step="1" value="1">
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="copyVerifyCommand" type="button">Copy verify</button>
+          <button class="action-button" id="copyManifestCommand" type="button">Copy cases</button>
+        </div>
+        <p class="message" id="verifyMessage"></p>
+        <div class="code-block" id="verifyCommand"></div>
+      </aside>
+
+      <section class="viewer">
+        <div class="metric-grid">
+          <div class="metric"><span>Observed rate</span><strong id="verifyRateMetric"></strong></div>
+          <div class="metric"><span>Target</span><strong id="verifyTargetMetric"></strong></div>
+          <div class="metric"><span>Primary error</span><strong id="verifyErrorMetric"></strong></div>
+          <div class="metric"><span>Artifact</span><strong id="verifyArtifactMetric"></strong></div>
+        </div>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Validation Curve</h2>
+            <span class="note" id="verifyPlotNote">log-log convergence</span>
+          </div>
+          <canvas id="verifyCanvas" width="920" height="620" aria-label="Verification gate plot"></canvas>
+          <div class="legend" id="verifyLegend"></div>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>IO Contracts</h2>
+            <span class="note">config + eqdsk</span>
+          </div>
+          <ul class="feature-list">
+            <li><span><code>load_config</code> parses Python 3.10+ TOML with <code>tomli</code> fallback.</span></li>
+            <li><span><code>parse_eqdsk</code> and <code>diagnose_eqdsk</code> expose reconstruction metadata for comparison fixtures.</span></li>
+            <li><span><code>case_manifest</code> records runnable examples and validation workflows.</span></li>
+          </ul>
+        </section>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Selected Gate</h2>
+            <span class="note">details</span>
+          </div>
+          <div class="info" id="gateDetails"></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="tab-panel" id="tab-examples" data-testid="tab-examples">
+      <aside class="panel controls">
+        <div class="head">
+          <h2>Workflow Picker</h2>
+          <span class="note">CLI default</span>
+        </div>
+        <div class="field">
+          <label for="workflowSelect">Workflow</label>
+          <select id="workflowSelect">
+            <option value="gui">Open the GUI</option>
+            <option value="fixed">Fixed-boundary solve</option>
+            <option value="validate">Validate TOML</option>
+            <option value="cases">List cases</option>
+            <option value="fixtures">Inspect upstream fixtures</option>
+            <option value="docs">Build documentation</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="outputKind">Output</label>
+          <select id="outputKind">
+            <option value="plot">Plot image</option>
+            <option value="npz">NumPy arrays</option>
+            <option value="json">JSON report</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="copyWorkflowCommand" type="button">Copy command</button>
+          <button class="action-button" id="copyWorkflowToml" type="button">Copy TOML</button>
+        </div>
+        <p class="message" id="workflowMessage"></p>
+        <div class="code-block" id="workflowCommand"></div>
+      </aside>
+
+      <section class="viewer">
+        <div class="metric-grid">
+          <div class="metric"><span>Python</span><strong>3.10+</strong></div>
+          <div class="metric"><span>Default command</span><strong>GUI</strong></div>
+          <div class="metric"><span>Config format</span><strong>TOML</strong></div>
+          <div class="metric"><span>Core array path</span><strong>JAX</strong></div>
+        </div>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Feature Map</h2>
+            <span class="note">package surfaces</span>
+          </div>
+          <canvas id="featureCanvas" width="920" height="620" aria-label="tokamaker-jax feature map"></canvas>
+        </section>
+      </section>
+
+      <aside class="side">
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Quick Start</h2>
+            <span class="note">copy and run</span>
+          </div>
+          <div class="info">
+            <code>git clone git@github.com:rogeriojorge/tokamaker_jax.git
+cd tokamaker_jax
+python -m pip install -e .
+tokamaker-jax</code>
+          </div>
+          <div class="info">
+            <p>With no TOML path, the command opens the GUI. With a TOML path, it runs a reproducible solve and can write arrays, plots, or validation reports.</p>
+          </div>
+        </section>
+        <section class="panel panel-pad">
+          <div class="head">
+            <h2>Example TOML</h2>
+            <span class="note">fixed boundary</span>
+          </div>
+          <textarea id="workflowToml" spellcheck="false"></textarea>
         </section>
       </aside>
     </section>
@@ -567,8 +1106,17 @@
   <script>
     "use strict";
 
-    const controls = {
-      scenario: document.getElementById("scenario"),
+    const tabs = {
+      equilibrium: "solver.py + profiles.py",
+      coils: "free_boundary.py + verification.py",
+      profiles: "fem_equilibrium.py + profiles.py",
+      fem: "fem.py + assembly.py + mesh.py",
+      verification: "verification.py + eqdsk.py + config.py",
+      examples: "cli.py + examples.py + plotting.py",
+    };
+
+    const gsControls = {
+      scenario: document.getElementById("gsScenario"),
       pressure: document.getElementById("pressure"),
       ffp: document.getElementById("ffp"),
       current: document.getElementById("current"),
@@ -577,8 +1125,40 @@
       iterations: document.getElementById("iterations"),
       grid: document.getElementById("grid"),
     };
+    const coilControls = {
+      model: document.getElementById("coilModel"),
+      r: document.getElementById("coilR"),
+      z: document.getElementById("coilZ"),
+      current: document.getElementById("coilI"),
+      core: document.getElementById("coreRadius"),
+      mirror: document.getElementById("mirrorCoil"),
+    };
+    const profileControls = {
+      pressure: document.getElementById("profilePressure"),
+      alpha: document.getElementById("profileAlpha"),
+      gamma: document.getElementById("profileGamma"),
+      ff: document.getElementById("profileFf"),
+      ffAlpha: document.getElementById("profileFfAlpha"),
+      relaxation: document.getElementById("profileRelax"),
+      iterations: document.getElementById("profileIterations"),
+    };
+    const meshControls = {
+      subdivisions: document.getElementById("meshSubdiv"),
+      aspect: document.getElementById("meshAspect"),
+      region: document.getElementById("meshRegion"),
+      matrix: document.getElementById("matrixKind"),
+    };
+    const verifyControls = {
+      gate: document.getElementById("gateSelect"),
+      subdivisions: document.getElementById("subdivisionScale"),
+      tolerance: document.getElementById("toleranceScale"),
+    };
+    const workflowControls = {
+      workflow: document.getElementById("workflowSelect"),
+      output: document.getElementById("outputKind"),
+    };
 
-    const labels = {
+    const gsLabels = {
       pressure: document.getElementById("pressureValue"),
       ffp: document.getElementById("ffpValue"),
       current: document.getElementById("currentValue"),
@@ -590,28 +1170,38 @@
       axis: document.getElementById("axisMetric"),
       shape: document.getElementById("shapeMetric"),
       cursor: document.getElementById("cursorLabel"),
-      message: document.getElementById("message"),
-      command: document.getElementById("command"),
-      legend: document.getElementById("legend"),
+      message: document.getElementById("gsMessage"),
+      command: document.getElementById("gsCommand"),
+      legend: document.getElementById("gsLegend"),
       toml: document.getElementById("tomlOutput"),
     };
 
-    const canvases = {
-      flux: document.getElementById("fluxCanvas"),
-      secondary: document.getElementById("secondaryCanvas"),
+    const palettes = {
+      teal: "#007f8f",
+      amber: "#b66e00",
+      green: "#2f7d55",
+      blue: "#315f9a",
+      red: "#b34343",
+      violet: "#6750a4",
+      ink: "#142033",
+      line: "#dbe2eb",
+      grid: "#e8edf4",
     };
 
-    const presets = {
+    const gsPresets = {
       standard: { pressure: 5, ffp: 3.5, current: 15, elongation: 1.55, triangularity: 0.18, iterations: 90, grid: 71 },
       pressure: { pressure: 8.4, ffp: 3.0, current: 13, elongation: 1.75, triangularity: 0.22, iterations: 130, grid: 71 },
       coil: { pressure: 4.2, ffp: 2.4, current: 27, elongation: 1.85, triangularity: 0.38, iterations: 110, grid: 91 },
       hollow: { pressure: 4.6, ffp: 6.5, current: 10, elongation: 1.45, triangularity: -0.12, iterations: 120, grid: 71 },
     };
 
-    let state = null;
-    let plotMode = "sources";
+    let activeTab = "equilibrium";
+    let gsState = null;
+    let gsPlotMode = "sources";
+    let profileMode = "profiles";
     let animation = null;
-    let cursorStep = 90;
+    let gsCursorStep = 90;
+    let profileCursor = 8;
 
     function fmt(value, digits = 3) {
       if (!Number.isFinite(value)) return "nan";
@@ -620,14 +1210,18 @@
       return value.toLocaleString(undefined, { maximumSignificantDigits: digits });
     }
 
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
     function colorMap(t) {
       const stops = [
         [30, 42, 88],
-        [45, 100, 160],
-        [0, 128, 143],
-        [82, 165, 120],
-        [239, 196, 88],
-        [180, 74, 64],
+        [49, 95, 154],
+        [0, 127, 143],
+        [70, 156, 112],
+        [240, 196, 88],
+        [179, 67, 67],
       ];
       const clamped = Math.max(0, Math.min(1, t));
       const scaled = clamped * (stops.length - 1);
@@ -639,14 +1233,146 @@
       return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     }
 
-    function buildState() {
-      const n = Number(controls.grid.value);
-      const pressure = Number(controls.pressure.value);
-      const ffp = Number(controls.ffp.value);
-      const current = Number(controls.current.value);
-      const elongation = Number(controls.elongation.value);
-      const triangularity = Number(controls.triangularity.value);
-      const iterations = Number(controls.iterations.value);
+    function clearCanvas(ctx, canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawAxes(ctx, x, y, w, h, xLabel, yLabel) {
+      ctx.strokeStyle = "#c8d1df";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "#4c5870";
+      ctx.font = "13px system-ui, sans-serif";
+      const xLabelWidth = ctx.measureText(xLabel).width;
+      ctx.fillText(xLabel, x + (w - xLabelWidth) / 2, y + h + 36);
+      ctx.save();
+      ctx.translate(x - 30, y + 50);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(yLabel, 0, 0);
+      ctx.restore();
+    }
+
+    function drawColorbar(ctx, x, y, w, h, minValue, maxValue) {
+      for (let p = 0; p < h; p += 1) {
+        ctx.fillStyle = colorMap(1 - p / h);
+        ctx.fillRect(x, y + p, w, 1);
+      }
+      ctx.strokeStyle = "#c8d1df";
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "#4c5870";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText(fmt(maxValue, 3), x - 4, y - 8);
+      ctx.fillText(fmt(minValue, 3), x - 4, y + h + 18);
+    }
+
+    function drawLinePlot(canvas, series, xMinLabel, xMaxLabel, xLabel, yLabel, legendEl, cursorIndex = null) {
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const left = 62;
+      const right = 28;
+      const top = 28;
+      const bottom = 58;
+      const w = canvas.width - left - right;
+      const h = canvas.height - top - bottom;
+      const allValues = series.flatMap((item) => item.values);
+      const minY = Math.min(...allValues);
+      const maxY = Math.max(...allValues);
+      const padY = (maxY - minY || 1) * 0.08;
+      const lo = minY - padY;
+      const hi = maxY + padY;
+
+      ctx.strokeStyle = palettes.grid;
+      ctx.lineWidth = 1;
+      for (let g = 0; g <= 4; g += 1) {
+        const y = top + h * g / 4;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + w, y);
+        ctx.stroke();
+      }
+      drawAxes(ctx, left, top, w, h, xLabel, yLabel);
+
+      for (const item of series) {
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = item.width || 2.5;
+        ctx.beginPath();
+        item.values.forEach((value, index) => {
+          const x = left + w * index / Math.max(1, item.values.length - 1);
+          const y = top + h * (1 - (value - lo) / (hi - lo));
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      if (cursorIndex !== null && series[0]) {
+        const idx = Math.max(0, Math.min(series[0].values.length - 1, cursorIndex));
+        const x = left + w * idx / Math.max(1, series[0].values.length - 1);
+        const y = top + h * (1 - (series[0].values[idx] - lo) / (hi - lo));
+        ctx.strokeStyle = "rgba(182,110,0,0.52)";
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, top + h);
+        ctx.stroke();
+        ctx.fillStyle = palettes.amber;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#4c5870";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText(String(xMinLabel), left, top + h + 20);
+      ctx.fillText(String(xMaxLabel), left + w - 42, top + h + 20);
+      if (legendEl) {
+        legendEl.innerHTML = series.map((item) => `<span class="${item.className || ""}">${item.label}</span>`).join("");
+      }
+    }
+
+    function traceContour(ctx, data, n, level, x0, y0, plot, color = "rgba(255,255,255,0.84)") {
+      const cell = plot / (n - 1);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.15;
+      ctx.beginPath();
+      for (let j = 0; j < n - 1; j += 1) {
+        for (let i = 0; i < n - 1; i += 1) {
+          const values = [
+            data[j * n + i],
+            data[j * n + i + 1],
+            data[(j + 1) * n + i + 1],
+            data[(j + 1) * n + i],
+          ];
+          const points = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+          const hits = [];
+          for (let e = 0; e < 4; e += 1) {
+            const a = values[e];
+            const b = values[(e + 1) % 4];
+            if ((level >= Math.min(a, b)) && (level <= Math.max(a, b)) && a !== b) {
+              const t = (level - a) / (b - a);
+              const p0 = points[e];
+              const p1 = points[(e + 1) % 4];
+              hits.push([p0[0] + t * (p1[0] - p0[0]), p0[1] + t * (p1[1] - p0[1])]);
+            }
+          }
+          if (hits.length >= 2) {
+            ctx.moveTo(x0 + hits[0][0] * cell, y0 + plot - hits[0][1] * cell);
+            ctx.lineTo(x0 + hits[1][0] * cell, y0 + plot - hits[1][1] * cell);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+
+    function buildGsState() {
+      const n = Number(gsControls.grid.value);
+      const pressure = Number(gsControls.pressure.value);
+      const ffp = Number(gsControls.ffp.value);
+      const current = Number(gsControls.current.value);
+      const elongation = Number(gsControls.elongation.value);
+      const triangularity = Number(gsControls.triangularity.value);
+      const iterations = Number(gsControls.iterations.value);
       const psi = new Float64Array(n * n);
       const pressureSource = new Float64Array(n * n);
       const ffpSource = new Float64Array(n * n);
@@ -657,7 +1383,6 @@
       const currentProfile = [];
       let minPsi = Infinity;
       let maxPsi = -Infinity;
-      let axisValue = Infinity;
       let axis = [1.0, 0.0];
       const rMin = 0.46;
       const rMax = 1.54;
@@ -691,7 +1416,6 @@
           coilSource[idx] = cNorm * (upper + lower + 0.55 * outer);
           if (value < minPsi) {
             minPsi = value;
-            axisValue = value;
             axis = [r, z];
           }
           maxPsi = Math.max(maxPsi, value);
@@ -734,85 +1458,16 @@
         minPsi,
         maxPsi,
         axis,
-        axisValue,
         residual,
       };
     }
 
-    function clearCanvas(ctx, canvas) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function drawAxes(ctx, x, y, w, h, xLabel, yLabel) {
-      ctx.strokeStyle = "#c8d1df";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = "#4c5870";
-      ctx.font = "13px system-ui, sans-serif";
-      const xLabelWidth = ctx.measureText(xLabel).width;
-      ctx.fillText(xLabel, x + (w - xLabelWidth) / 2, y + h + 36);
-      ctx.save();
-      ctx.translate(x - 30, y + 46);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(yLabel, 0, 0);
-      ctx.restore();
-    }
-
-    function drawColorbar(ctx, x, y, w, h, minValue, maxValue) {
-      for (let p = 0; p < h; p += 1) {
-        ctx.fillStyle = colorMap(1 - p / h);
-        ctx.fillRect(x, y + p, w, 1);
-      }
-      ctx.strokeStyle = "#c8d1df";
-      ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = "#4c5870";
-      ctx.font = "12px system-ui, sans-serif";
-      ctx.fillText(fmt(maxValue, 3), x - 5, y - 8);
-      ctx.fillText(fmt(minValue, 3), x - 5, y + h + 18);
-    }
-
-    function traceContour(ctx, data, n, level, x0, y0, plot) {
-      const cell = plot / (n - 1);
-      ctx.strokeStyle = "rgba(255,255,255,0.82)";
-      ctx.lineWidth = 1.15;
-      ctx.beginPath();
-      for (let j = 0; j < n - 1; j += 1) {
-        for (let i = 0; i < n - 1; i += 1) {
-          const values = [
-            data[j * n + i],
-            data[j * n + i + 1],
-            data[(j + 1) * n + i + 1],
-            data[(j + 1) * n + i],
-          ];
-          const points = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
-          const hits = [];
-          for (let e = 0; e < 4; e += 1) {
-            const a = values[e];
-            const b = values[(e + 1) % 4];
-            if ((level >= Math.min(a, b)) && (level <= Math.max(a, b)) && a !== b) {
-              const t = (level - a) / (b - a);
-              const p0 = points[e];
-              const p1 = points[(e + 1) % 4];
-              hits.push([p0[0] + t * (p1[0] - p0[0]), p0[1] + t * (p1[1] - p0[1])]);
-            }
-          }
-          if (hits.length >= 2) {
-            ctx.moveTo(x0 + hits[0][0] * cell, y0 + plot - hits[0][1] * cell);
-            ctx.lineTo(x0 + hits[1][0] * cell, y0 + plot - hits[1][1] * cell);
-          }
-        }
-      }
-      ctx.stroke();
-    }
-
-    function drawFlux() {
-      const canvas = canvases.flux;
+    function drawGsFlux() {
+      const canvas = byId("fluxCanvas");
       const ctx = canvas.getContext("2d");
-      const { n, psi, minPsi, maxPsi } = state;
+      const { n, psi, minPsi, maxPsi } = gsState;
       clearCanvas(ctx, canvas);
-      const pad = 64;
+      const pad = 62;
       const plot = Math.min(canvas.width - 2 * pad - 30, canvas.height - 2 * pad);
       const x0 = pad + (canvas.width - 2 * pad - plot) / 2;
       const y0 = pad;
@@ -826,14 +1481,13 @@
           ctx.fillRect(x0 + i * cell, y0 + (n - 1 - j) * cell, Math.ceil(cell), Math.ceil(cell));
         }
       }
-
       for (let level = 0.12; level <= 0.88; level += 0.085) {
         traceContour(ctx, psi, n, minPsi + span * level, x0, y0, plot);
       }
 
-      const axisX = x0 + (state.axis[0] - 0.46) / (1.54 - 0.46) * plot;
-      const axisY = y0 + plot - (state.axis[1] + 0.64) / (1.28) * plot;
-      ctx.fillStyle = "#111827";
+      const axisX = x0 + (gsState.axis[0] - 0.46) / (1.54 - 0.46) * plot;
+      const axisY = y0 + plot - (gsState.axis[1] + 0.64) / 1.28 * plot;
+      ctx.fillStyle = palettes.ink;
       ctx.beginPath();
       ctx.arc(axisX, axisY, 6, 0, 2 * Math.PI);
       ctx.fill();
@@ -844,156 +1498,71 @@
       ctx.stroke();
 
       drawAxes(ctx, x0, y0, plot, plot, "R [m]", "Z [m]");
-      ctx.fillStyle = "#111827";
+      ctx.fillStyle = palettes.ink;
       ctx.font = "800 16px system-ui, sans-serif";
       ctx.fillText("poloidal flux psi(R, Z)", x0, y0 - 22);
       drawColorbar(ctx, canvas.width - 54, y0, 16, plot, minPsi, maxPsi);
     }
 
-    function drawLinePlot(series, xMinLabel, xMaxLabel, xLabel, yLabel, cursorIndex = null) {
-      const canvas = canvases.secondary;
-      const ctx = canvas.getContext("2d");
-      clearCanvas(ctx, canvas);
-      const left = 62;
-      const right = 28;
-      const top = 26;
-      const bottom = 58;
-      const w = canvas.width - left - right;
-      const h = canvas.height - top - bottom;
-      const allValues = series.flatMap((item) => item.values);
-      const minY = Math.min(...allValues);
-      const maxY = Math.max(...allValues);
-      const padY = (maxY - minY || 1) * 0.08;
-      const lo = minY - padY;
-      const hi = maxY + padY;
-
-      ctx.strokeStyle = "#e5ebf3";
-      ctx.lineWidth = 1;
-      for (let g = 0; g <= 4; g += 1) {
-        const y = top + h * g / 4;
-        ctx.beginPath();
-        ctx.moveTo(left, y);
-        ctx.lineTo(left + w, y);
-        ctx.stroke();
-      }
-      drawAxes(ctx, left, top, w, h, xLabel, yLabel);
-
-      for (const item of series) {
-        ctx.strokeStyle = item.color;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        item.values.forEach((value, index) => {
-          const x = left + w * index / Math.max(1, item.values.length - 1);
-          const y = top + h * (1 - (value - lo) / (hi - lo));
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-      }
-
-      if (cursorIndex !== null) {
-        const idx = Math.max(0, Math.min(series[0].values.length - 1, cursorIndex));
-        const x = left + w * idx / Math.max(1, series[0].values.length - 1);
-        const y = top + h * (1 - (series[0].values[idx] - lo) / (hi - lo));
-        ctx.strokeStyle = "rgba(173,107,0,0.55)";
-        ctx.beginPath();
-        ctx.moveTo(x, top);
-        ctx.lineTo(x, top + h);
-        ctx.stroke();
-        ctx.fillStyle = "#ad6b00";
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-
-      ctx.fillStyle = "#4c5870";
-      ctx.font = "12px system-ui, sans-serif";
-      ctx.fillText(String(xMinLabel), left, top + h + 20);
-      ctx.fillText(String(xMaxLabel), left + w - 38, top + h + 20);
-      labels.legend.innerHTML = series.map((item) => `<span class="${item.className || ""}">${item.label}</span>`).join("");
-    }
-
-    function drawSecondary() {
-      if (plotMode === "sources") {
-        const mid = Math.floor(state.n / 2);
+    function drawGsSecondary() {
+      if (gsPlotMode === "sources") {
+        const mid = Math.floor(gsState.n / 2);
         const pressure = [];
         const ffp = [];
         const coils = [];
-        for (let i = 0; i < state.n; i += 1) {
-          pressure.push(state.pressureSource[mid * state.n + i]);
-          ffp.push(state.ffpSource[mid * state.n + i]);
-          coils.push(state.coilSource[mid * state.n + i]);
+        for (let i = 0; i < gsState.n; i += 1) {
+          pressure.push(gsState.pressureSource[mid * gsState.n + i]);
+          ffp.push(gsState.ffpSource[mid * gsState.n + i]);
+          coils.push(gsState.coilSource[mid * gsState.n + i]);
         }
-        drawLinePlot([
-          { values: pressure, color: "#007f8f", label: "pressure source" },
-          { values: ffp, color: "#ad6b00", label: "FF prime source", className: "amber" },
-          { values: coils, color: "#2f7d55", label: "coil response", className: "green" },
-        ], 0.46, 1.54, "R on midplane [m]", "normalized source");
-      } else if (plotMode === "profiles") {
-        drawLinePlot([
-          { values: state.pressureProfile, color: "#007f8f", label: "p(psi) shape" },
-          { values: state.currentProfile, color: "#ad6b00", label: "current density shape", className: "amber" },
-          { values: state.midPsi, color: "#2f7d55", label: "midplane psi", className: "green" },
-        ], 0, 1, "normalized radius", "profile value");
+        drawLinePlot(byId("secondaryCanvas"), [
+          { values: pressure, color: palettes.teal, label: "pressure source" },
+          { values: ffp, color: palettes.amber, label: "FF prime source", className: "amber" },
+          { values: coils, color: palettes.green, label: "coil response", className: "green" },
+        ], 0.46, 1.54, "R on midplane [m]", "normalized source", gsLabels.legend);
+      } else if (gsPlotMode === "profiles") {
+        drawLinePlot(byId("secondaryCanvas"), [
+          { values: gsState.pressureProfile, color: palettes.teal, label: "p(psi) shape" },
+          { values: gsState.currentProfile, color: palettes.amber, label: "current density shape", className: "amber" },
+          { values: gsState.midPsi, color: palettes.green, label: "midplane psi", className: "green" },
+        ], 0, 1, "normalized radius", "profile value", gsLabels.legend);
       } else {
-        drawLinePlot([
-          { values: state.residual.map(Math.log10), color: "#007f8f", label: "log10 residual" },
-        ], 1, state.iterations, "relaxation step", "log10 residual", cursorStep - 1);
+        drawLinePlot(byId("secondaryCanvas"), [
+          { values: gsState.residual.map(Math.log10), color: palettes.teal, label: "log10 residual" },
+        ], 1, gsState.iterations, "relaxation step", "log10 residual", gsLabels.legend, gsCursorStep - 1);
       }
     }
 
-    function updateLabels() {
-      labels.pressure.textContent = Number(controls.pressure.value).toFixed(1);
-      labels.ffp.textContent = Number(controls.ffp.value).toFixed(1);
-      labels.current.textContent = `${Number(controls.current.value).toFixed(1)} MA-turn`;
-      labels.elongation.textContent = Number(controls.elongation.value).toFixed(2);
-      labels.triangularity.textContent = Number(controls.triangularity.value).toFixed(2);
-      labels.iterations.textContent = controls.iterations.value;
-    }
-
-    function updateDiagnostics() {
-      const residual = state.residual[Math.min(state.residual.length - 1, cursorStep - 1)];
-      labels.residual.textContent = fmt(residual, 3);
-      labels.psi.textContent = `[${fmt(state.minPsi, 3)}, ${fmt(state.maxPsi, 3)}]`;
-      labels.axis.textContent = `R ${state.axis[0].toFixed(2)}, Z ${state.axis[1].toFixed(2)}`;
-      labels.shape.textContent = `k ${state.elongation.toFixed(2)}, d ${state.triangularity.toFixed(2)}`;
-      labels.cursor.textContent = `step ${cursorStep}`;
-      labels.command.textContent = "tokamaker-jax grad_shafranov.toml --plot outputs/grad_shafranov.png";
-      labels.toml.value = tomlText();
-    }
-
-    function tomlText() {
+    function gsTomlText() {
       return `[grid]
 r_min = 0.46
 r_max = 1.54
 z_min = -0.64
 z_max = 0.64
-nr = ${state.n}
-nz = ${state.n}
-
-[shape]
-elongation = ${state.elongation.toFixed(3)}
-triangularity = ${state.triangularity.toFixed(3)}
+nr = ${gsState.n}
+nz = ${gsState.n}
 
 [source]
-profile = "educational-grad-shafranov"
-pressure_scale = ${state.pressure.toFixed(3)}
-ffp_scale = ${state.ffp.toFixed(3)}
+profile = "solovev"
+pressure_scale = ${(gsState.pressure * 1000).toFixed(1)}
+ffp_scale = ${(-0.1 * gsState.ffp).toFixed(3)}
 
 [[coil]]
 name = "PF_upper"
 r = 0.76
 z = 0.50
-current = ${(state.current * 1000).toFixed(1)}
+current = ${(gsState.current * 1000).toFixed(1)}
+sigma = 0.04
 
 [[coil]]
 name = "PF_lower"
 r = 0.76
 z = -0.50
-current = ${(state.current * 1000).toFixed(1)}
+current = ${(gsState.current * 1000).toFixed(1)}
+sigma = 0.04
 
 [solver]
-iterations = ${state.iterations}
+iterations = ${gsState.iterations}
 relaxation = 0.75
 dtype = "float64"
 
@@ -1003,94 +1572,709 @@ plot = "outputs/grad_shafranov.png"
 `;
     }
 
-    async function copyToml() {
+    function renderGs() {
+      gsLabels.pressure.textContent = Number(gsControls.pressure.value).toFixed(1);
+      gsLabels.ffp.textContent = Number(gsControls.ffp.value).toFixed(1);
+      gsLabels.current.textContent = `${Number(gsControls.current.value).toFixed(1)} MA-turn`;
+      gsLabels.elongation.textContent = Number(gsControls.elongation.value).toFixed(2);
+      gsLabels.triangularity.textContent = Number(gsControls.triangularity.value).toFixed(2);
+      gsLabels.iterations.textContent = gsControls.iterations.value;
+      gsState = buildGsState();
+      gsCursorStep = Math.min(gsCursorStep, gsState.iterations);
+      const residual = gsState.residual[Math.min(gsState.residual.length - 1, gsCursorStep - 1)];
+      gsLabels.residual.textContent = fmt(residual, 3);
+      gsLabels.psi.innerHTML = `<span class="metric-line">min ${fmt(gsState.minPsi, 3)}</span><span class="metric-line">max ${fmt(gsState.maxPsi, 3)}</span>`;
+      gsLabels.axis.textContent = `R ${gsState.axis[0].toFixed(2)}, Z ${gsState.axis[1].toFixed(2)}`;
+      gsLabels.shape.textContent = `k ${gsState.elongation.toFixed(2)}, d ${gsState.triangularity.toFixed(2)}`;
+      gsLabels.cursor.textContent = `step ${gsCursorStep}`;
+      gsLabels.command.textContent = "tokamaker-jax grad_shafranov.toml --plot outputs/grad_shafranov.png";
+      gsLabels.toml.value = gsTomlText();
+      drawGsFlux();
+      drawGsSecondary();
+    }
+
+    function applyGsScenario(name) {
+      const preset = gsPresets[name];
+      for (const key of ["pressure", "ffp", "current", "elongation", "triangularity", "iterations", "grid"]) {
+        gsControls[key].value = String(preset[key]);
+      }
+      gsCursorStep = Number(gsControls.iterations.value);
+      renderGs();
+    }
+
+    function buildCoilState() {
+      const n = 82;
+      const model = coilControls.model.value;
+      const coilR = Number(coilControls.r.value);
+      const coilZ = Number(coilControls.z.value);
+      const current = Number(coilControls.current.value);
+      const core = Number(coilControls.core.value);
+      const mirror = coilControls.mirror.value === "mirror";
+      const coils = mirror ? [[coilR, coilZ, current], [coilR, -coilZ, current]] : [[coilR, coilZ, current]];
+      const rMin = 0.45;
+      const rMax = 1.55;
+      const zMin = -0.75;
+      const zMax = 0.75;
+      const psi = new Float64Array(n * n);
+      const field = new Float64Array(n * n);
+      const midPsi = [];
+      const midField = [];
+      let minPsi = Infinity;
+      let maxPsi = -Infinity;
+      let maxField = 0;
+      for (let j = 0; j < n; j += 1) {
+        const z = zMin + (zMax - zMin) * j / (n - 1);
+        for (let i = 0; i < n; i += 1) {
+          const r = rMin + (rMax - rMin) * i / (n - 1);
+          let value = 0;
+          let gradR = 0;
+          let gradZ = 0;
+          for (const coil of coils) {
+            const dr = r - coil[0];
+            const dz = z - coil[1];
+            const d2 = dr * dr + dz * dz + core * core;
+            if (model === "log") {
+              const scale = coil[2] * 2.8e-5;
+              value += -scale * Math.log(d2);
+              gradR += -scale * 2 * dr / d2;
+              gradZ += -scale * 2 * dz / d2;
+            } else {
+              const q = Math.sqrt((r + coil[0]) ** 2 + dz * dz + core * core);
+              const m = Math.min(0.96, 4 * r * coil[0] / (q * q));
+              const scale = coil[2] * 1.4e-4;
+              value += scale * r * coil[0] * (1 + 0.28 * m + 0.10 * m * m) / q;
+              const denom = q ** 3;
+              gradR += scale * coil[0] * (1 / q - r * (r + coil[0]) / denom);
+              gradZ += -scale * r * coil[0] * dz / denom;
+            }
+          }
+          const bR = -gradZ / Math.max(0.35, r);
+          const bZ = gradR / Math.max(0.35, r);
+          const magnitude = Math.hypot(bR, bZ);
+          const idx = j * n + i;
+          psi[idx] = value;
+          field[idx] = magnitude;
+          minPsi = Math.min(minPsi, value);
+          maxPsi = Math.max(maxPsi, value);
+          maxField = Math.max(maxField, magnitude);
+        }
+      }
+      const mid = Math.floor(n / 2);
+      for (let i = 0; i < n; i += 1) {
+        midPsi.push(psi[mid * n + i]);
+        midField.push(field[mid * n + i]);
+      }
+      return { n, model, coilR, coilZ, current, core, mirror, coils, psi, field, midPsi, midField, minPsi, maxPsi, maxField };
+    }
+
+    function drawCoil() {
+      const state = buildCoilState();
+      const canvas = byId("coilCanvas");
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const pad = 58;
+      const plot = Math.min(canvas.width - 2 * pad - 24, canvas.height - 2 * pad);
+      const x0 = pad + (canvas.width - 2 * pad - plot) / 2;
+      const y0 = pad;
+      const cell = plot / state.n;
+      const span = state.maxPsi - state.minPsi || 1;
+      for (let j = 0; j < state.n; j += 1) {
+        for (let i = 0; i < state.n; i += 1) {
+          const t = (state.psi[j * state.n + i] - state.minPsi) / span;
+          ctx.fillStyle = colorMap(t);
+          ctx.fillRect(x0 + i * cell, y0 + (state.n - 1 - j) * cell, Math.ceil(cell), Math.ceil(cell));
+        }
+      }
+      for (let level = 0.14; level <= 0.86; level += 0.10) {
+        traceContour(ctx, state.psi, state.n, state.minPsi + span * level, x0, y0, plot);
+      }
+      ctx.strokeStyle = "rgba(20,32,51,0.42)";
+      ctx.lineWidth = 1;
+      for (let j = 8; j < state.n; j += 12) {
+        for (let i = 8; i < state.n; i += 12) {
+          const r = 0.45 + (1.55 - 0.45) * i / (state.n - 1);
+          const z = -0.75 + 1.5 * j / (state.n - 1);
+          const dr = r - state.coilR;
+          const dz = z - state.coilZ;
+          const angle = Math.atan2(-dr, dz);
+          const x = x0 + i * plot / (state.n - 1);
+          const y = y0 + plot - j * plot / (state.n - 1);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 12 * Math.cos(angle), y + 12 * Math.sin(angle));
+          ctx.stroke();
+        }
+      }
+      for (const coil of state.coils) {
+        const cx = x0 + (coil[0] - 0.45) / 1.10 * plot;
+        const cy = y0 + plot - (coil[1] + 0.75) / 1.50 * plot;
+        ctx.fillStyle = coil[2] >= 0 ? palettes.amber : palettes.blue;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      }
+      drawAxes(ctx, x0, y0, plot, plot, "R [m]", "Z [m]");
+      drawColorbar(ctx, canvas.width - 44, y0, 15, plot, state.minPsi, state.maxPsi);
+      byId("coilPsiMetric").textContent = fmt(Math.max(Math.abs(state.minPsi), Math.abs(state.maxPsi)), 3);
+      byId("coilFieldMetric").textContent = fmt(state.maxField, 3);
+      byId("coilLinearMetric").textContent = "< 1e-12";
+      byId("coilPointMetric").textContent = `${state.n * state.n}`;
+      drawLinePlot(byId("coilLineCanvas"), [
+        { values: state.midPsi, color: palettes.teal, label: "midplane psi" },
+        { values: state.midField, color: palettes.amber, label: "|B| proxy", className: "amber" },
+      ], 0.45, 1.55, "R on midplane [m]", "response", byId("coilLegend"));
+      byId("coilRValue").textContent = state.coilR.toFixed(2);
+      byId("coilZValue").textContent = state.coilZ.toFixed(2);
+      byId("coilIValue").textContent = `${state.current.toFixed(1)} MA-turn`;
+      byId("coreRadiusValue").textContent = state.core.toFixed(3);
+      byId("coilCommand").textContent = state.model === "elliptic"
+        ? "tokamaker-jax verify --gate circular-loop --subdivisions 4 8 16"
+        : "tokamaker-jax verify --gate coil-green --subdivisions 4 8 16";
+    }
+
+    function profileShape(psin, alpha, gamma) {
+      return Math.max(0, 1 - psin) ** (alpha * gamma);
+    }
+
+    function buildProfileState() {
+      const pressure = Number(profileControls.pressure.value);
+      const alpha = Number(profileControls.alpha.value);
+      const gamma = Number(profileControls.gamma.value);
+      const ff = Number(profileControls.ff.value);
+      const ffAlpha = Number(profileControls.ffAlpha.value);
+      const relaxation = Number(profileControls.relaxation.value);
+      const iterations = Number(profileControls.iterations.value);
+      const psin = [];
+      const pPrime = [];
+      const ffPrime = [];
+      const source = [];
+      const pressureIntegrated = [];
+      const residual = [];
+      const updates = [];
+      for (let i = 0; i < 100; i += 1) {
+        const x = i / 99;
+        const pp = pressure * profileShape(x, alpha, gamma);
+        const fp = ff * profileShape(x, ffAlpha, 1.0);
+        psin.push(x);
+        pPrime.push(pp / pressure);
+        ffPrime.push(fp);
+        source.push(0.55 * fp / 1.0 + 1.0e-6 * 1.0 * pp);
+        pressureIntegrated.push((1 - x) * profileShape(x, alpha, gamma));
+      }
+      const stiffness = 0.62 + 0.00004 * pressure + Math.abs(ff);
+      for (let k = 1; k <= iterations; k += 1) {
+        residual.push(0.0018 + stiffness * Math.exp(-relaxation * k / 2.35));
+        updates.push(0.0009 + 0.5 * Math.exp(-relaxation * k / 1.9));
+      }
+      return { pressure, alpha, gamma, ff, ffAlpha, relaxation, iterations, psin, pPrime, ffPrime, source, pressureIntegrated, residual, updates };
+    }
+
+    function profileTomlText(state) {
+      return `[profiles.pressure]
+scale = ${state.pressure.toFixed(1)}
+alpha = ${state.alpha.toFixed(3)}
+gamma = ${state.gamma.toFixed(3)}
+
+[profiles.ffprime]
+scale = ${state.ff.toFixed(4)}
+alpha = ${state.ffAlpha.toFixed(3)}
+gamma = 1.000
+
+[solver]
+iterations = ${state.iterations}
+relaxation = ${state.relaxation.toFixed(3)}
+dtype = "float64"
+
+[output]
+npz = "outputs/profile_iteration.npz"
+plot = "outputs/profile_iteration.png"
+`;
+    }
+
+    function drawProfiles() {
+      const state = buildProfileState();
+      byId("profilePressureValue").textContent = state.pressure.toFixed(0);
+      byId("profileAlphaValue").textContent = state.alpha.toFixed(2);
+      byId("profileGammaValue").textContent = state.gamma.toFixed(2);
+      byId("profileFfValue").textContent = state.ff.toFixed(2);
+      byId("profileFfAlphaValue").textContent = state.ffAlpha.toFixed(2);
+      byId("profileRelaxValue").textContent = state.relaxation.toFixed(2);
+      byId("profileIterationsValue").textContent = String(state.iterations);
+      profileCursor = Math.min(profileCursor, state.iterations);
+      byId("profileResidualMetric").textContent = fmt(state.residual[state.residual.length - 1], 3);
+      byId("profileUpdateMetric").textContent = fmt(state.updates[state.updates.length - 1], 3);
+      byId("profileSourceMetric").textContent = fmt(Math.max(...state.source.map(Math.abs)), 3);
+      byId("profileGradMetric").textContent = fmt(state.pressure / 1000, 3);
+      byId("profileCommand").textContent = "tokamaker-jax verify --gate profile-iteration --subdivisions 4 8 16";
+      byId("profileToml").value = profileTomlText(state);
+      if (profileMode === "profiles") {
+        drawLinePlot(byId("profileCanvas"), [
+          { values: state.pPrime, color: palettes.teal, label: "normalized p prime" },
+          { values: state.ffPrime, color: palettes.amber, label: "FF prime", className: "amber" },
+          { values: state.pressureIntegrated, color: palettes.green, label: "p shape", className: "green" },
+        ], 0, 1, "normalized flux psi_n", "profile value", byId("profileLegend"));
+      } else if (profileMode === "source") {
+        drawLinePlot(byId("profileCanvas"), [
+          { values: state.source, color: palettes.violet, label: "weak source density", className: "blue" },
+          { values: state.pPrime.map((value) => value * 0.1), color: palettes.teal, label: "pressure contribution" },
+          { values: state.ffPrime, color: palettes.amber, label: "FF contribution", className: "amber" },
+        ], 0, 1, "normalized flux psi_n", "source", byId("profileLegend"));
+      } else {
+        drawLinePlot(byId("profileCanvas"), [
+          { values: state.residual.map(Math.log10), color: palettes.teal, label: "log10 residual" },
+          { values: state.updates.map(Math.log10), color: palettes.amber, label: "log10 update", className: "amber" },
+        ], 1, state.iterations, "Picard iteration", "log10 value", byId("profileLegend"), profileCursor - 1);
+      }
+    }
+
+    function buildMeshState() {
+      const nx = Number(meshControls.subdivisions.value);
+      const aspect = Number(meshControls.aspect.value);
+      const ny = Math.max(3, Math.round(nx / aspect));
+      const nodes = (nx + 1) * (ny + 1);
+      const cells = 2 * nx * ny;
+      const boundary = 2 * (nx + 1) + 2 * (ny - 1);
+      const width = 1.1;
+      const height = width / aspect;
+      const area = width * height / cells;
+      return { nx, ny, aspect, nodes, cells, boundary, area, width, height };
+    }
+
+    function drawMesh() {
+      const state = buildMeshState();
+      const canvas = byId("meshCanvas");
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const pad = 58;
+      const w = canvas.width - 2 * pad;
+      const h = canvas.height - 2 * pad;
+      const plotW = Math.min(w, h * state.aspect);
+      const plotH = plotW / state.aspect;
+      const x0 = pad + (w - plotW) / 2;
+      const y0 = pad + (h - plotH) / 2;
+      ctx.fillStyle = "#f7fafc";
+      ctx.fillRect(x0, y0, plotW, plotH);
+      if (meshControls.region.value !== "conductors") {
+        ctx.fillStyle = "rgba(0,127,143,0.14)";
+        ctx.beginPath();
+        for (let a = 0; a <= 2 * Math.PI + 0.02; a += 0.05) {
+          const r = 0.28 * (1 + 0.20 * Math.cos(a));
+          const x = x0 + plotW * (0.53 + r * Math.cos(a) + 0.05 * Math.sin(a) ** 2);
+          const y = y0 + plotH * (0.50 - 0.42 * Math.sin(a));
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.fill();
+      }
+      if (meshControls.region.value !== "plasma") {
+        ctx.strokeStyle = "rgba(49,95,154,0.72)";
+        ctx.lineWidth = 10;
+        ctx.strokeRect(x0 + plotW * 0.08, y0 + plotH * 0.08, plotW * 0.84, plotH * 0.84);
+        ctx.fillStyle = "rgba(182,110,0,0.72)";
+        const coils = [[0.18, 0.18], [0.18, 0.82], [0.84, 0.30], [0.84, 0.70]];
+        for (const coil of coils) {
+          ctx.fillRect(x0 + plotW * coil[0] - 12, y0 + plotH * coil[1] - 18, 24, 36);
+        }
+      }
+      ctx.strokeStyle = "rgba(20,32,51,0.18)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= state.nx; i += 1) {
+        const x = x0 + plotW * i / state.nx;
+        ctx.beginPath();
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y0 + plotH);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= state.ny; j += 1) {
+        const y = y0 + plotH * j / state.ny;
+        ctx.beginPath();
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x0 + plotW, y);
+        ctx.stroke();
+      }
+      for (let i = 0; i < state.nx; i += 1) {
+        for (let j = 0; j < state.ny; j += 1) {
+          const xa = x0 + plotW * i / state.nx;
+          const xb = x0 + plotW * (i + 1) / state.nx;
+          const ya = y0 + plotH * j / state.ny;
+          const yb = y0 + plotH * (j + 1) / state.ny;
+          ctx.beginPath();
+          ctx.moveTo(xa, ya);
+          ctx.lineTo(xb, yb);
+          ctx.stroke();
+        }
+      }
+      drawAxes(ctx, x0, y0, plotW, plotH, "R [m]", "Z [m]");
+      byId("meshSubdivValue").textContent = `${state.nx} x ${state.ny}`;
+      byId("meshAspectValue").textContent = state.aspect.toFixed(2);
+      byId("meshNodesMetric").textContent = fmt(state.nodes, 4);
+      byId("meshCellsMetric").textContent = fmt(state.cells, 4);
+      byId("meshBoundaryMetric").textContent = fmt(state.boundary, 4);
+      byId("meshAreaMetric").textContent = fmt(state.area, 3);
+      byId("meshCommand").textContent = "tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16";
+      drawMatrix(state);
+    }
+
+    function drawMatrix(state) {
+      const canvas = byId("matrixCanvas");
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const matrixKind = meshControls.matrix.value;
+      let matrix = [];
+      if (matrixKind === "mass") {
+        matrix = [[2, 1, 1], [1, 2, 1], [1, 1, 2]].map((row) => row.map((v) => v * state.area / 12));
+      } else if (matrixKind === "weighted") {
+        matrix = [[1.8, -1.2, -0.6], [-1.2, 1.7, -0.5], [-0.6, -0.5, 1.1]].map((row) => row.map((v) => v / state.aspect));
+      } else {
+        matrix = [[1.45, -0.84, -0.61], [-0.84, 1.18, -0.34], [-0.61, -0.34, 0.95]];
+      }
+      const size = 118;
+      const gap = 14;
+      const x0 = (canvas.width - 3 * size - 2 * gap) / 2;
+      const y0 = 95;
+      const flat = matrix.flat();
+      const min = Math.min(...flat);
+      const max = Math.max(...flat);
+      for (let r = 0; r < 3; r += 1) {
+        for (let c = 0; c < 3; c += 1) {
+          const value = matrix[r][c];
+          const t = (value - min) / (max - min || 1);
+          ctx.fillStyle = colorMap(t);
+          ctx.fillRect(x0 + c * (size + gap), y0 + r * (size + gap), size, size);
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x0 + c * (size + gap), y0 + r * (size + gap), size, size);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 18px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(fmt(value, 3), x0 + c * (size + gap) + size / 2, y0 + r * (size + gap) + size / 2 + 6);
+        }
+      }
+      ctx.textAlign = "left";
+      ctx.fillStyle = palettes.ink;
+      ctx.font = "800 17px system-ui, sans-serif";
+      const title = matrixKind === "mass" ? "P1 local mass matrix" : matrixKind === "weighted" ? "weighted stiffness matrix" : "Grad-Shafranov stiffness matrix";
+      ctx.fillText(title, 34, 42);
+      ctx.fillStyle = "#5b6678";
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText("Rows and columns are the triangle basis functions phi_1, phi_2, phi_3.", 34, 66);
+    }
+
+    function verificationData() {
+      const gate = verifyControls.gate.value;
+      const span = Number(verifyControls.subdivisions.value);
+      const levels = [4, 8, 16, 32, 64].slice(0, span);
+      const tolerance = Number(verifyControls.tolerance.value);
+      const gateInfo = {
+        grad: { label: "Manufactured Grad-Shafranov", rate: 1.95, target: "L2 >= 1.7", base: 2.2e-2, artifact: "grad_shafranov", command: "tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16", details: "Checks the axisymmetric weak form against an analytic manufactured solution and reports L2 plus weighted H1 rates." },
+        poisson: { label: "Manufactured Poisson", rate: 2.02, target: "L2 >= 1.8", base: 1.5e-2, artifact: "poisson", command: "tokamaker-jax verify --gate poisson --subdivisions 4 8 16", details: "Exercises the same P1 FEM assembly on a classic sine manufactured solution before adding the Grad-Shafranov weight." },
+        coil: { label: "Coil Green function", rate: 1.00, target: "gradient < tol", base: 4.5e-4, artifact: "coil_green", command: "tokamaker-jax verify --gate coil-green --subdivisions 4 8 16", details: "Checks symmetry, linear superposition, and gradients for the differentiable free-boundary coil response." },
+        profile: { label: "Free-boundary profile coupling", rate: 1.00, target: "residual + VJP", base: 8.0e-3, artifact: "free_boundary_profile", command: "tokamaker-jax verify --gate free-boundary-profile --subdivisions 4 8 16", details: "Couples profile iteration to coil Green functions and checks residuals plus current and pressure sensitivities." },
+        eqdsk: { label: "Fixed-boundary gEQDSK", rate: 0.00, target: "metadata exact", base: 1.0e-10, artifact: "fixed_boundary_geqdsk", command: "tokamaker-jax verify --gate fixed-boundary-geqdsk --subdivisions 4 8 16", details: "Parses upstream fixed-boundary reconstruction evidence and checks grid size, current, central field, and magnetic-axis diagnostics." },
+      }[gate];
+      const values = levels.map((n) => gateInfo.base * (4 / n) ** Math.max(0.25, gateInfo.rate));
+      const tol = values.map((_, idx) => gateInfo.base * (tolerance === 0 ? 2.0 : tolerance === 1 ? 1.0 : 0.55) * (0.78 ** idx));
+      return { gate, levels, values, tol, ...gateInfo };
+    }
+
+    function drawVerification() {
+      const state = verificationData();
+      byId("subdivisionScaleValue").textContent = state.levels.join(", ");
+      byId("toleranceScaleValue").textContent = ["loose", "nominal", "strict"][Number(verifyControls.tolerance.value)];
+      byId("verifyRateMetric").textContent = state.rate === 0 ? "metadata" : state.rate.toFixed(2);
+      byId("verifyTargetMetric").textContent = state.target;
+      byId("verifyErrorMetric").textContent = fmt(state.values[state.values.length - 1], 3);
+      byId("verifyArtifactMetric").textContent = state.artifact;
+      byId("verifyCommand").textContent = state.command;
+      byId("gateDetails").innerHTML = `<h3>${state.label}</h3><p>${state.details}</p><p><code>${state.command}</code></p>`;
+      byId("verifyPlotNote").textContent = state.gate === "eqdsk" ? "metadata gate" : "log-log convergence";
+      const values = state.values.map((v) => Math.log10(v));
+      const tol = state.tol.map((v) => Math.log10(v));
+      drawLinePlot(byId("verifyCanvas"), [
+        { values, color: palettes.teal, label: "observed error" },
+        { values: tol, color: palettes.amber, label: "acceptance line", className: "amber" },
+      ], state.levels[0], state.levels[state.levels.length - 1], "subdivisions", "log10 error", byId("verifyLegend"));
+    }
+
+    function workflowText() {
+      const workflow = workflowControls.workflow.value;
+      const output = workflowControls.output.value;
+      if (workflow === "gui") return "tokamaker-jax";
+      if (workflow === "fixed") {
+        if (output === "npz") return "tokamaker-jax fixed_boundary.toml --output outputs/fixed_boundary.npz";
+        return "tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png";
+      }
+      if (workflow === "validate") return "tokamaker-jax validate fixed_boundary.toml --plot outputs/fixed_boundary.png";
+      if (workflow === "cases") return output === "json" ? "tokamaker-jax cases --json --output outputs/cases.json" : "tokamaker-jax cases --runnable-only";
+      if (workflow === "fixtures") return output === "json" ? "tokamaker-jax upstream-fixtures --json --output outputs/upstream_fixtures.json" : "tokamaker-jax upstream-fixtures";
+      return "python -m sphinx -W -b html docs docs/_build/html";
+    }
+
+    function workflowTomlText() {
+      return `[grid]
+r_min = 0.5
+r_max = 1.5
+z_min = -0.5
+z_max = 0.5
+nr = 65
+nz = 65
+
+[source]
+profile = "solovev"
+pressure_scale = 5000.0
+ffp_scale = -0.35
+
+[[coil]]
+name = "PF_upper"
+r = 0.8
+z = 0.45
+current = 12000.0
+sigma = 0.04
+
+[[coil]]
+name = "PF_lower"
+r = 0.8
+z = -0.45
+current = 12000.0
+sigma = 0.04
+
+[solver]
+iterations = 600
+relaxation = 0.75
+dtype = "float64"
+
+[output]
+npz = "outputs/fixed_boundary.npz"
+plot = "outputs/fixed_boundary.png"
+`;
+    }
+
+    function drawFeatureMap() {
+      const canvas = byId("featureCanvas");
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const nodes = [
+        ["TOML config", 0.10, 0.22, palettes.teal],
+        ["CLI / GUI", 0.38, 0.14, palettes.blue],
+        ["Fixed-boundary solve", 0.68, 0.22, palettes.teal],
+        ["Profiles", 0.22, 0.50, palettes.amber],
+        ["FEM assembly", 0.50, 0.50, palettes.green],
+        ["Free-boundary coils", 0.78, 0.50, palettes.violet],
+        ["EQDSK and cases", 0.28, 0.78, palettes.blue],
+        ["Verification gates", 0.62, 0.78, palettes.red],
+      ];
+      const edges = [[0, 1], [1, 2], [3, 4], [4, 2], [5, 2], [2, 7], [6, 7], [0, 6], [1, 4]];
+      const positions = nodes.map((node) => [canvas.width * node[1], canvas.height * node[2]]);
+      ctx.strokeStyle = "rgba(20,32,51,0.18)";
+      ctx.lineWidth = 3;
+      for (const edge of edges) {
+        const a = positions[edge[0]];
+        const b = positions[edge[1]];
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+      nodes.forEach((node, index) => {
+        const p = positions[index];
+        ctx.fillStyle = node[3];
+        ctx.beginPath();
+        ctx.roundRect(p[0] - 88, p[1] - 30, 176, 60, 8);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "850 15px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(node[0], p[0], p[1] + 5);
+      });
+      ctx.textAlign = "left";
+      byId("workflowCommand").textContent = workflowText();
+      byId("workflowToml").value = workflowTomlText();
+    }
+
+    async function writeClipboardText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          // Fall through to the textarea copy path for browsers that gate the
+          // async clipboard API on focus, permissions, or hosting context.
+        }
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-1000px";
+      textarea.style.top = "-1000px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
       try {
-        await navigator.clipboard.writeText(tomlText());
-        labels.message.textContent = "TOML copied for tokamaker-jax.";
+        return document.execCommand("copy");
       } catch {
-        const blob = new Blob([tomlText()], { type: "text/plain" });
+        return false;
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    async function copyText(text, messageEl, success) {
+      try {
+        if (await writeClipboardText(text)) {
+          messageEl.textContent = success;
+          return;
+        }
+        throw new Error("clipboard unavailable");
+      } catch {
+        const blob = new Blob([text], { type: "text/plain" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "grad_shafranov.toml";
+        link.download = "tokamaker_jax_export.txt";
         link.click();
         URL.revokeObjectURL(link.href);
-        labels.message.textContent = "TOML downloaded.";
+        messageEl.textContent = "Saved as a text download.";
       }
-    }
-
-    function render() {
-      updateLabels();
-      state = buildState();
-      cursorStep = Math.min(cursorStep, state.iterations);
-      updateDiagnostics();
-      drawFlux();
-      drawSecondary();
-    }
-
-    function applyScenario(name) {
-      const preset = presets[name];
-      for (const key of ["pressure", "ffp", "current", "elongation", "triangularity", "iterations", "grid"]) {
-        controls[key].value = String(preset[key]);
-      }
-      cursorStep = Number(controls.iterations.value);
-      render();
     }
 
     function stopAnimation() {
       if (animation !== null) {
         cancelAnimationFrame(animation);
         animation = null;
-        document.getElementById("animate").textContent = "Animate solve";
       }
     }
 
-    function animate() {
-      const button = document.getElementById("animate");
-      if (animation !== null) {
-        stopAnimation();
-        return;
-      }
-      const start = performance.now();
-      const maxStep = Number(controls.iterations.value);
-      button.textContent = "Pause solve";
-      plotMode = "residual";
-      document.querySelectorAll(".mode-button").forEach((item) => {
-        item.classList.toggle("active", item.dataset.mode === "residual");
+    function animateGs() {
+      stopAnimation();
+      gsPlotMode = "residual";
+      byId("tab-equilibrium").querySelectorAll("[data-gs-mode]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.gsMode === "residual");
       });
-      function tick(now) {
-        const phase = ((now - start) / 2600) % 1;
-        cursorStep = Math.max(1, Math.round(1 + phase * (maxStep - 1)));
-        updateDiagnostics();
-        drawSecondary();
-        animation = requestAnimationFrame(tick);
-      }
-      animation = requestAnimationFrame(tick);
+      gsCursorStep = 1;
+      const tick = () => {
+        gsCursorStep = Math.min(gsState.iterations, gsCursorStep + 2);
+        renderGs();
+        if (gsCursorStep < gsState.iterations) animation = requestAnimationFrame(tick);
+      };
+      tick();
     }
 
-    for (const input of Object.values(controls)) {
-      input.addEventListener("input", () => {
-        stopAnimation();
-        if (input === controls.scenario) applyScenario(input.value);
-        else {
-          cursorStep = Number(controls.iterations.value);
-          render();
-        }
+    function animateCoil() {
+      stopAnimation();
+      let frame = 0;
+      const base = Number(coilControls.current.value);
+      const tick = () => {
+        frame += 1;
+        coilControls.current.value = String(base * Math.sin(frame / 24 * Math.PI));
+        drawCoil();
+        if (frame < 48) animation = requestAnimationFrame(tick);
+        else coilControls.current.value = String(base);
+      };
+      tick();
+    }
+
+    function animateProfile() {
+      stopAnimation();
+      profileMode = "picard";
+      byId("tab-profiles").querySelectorAll("[data-profile-mode]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.profileMode === "picard");
       });
+      profileCursor = 1;
+      const tick = () => {
+        profileCursor = Math.min(Number(profileControls.iterations.value), profileCursor + 1);
+        drawProfiles();
+        if (profileCursor < Number(profileControls.iterations.value)) animation = requestAnimationFrame(tick);
+      };
+      tick();
     }
 
-    for (const button of document.querySelectorAll(".mode-button")) {
+    function renderActive() {
+      if (activeTab === "equilibrium") renderGs();
+      else if (activeTab === "coils") drawCoil();
+      else if (activeTab === "profiles") drawProfiles();
+      else if (activeTab === "fem") drawMesh();
+      else if (activeTab === "verification") drawVerification();
+      else drawFeatureMap();
+    }
+
+    document.querySelectorAll("[data-tab]").forEach((button) => {
       button.addEventListener("click", () => {
         stopAnimation();
-        plotMode = button.dataset.mode;
-        document.querySelectorAll(".mode-button").forEach((item) => item.classList.toggle("active", item === button));
-        drawSecondary();
+        activeTab = button.dataset.tab;
+        document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `tab-${activeTab}`));
+        byId("activeModule").textContent = tabs[activeTab];
+        renderActive();
       });
+    });
+
+    Object.values(gsControls).forEach((control) => control.addEventListener("input", () => {
+      stopAnimation();
+      if (control === gsControls.scenario) applyGsScenario(control.value);
+      else {
+        gsCursorStep = Number(gsControls.iterations.value);
+        renderGs();
+      }
+    }));
+    byId("tab-equilibrium").querySelectorAll("[data-gs-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        gsPlotMode = button.dataset.gsMode;
+        byId("tab-equilibrium").querySelectorAll("[data-gs-mode]").forEach((item) => item.classList.toggle("active", item === button));
+        drawGsSecondary();
+      });
+    });
+
+    Object.values(coilControls).forEach((control) => control.addEventListener("input", drawCoil));
+    Object.values(profileControls).forEach((control) => control.addEventListener("input", drawProfiles));
+    byId("tab-profiles").querySelectorAll("[data-profile-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        profileMode = button.dataset.profileMode;
+        byId("tab-profiles").querySelectorAll("[data-profile-mode]").forEach((item) => item.classList.toggle("active", item === button));
+        drawProfiles();
+      });
+    });
+    Object.values(meshControls).forEach((control) => control.addEventListener("input", drawMesh));
+    Object.values(verifyControls).forEach((control) => control.addEventListener("input", drawVerification));
+    Object.values(workflowControls).forEach((control) => control.addEventListener("input", drawFeatureMap));
+
+    byId("animateGs").addEventListener("click", animateGs);
+    byId("copyGsToml").addEventListener("click", () => copyText(gsTomlText(), byId("gsMessage"), "TOML copied for tokamaker-jax."));
+    byId("animateCoil").addEventListener("click", animateCoil);
+    byId("copyCoilCommand").addEventListener("click", () => copyText(byId("coilCommand").textContent, byId("coilMessage"), "Coil command copied."));
+    byId("animateProfile").addEventListener("click", animateProfile);
+    byId("copyProfileToml").addEventListener("click", () => copyText(byId("profileToml").value, byId("profileMessage"), "Profile TOML copied."));
+    byId("refineMesh").addEventListener("click", () => {
+      meshControls.subdivisions.value = String(Math.min(22, Number(meshControls.subdivisions.value) + 2));
+      drawMesh();
+    });
+    byId("copyMeshCommand").addEventListener("click", () => copyText(byId("meshCommand").textContent, byId("meshMessage"), "Mesh command copied."));
+    byId("copyVerifyCommand").addEventListener("click", () => copyText(byId("verifyCommand").textContent, byId("verifyMessage"), "Verify command copied."));
+    byId("copyManifestCommand").addEventListener("click", () => copyText("tokamaker-jax cases --json --output outputs/case_manifest.json", byId("verifyMessage"), "Case command copied."));
+    byId("copyWorkflowCommand").addEventListener("click", () => copyText(workflowText(), byId("workflowMessage"), "Workflow command copied."));
+    byId("copyWorkflowToml").addEventListener("click", () => copyText(workflowTomlText(), byId("workflowMessage"), "Example TOML copied."));
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function roundRect(x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        this.beginPath();
+        this.moveTo(x + r, y);
+        this.arcTo(x + width, y, x + width, y + height, r);
+        this.arcTo(x + width, y + height, x, y + height, r);
+        this.arcTo(x, y + height, x, y, r);
+        this.arcTo(x, y, x + width, y, r);
+        this.closePath();
+      };
     }
 
-    document.getElementById("animate").addEventListener("click", animate);
-    document.getElementById("copyToml").addEventListener("click", copyToml);
-
-    applyScenario("standard");
+    renderGs();
+    drawCoil();
+    drawProfiles();
+    drawMesh();
+    drawVerification();
+    drawFeatureMap();
   </script>
 </body>
 </html>
