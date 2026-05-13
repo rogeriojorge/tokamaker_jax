@@ -90,7 +90,7 @@ TOML files use `tomllib` on Python 3.11+ and `tomli` on Python 3.10.
 Release and PyPI publishing steps are documented in
 [docs/release.md](docs/release.md).
 
-Static browser explorer for GitHub Pages:
+Static browser research workbench for GitHub Pages:
 [tokamaker_jax_explorer.html](https://rogeriojorge.github.io/tokamaker_jax/_static/tokamaker_jax_explorer.html)
 
 ## Examples
@@ -113,7 +113,7 @@ tokamaker-jax verify --gate free-boundary-profile
 
 ## Visual Overview
 
-![Static browser equilibrium explorer](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/tokamaker_jax_explorer_screenshot.png)
+![Static browser research workbench](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/tokamaker_jax_explorer_screenshot.png)
 
 ![GUI workflow dashboard](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/gui_workflow_dashboard.png)
 

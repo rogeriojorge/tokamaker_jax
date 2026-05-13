@@ -3024,3 +3024,43 @@ Completion after this pass:
 - CI/CD lane: 100%, including remote CI, Docs, and Pages.
 - Docs/examples lane: 100% for this staged milestone.
 - Overall: 100% for the static GitHub Pages addition.
+
+### 2026-05-13 17:20 WEST
+
+Expanded the GitHub Pages static explorer into a multi-tab research workbench.
+
+Implemented:
+
+- Rebuilt `docs/_static/tokamaker_jax_explorer.html` from a single
+  fixed-boundary preview into a nine-tab research UI:
+  overview, equilibrium, geometry/mesh, profiles, coils/Green functions,
+  validation, differentiability, benchmarks, and export.
+- Added persistent case controls for research preset, pressure scale, FF'
+  scale, PF coil current, iteration count, browser grid, mesh/topology mode,
+  and validation focus.
+- Added browser-side plots for workflow structure, flux surfaces, residual
+  history, mesh/region topology, pressure/FF'/source profiles, coil response,
+  validation convergence, differentiability checks, and benchmark ratios.
+- Added research export surfaces for TOML, CLI commands, and a JSON artifact
+  manifest, plus copy/download actions.
+- Updated browser-explorer docs, README wording, progress docs, and docs
+  artifact tests to describe and protect the research-workbench contract.
+- Re-captured `docs/_static/tokamaker_jax_explorer_screenshot.png` with the
+  new first-viewport workbench layout.
+
+Validation completed locally:
+
+- `node --check` on the extracted explorer script: passed.
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest tests/test_docs_artifacts.py tests/test_ci_workflows.py -q`:
+  18 passed.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- In-app browser loaded the local workbench with no console errors, verified
+  the new tab labels and control surface, and exercised Geometry/Mesh,
+  Validation, and Export tab state through DOM interaction.
+
+Completion after this pass:
+
+- Static research workbench lane: 100% for the current GitHub Pages scope.
+- Docs/tests lane: 100% locally, pending remote CI/Docs/Pages after push.
+- Overall: 100% for the requested richer GitHub Pages research UI.

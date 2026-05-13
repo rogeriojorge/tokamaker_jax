@@ -1,18 +1,22 @@
-# Browser Explorer
+# Browser Research Workbench
 
-The static browser explorer is a GitHub Pages companion for the fixed-boundary
-seed workflow:
+The static browser research workbench is a GitHub Pages companion for the
+tokamaker-jax solver stack:
 
-![Static browser equilibrium explorer](_static/tokamaker_jax_explorer_screenshot.png)
+![Static browser research workbench](_static/tokamaker_jax_explorer_screenshot.png)
 
 ```{raw} html
-<p><a class="reference external" href="_static/tokamaker_jax_explorer.html">Open the browser equilibrium explorer</a></p>
-<iframe src="_static/tokamaker_jax_explorer.html" title="tokamaker-jax browser equilibrium explorer" style="width: 100%; min-height: 860px; border: 1px solid #d7dde8; border-radius: 8px;"></iframe>
+<p><a class="reference external" href="_static/tokamaker_jax_explorer.html">Open the browser research workbench</a></p>
+<iframe src="_static/tokamaker_jax_explorer.html" title="tokamaker-jax browser research workbench" style="width: 100%; min-height: 980px; border: 1px solid #d7dde8; border-radius: 8px;"></iframe>
 ```
 
-It runs entirely in the browser, so it is suitable for GitHub Pages. It is a
-reduced preview of the packaged fixed-boundary example, not a replacement for
-the Python/JAX solver or the NiceGUI research dashboard.
+It runs entirely in the browser, so it is suitable for GitHub Pages. The tabs
+cover the same research lanes as the Python package: case setup, equilibrium
+preview, region geometry and mesh topology, pressure and FF' profiles, coil
+Green-function response, physics validation gates, differentiability checks,
+benchmark history, and reproducible export. The browser numerics are reduced
+proxies; validated solves, gradients, parity checks, and publication artifacts
+remain in the Python/JAX CLI and NiceGUI dashboard.
 
 Use the CLI for validated runs:
 

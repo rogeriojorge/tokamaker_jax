@@ -3,20 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>tokamaker-jax Browser Equilibrium Explorer</title>
+  <title>tokamaker-jax Research Workbench</title>
   <style>
     :root {
       color-scheme: light;
-      --ink: #121826;
+      --ink: #111827;
       --muted: #5c667a;
-      --line: #d7dde8;
+      --quiet: #7a8496;
+      --line: #d8e0ec;
+      --line-strong: #b9c4d3;
       --panel: #ffffff;
-      --page: #f2f5f9;
-      --accent: #007f8f;
-      --accent-2: #ad6b00;
-      --accent-3: #2f7d55;
-      --danger: #b33a3a;
-      --shadow: 0 12px 34px rgba(24, 36, 58, 0.1);
+      --page: #eef2f7;
+      --teal: #007f8f;
+      --teal-dark: #006977;
+      --amber: #ad6b00;
+      --green: #2f7d55;
+      --red: #b33a3a;
+      --blue: #2b5d9a;
+      --shadow: 0 14px 38px rgba(24, 36, 58, 0.10);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
@@ -32,33 +36,64 @@
 
     button,
     input,
-    select {
+    select,
+    textarea {
       font: inherit;
     }
 
+    button {
+      border: 1px solid rgba(18, 24, 38, 0.14);
+      border-radius: 6px;
+      background: #ffffff;
+      color: #1d2a3f;
+      cursor: pointer;
+      font-weight: 800;
+      padding: 10px 12px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+
+    button:hover,
+    button:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(24, 36, 58, 0.14);
+      outline: none;
+    }
+
+    button.primary {
+      background: var(--teal);
+      border-color: var(--teal-dark);
+      color: #ffffff;
+    }
+
+    button.compact {
+      min-height: 34px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+    }
+
     .shell {
-      width: min(1480px, calc(100vw - 32px));
+      width: min(1580px, calc(100vw - 32px));
       margin: 0 auto;
-      padding: 22px 0 36px;
+      padding: 20px 0 38px;
     }
 
     header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 18px;
+      gap: 20px;
       align-items: end;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.75rem, 3vw, 3.15rem);
-      line-height: 1.02;
+      font-size: clamp(1.85rem, 3vw, 3.1rem);
+      line-height: 1.04;
       letter-spacing: 0;
     }
 
     .subtitle {
-      max-width: 920px;
+      max-width: 1040px;
       margin: 10px 0 0;
       color: var(--muted);
       font-size: 1rem;
@@ -73,19 +108,56 @@
     }
 
     .badge {
-      border: 1px solid rgba(18, 24, 38, 0.12);
+      border: 1px solid rgba(18, 24, 38, 0.14);
       border-radius: 999px;
       background: #ffffff;
       padding: 8px 11px;
-      color: #25324a;
+      color: #26344d;
       font-size: 0.82rem;
-      font-weight: 700;
+      font-weight: 800;
       white-space: nowrap;
     }
 
-    .layout {
+    .metric-grid {
       display: grid;
-      grid-template-columns: minmax(310px, 380px) minmax(0, 1fr);
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      min-height: 84px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 9px;
+      font-size: clamp(0.98rem, 1.55vw, 1.34rem);
+      line-height: 1.12;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #psiMetric,
+    #gateMetric {
+      font-size: clamp(0.86rem, 1vw, 1rem);
+      white-space: nowrap;
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
       gap: 16px;
       align-items: start;
     }
@@ -100,10 +172,12 @@
     .controls {
       position: sticky;
       top: 12px;
-      padding: 18px;
+      padding: 16px;
     }
 
-    .control-head {
+    .control-head,
+    .panel-head,
+    .split-head {
       display: flex;
       justify-content: space-between;
       gap: 12px;
@@ -112,8 +186,8 @@
     }
 
     .control-head h2,
-    .viz-head h2,
-    .section-title {
+    .panel-head h2,
+    .split-head h3 {
       margin: 0;
       font-size: 1rem;
       letter-spacing: 0;
@@ -122,13 +196,14 @@
     .version {
       color: var(--muted);
       font-size: 0.78rem;
-      font-weight: 700;
+      font-weight: 800;
+      white-space: nowrap;
     }
 
     .field {
       display: grid;
       gap: 7px;
-      margin: 14px 0;
+      margin: 13px 0;
     }
 
     label {
@@ -136,29 +211,37 @@
       justify-content: space-between;
       gap: 10px;
       color: #3d485e;
-      font-size: 0.82rem;
-      font-weight: 800;
+      font-size: 0.79rem;
+      font-weight: 900;
       text-transform: uppercase;
     }
 
     .value {
-      color: var(--accent);
+      color: var(--teal);
       font-variant-numeric: tabular-nums;
     }
 
     input[type="range"] {
       width: 100%;
-      accent-color: var(--accent);
+      accent-color: var(--teal);
     }
 
     select,
-    input[type="number"] {
+    textarea {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: #fbfcfe;
       color: var(--ink);
       padding: 9px 10px;
+    }
+
+    textarea {
+      min-height: 210px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.79rem;
+      line-height: 1.5;
     }
 
     .actions {
@@ -168,33 +251,20 @@
       margin-top: 16px;
     }
 
-    button {
-      border: 1px solid rgba(18, 24, 38, 0.12);
-      border-radius: 6px;
-      background: #ffffff;
-      color: #1d2a3f;
-      cursor: pointer;
+    .actions .wide {
+      grid-column: 1 / -1;
+    }
+
+    .status-line {
+      margin: 12px 0 0;
+      min-height: 22px;
+      color: var(--green);
+      font-size: 0.84rem;
       font-weight: 800;
-      padding: 10px 11px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(24, 36, 58, 0.12);
-    }
-
-    button.primary {
-      background: var(--accent);
-      color: #ffffff;
-    }
-
-    button.secondary {
-      background: #f7fafc;
     }
 
     .command {
-      margin-top: 16px;
+      margin-top: 14px;
       border-radius: 6px;
       background: #111827;
       color: #e6edf7;
@@ -205,129 +275,179 @@
       overflow-wrap: anywhere;
     }
 
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
-    .metric {
+    .tab-button {
+      min-height: 38px;
       background: #ffffff;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 13px;
-      min-height: 92px;
+      color: #2d394e;
     }
 
-    .metric span {
-      color: var(--muted);
-      display: block;
-      font-size: 0.74rem;
-      font-weight: 800;
-      text-transform: uppercase;
+    .tab-button.active {
+      background: #172033;
+      border-color: #172033;
+      color: #ffffff;
+      box-shadow: none;
     }
 
-    .metric strong {
-      display: block;
-      margin-top: 12px;
-      font-size: clamp(1rem, 1.7vw, 1.38rem);
-      line-height: 1.1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    #psiMetric {
-      font-size: clamp(0.88rem, 1.15vw, 1.08rem);
-      white-space: nowrap;
-    }
-
-    .plots {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-      gap: 16px;
-    }
-
-    .plot-panel {
+    .tab-panel {
+      display: none;
       padding: 14px;
     }
 
-    .viz-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 10px;
+    .tab-panel.active {
+      display: block;
     }
 
-    .viz-note {
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .tile {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 12px;
+      min-height: 92px;
+    }
+
+    .tile h3,
+    .tile h4 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .tile p {
+      margin: 8px 0 0;
       color: var(--muted);
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.86rem;
+      line-height: 1.48;
+    }
+
+    .tile code {
+      display: block;
+      color: #162033;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.80rem;
+      line-height: 1.5;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     canvas {
       display: block;
       width: 100%;
       height: auto;
-      border: 1px solid #e2e7f0;
+      border: 1px solid #e1e7f0;
       border-radius: 6px;
       background: #ffffff;
     }
 
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: #3b4659;
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    td:last-child,
+    th:last-child {
+      text-align: right;
+    }
+
+    .ok {
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .warn {
+      color: var(--amber);
+      font-weight: 900;
+    }
+
+    .danger {
+      color: var(--red);
+      font-weight: 900;
+    }
+
+    .note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
     .stack {
       display: grid;
-      gap: 16px;
+      gap: 14px;
     }
 
-    .equations {
-      margin-top: 16px;
-      padding: 16px;
-    }
-
-    .equation-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .equation {
+    .split {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fbfcfe;
+      background: #ffffff;
       padding: 12px;
-      min-height: 110px;
     }
 
-    .equation code {
-      display: block;
-      color: #172033;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.83rem;
-      line-height: 1.55;
-      white-space: normal;
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
-    .equation p {
+    .mini-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .mini-list li {
+      border-left: 4px solid var(--line-strong);
+      padding: 4px 0 4px 10px;
       color: var(--muted);
-      line-height: 1.5;
-      margin: 8px 0 0;
       font-size: 0.86rem;
+      line-height: 1.45;
     }
 
-    .status-line {
-      margin: 12px 0 0;
-      min-height: 22px;
-      color: var(--accent-3);
-      font-size: 0.84rem;
-      font-weight: 800;
+    .mini-list strong {
+      color: var(--ink);
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1180px) {
       header,
-      .layout,
-      .plots,
-      .equation-grid {
+      .workbench,
+      .grid-2,
+      .grid-3 {
         grid-template-columns: 1fr;
       }
 
@@ -338,16 +458,31 @@
       .badges {
         justify-content: start;
       }
+
+      .metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 760px) {
       .shell {
-        width: min(100vw - 20px, 1480px);
+        width: min(100vw - 20px, 1580px);
         padding-top: 12px;
       }
 
-      .metrics {
+      .metric-grid,
+      .artifact-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -356,32 +491,43 @@
   <main class="shell">
     <header>
       <div>
-        <h1>tokamaker-jax browser equilibrium explorer</h1>
+        <h1>tokamaker-jax research workbench</h1>
         <p class="subtitle">
-          Static GitHub Pages companion for the fixed-boundary seed workflow. The full solver remains the Python/JAX CLI and NiceGUI app; this page gives an instant browser-side reduced preview for parameters, residual trends, source balance, and TOML handoff.
+          Static GitHub Pages companion for the tokamaker-jax solver stack. It mirrors the CLI, NiceGUI, validation, plotting, benchmark, differentiability, and upstream-comparison workflows in a browser-only research interface for MHD students and researchers.
         </p>
       </div>
-      <div class="badges" aria-label="Explorer status">
+      <div class="badges" aria-label="Workbench status">
         <span class="badge">static HTML</span>
-        <span class="badge">no server</span>
-        <span class="badge">reproducible TOML</span>
+        <span class="badge">research tabs</span>
+        <span class="badge">TOML handoff</span>
+        <span class="badge">validated runs in Python</span>
       </div>
     </header>
 
-    <section class="layout">
+    <section class="metric-grid" aria-label="Live workbench metrics">
+      <div class="metric"><span>Residual proxy</span><strong id="residualMetric"></strong></div>
+      <div class="metric"><span>psi range</span><strong id="psiMetric"></strong></div>
+      <div class="metric"><span>Mesh</span><strong id="meshMetric"></strong></div>
+      <div class="metric"><span>Coil flux max</span><strong id="coilMetric"></strong></div>
+      <div class="metric"><span>Gradients</span><strong id="gradientMetric"></strong></div>
+      <div class="metric"><span>Gate status</span><strong id="gateMetric"></strong></div>
+    </section>
+
+    <section class="workbench">
       <aside class="panel controls">
         <div class="control-head">
-          <h2>Controls</h2>
-          <span class="version">0.1.0a0 preview</span>
+          <h2>Case controls</h2>
+          <span class="version">0.1.0a0 static workbench</span>
         </div>
 
         <div class="field">
-          <label for="preset">Preset</label>
+          <label for="preset">Research case</label>
           <select id="preset">
             <option value="baseline">Fixed-boundary seed</option>
-            <option value="pressure">High-pressure scan</option>
-            <option value="coil">Coil-response emphasized</option>
-            <option value="fast">Fast validation preview</option>
+            <option value="pressure">High-pressure profile scan</option>
+            <option value="coil">Free-boundary coil response</option>
+            <option value="validation">Validation gate study</option>
+            <option value="benchmark">Performance benchmark run</option>
           </select>
         </div>
 
@@ -402,7 +548,7 @@
 
         <div class="field">
           <label for="iterations">Iterations <span class="value" id="iterationValue"></span></label>
-          <input id="iterations" type="range" min="20" max="240" step="5" value="80">
+          <input id="iterations" type="range" min="20" max="260" step="5" value="80">
         </div>
 
         <div class="field">
@@ -411,12 +557,37 @@
             <option value="49">49 x 49</option>
             <option value="65" selected>65 x 65</option>
             <option value="81">81 x 81</option>
+            <option value="97">97 x 97</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="meshMode">Mesh / topology</label>
+          <select id="meshMode">
+            <option value="rect">Rectangular seed grid</option>
+            <option value="tri">p=1 triangular FEM</option>
+            <option value="regions">Region-aware plasma/wall/coils</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="gateFocus">Validation focus</label>
+          <select id="gateFocus">
+            <option value="all">All gates</option>
+            <option value="grad">Grad-Shafranov convergence</option>
+            <option value="coil">Circular-loop Green function</option>
+            <option value="free">Free-boundary/profile coupling</option>
+            <option value="oft">OpenFUSIONToolkit parity</option>
+            <option value="eqdsk">Fixed-boundary gEQDSK evidence</option>
           </select>
         </div>
 
         <div class="actions">
-          <button class="primary" id="animate">Animate</button>
-          <button class="secondary" id="copyToml">Copy TOML</button>
+          <button class="primary" id="animate">Animate solve</button>
+          <button id="copyToml">Copy TOML</button>
+          <button id="copyCommand">Copy CLI</button>
+          <button id="downloadBundle">Export bundle</button>
+          <button class="wide" id="reset">Reset baseline</button>
         </div>
         <p class="status-line" id="status" role="status"></p>
 
@@ -424,55 +595,213 @@
       </aside>
 
       <section>
-        <div class="metrics" aria-label="Preview metrics">
-          <div class="metric"><span>Residual</span><strong id="residualMetric"></strong></div>
-          <div class="metric"><span>&psi; range</span><strong id="psiMetric"></strong></div>
-          <div class="metric"><span>Coil flux max</span><strong id="coilMetric"></strong></div>
-          <div class="metric"><span>Grid</span><strong id="gridMetric"></strong></div>
-        </div>
+        <nav class="tabs" aria-label="Workbench tabs">
+          <button class="tab-button active" data-tab="overview">Overview</button>
+          <button class="tab-button" data-tab="equilibrium">Equilibrium</button>
+          <button class="tab-button" data-tab="mesh">Geometry / mesh</button>
+          <button class="tab-button" data-tab="profiles">Profiles</button>
+          <button class="tab-button" data-tab="coils">Coils / Green</button>
+          <button class="tab-button" data-tab="validation">Validation</button>
+          <button class="tab-button" data-tab="differentiability">Differentiability</button>
+          <button class="tab-button" data-tab="benchmarks">Benchmarks</button>
+          <button class="tab-button" data-tab="export">Export</button>
+        </nav>
 
-        <div class="plots">
-          <section class="panel plot-panel">
-            <div class="viz-head">
-              <h2>Flux surfaces</h2>
-              <span class="viz-note">reduced browser solve</span>
-            </div>
-            <canvas id="fluxCanvas" width="760" height="600" aria-label="Flux surface heat map"></canvas>
-          </section>
-
-          <div class="stack">
-            <section class="panel plot-panel">
-              <div class="viz-head">
-                <h2>Residual convergence</h2>
-                <span class="viz-note" id="cursorLabel">iteration 80</span>
-              </div>
-              <canvas id="residualCanvas" width="620" height="280" aria-label="Residual convergence plot"></canvas>
-            </section>
-
-            <section class="panel plot-panel">
-              <div class="viz-head">
-                <h2>Midplane and source profiles</h2>
-                <span class="viz-note">Z = 0, R = R0 cuts</span>
-              </div>
-              <canvas id="profileCanvas" width="620" height="280" aria-label="Midplane and source profile plot"></canvas>
-            </section>
+        <section class="panel tab-panel active" id="tab-overview">
+          <div class="panel-head">
+            <h2>Workflow overview</h2>
+            <span class="version">same research lanes as the CLI and NiceGUI dashboard</span>
           </div>
-        </div>
+          <div class="grid-2">
+            <canvas id="overviewCanvas" width="900" height="520" aria-label="tokamaker-jax workflow map"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Capability map</h3><span class="version">static status</span></div>
+                <table>
+                  <tbody id="capabilityRows"></tbody>
+                </table>
+              </div>
+              <div class="split">
+                <div class="split-head"><h3>Research handoff</h3><span class="version">reproducible</span></div>
+                <ul class="mini-list">
+                  <li><strong>Explore:</strong> use the tabs to inspect a browser-side reduced model and the relevant equations.</li>
+                  <li><strong>Validate:</strong> run the generated CLI commands for JAX solves, differentiability checks, and parity gates.</li>
+                  <li><strong>Publish:</strong> export TOML, JSON manifest, benchmark records, and figures from the Python path.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <section class="panel equations">
-          <h2 class="section-title">Browser model summary</h2>
-          <div class="equation-grid">
-            <div class="equation">
-              <code>Delta* psi = -mu0 R^2 p'(psi) - 0.5 F F'(psi) + S_coil</code>
-              <p>Static preview of the same fixed-boundary source controls used by the packaged TOML example.</p>
+        <section class="panel tab-panel" id="tab-equilibrium">
+          <div class="panel-head">
+            <h2>Fixed-boundary equilibrium</h2>
+            <span class="version">Grad-Shafranov seed preview</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="fluxCanvas" width="820" height="620" aria-label="Flux surface heat map"></canvas>
+            <div class="stack">
+              <canvas id="residualCanvas" width="660" height="300" aria-label="Residual convergence plot"></canvas>
+              <div class="grid-3">
+                <div class="tile"><h3>Equation</h3><p><code>Delta* psi = -mu0 R^2 p'(psi) - 0.5 F F'(psi) + S_coil</code></p></div>
+                <div class="tile"><h3>Solver path</h3><p>Browser relaxation mirrors the fixed-boundary seed. Use the Python CLI for validated JAX solves and saved artifacts.</p></div>
+                <div class="tile"><h3>Outputs</h3><p>Flux arrays, residual histories, figure recipes, PNG/GIF outputs, and config diagnostics.</p></div>
+              </div>
             </div>
-            <div class="equation">
-              <code>psi_{k+1} = (1 - omega) psi_k + omega A^{-1} b, omega = 0.75</code>
-              <p>The residual curve is a deterministic relaxation proxy for responsiveness on GitHub Pages.</p>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-mesh">
+          <div class="panel-head">
+            <h2>Geometry and mesh</h2>
+            <span class="version">regions, rectangular seed grid, p=1 FEM topology</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="meshCanvas" width="820" height="620" aria-label="Region geometry and triangular mesh preview"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Mesh diagnostics</h3><span class="version" id="meshModeLabel"></span></div>
+                <table><tbody id="meshRows"></tbody></table>
+              </div>
+              <div class="grid-3">
+                <div class="tile"><h3>TriMesh</h3><p>Nodes, cells, boundary markers, region ids, and OFT-style fixture inventory are tracked by the Python package.</p></div>
+                <div class="tile"><h3>Regions</h3><p>Plasma, wall, limiter, and coil regions are TOML-serializable and plotted for reproducible geometry review.</p></div>
+                <div class="tile"><h3>Generalization</h3><p>Topology policies for production mesh generation move into the next milestone; this tab keeps the interface ready.</p></div>
+              </div>
             </div>
-            <div class="equation">
-              <code>tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml</code>
-              <p>Use the Python CLI or NiceGUI dashboard for validated JAX solves, plots, and parity gates.</p>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-profiles">
+          <div class="panel-head">
+            <h2>Profiles and source terms</h2>
+            <span class="version">pressure, FF prime, current, and nonlinear iteration</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="profileCanvas" width="820" height="480" aria-label="Profile and source plot"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Source balance</h3><span class="version">current settings</span></div>
+                <table><tbody id="sourceRows"></tbody></table>
+              </div>
+              <div class="grid-3">
+                <div class="tile"><h3>Nonlinear profiles</h3><p>Profile iteration uses pressure and FF prime source terms with residual and sensitivity checks.</p></div>
+                <div class="tile"><h3>Literature plots</h3><p>Pressure sweeps, CPC seed-family artifacts, and publication validation panels are generated from Python.</p></div>
+                <div class="tile"><h3>Inputs</h3><p>Use TOML for grids, solver settings, source scaling, coils, regions, output paths, and dtype.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-coils">
+          <div class="panel-head">
+            <h2>Coils and Green functions</h2>
+            <span class="version">free-boundary coupling preview</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="coilCanvas" width="820" height="620" aria-label="Coil Green function response"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Coil-response diagnostics</h3><span class="version">elliptic and reduced gates</span></div>
+                <table><tbody id="coilRows"></tbody></table>
+              </div>
+              <div class="grid-3">
+                <div class="tile"><h3>Circular loop</h3><p>Closed-form elliptic Green function is checked against high-resolution quadrature in Python.</p></div>
+                <div class="tile"><h3>Free boundary</h3><p>Coil boundary flux drives the profile-coupled equilibrium gate and current gradients.</p></div>
+                <div class="tile"><h3>OFT parity</h3><p>When OpenFUSIONToolkit is available locally, `eval_green` parity records numeric code-to-code evidence.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-validation">
+          <div class="panel-head">
+            <h2>Validation gates</h2>
+            <span class="version">physics gates and literature anchors</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="validationCanvas" width="820" height="520" aria-label="Validation convergence and gate status"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Gate matrix</h3><span class="version" id="gateLabel"></span></div>
+                <table>
+                  <thead><tr><th>Gate</th><th>Check</th><th>Status</th></tr></thead>
+                  <tbody id="gateRows"></tbody>
+                </table>
+              </div>
+              <div class="tile"><h3>Command</h3><p><code>tokamaker-jax verify --gate all --subdivisions 4 8 16</code></p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-differentiability">
+          <div class="panel-head">
+            <h2>Differentiability and sensitivities</h2>
+            <span class="version">JAX gradient contract</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="diffCanvas" width="820" height="480" aria-label="Differentiability checks"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Gradient checks</h3><span class="version">browser proxy values</span></div>
+                <table><tbody id="diffRows"></tbody></table>
+              </div>
+              <div class="grid-3">
+                <div class="tile"><h3>AD policy</h3><p>Local FEM kernels, assembly paths, coil kernels, and profile scales are designed for JAX transforms.</p></div>
+                <div class="tile"><h3>Research use</h3><p>Use gradients for optimization, profile fitting, inverse design, and control-oriented studies.</p></div>
+                <div class="tile"><h3>Next milestone</h3><p>Implicit solver VJPs and topology-aware derivatives remain explicitly tracked future work.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-benchmarks">
+          <div class="panel-head">
+            <h2>Performance and benchmark history</h2>
+            <span class="version">threshold-aware CI artifacts</span>
+          </div>
+          <div class="grid-2">
+            <canvas id="benchmarkCanvas" width="820" height="480" aria-label="Benchmark summary"></canvas>
+            <div class="stack">
+              <div class="split">
+                <div class="split-head"><h3>Benchmark lanes</h3><span class="version">normalized to baseline</span></div>
+                <table><tbody id="benchmarkRows"></tbody></table>
+              </div>
+              <div class="grid-3">
+                <div class="tile"><h3>CI artifacts</h3><p>Benchmark JSON, threshold reports, and history helpers are produced by the repository workflow.</p></div>
+                <div class="tile"><h3>Hot paths</h3><p>Seed solve, p=1 FEM kernels, global assembly, matrix-free apply, and coil responses are tracked separately.</p></div>
+                <div class="tile"><h3>Interpretation</h3><p>Browser values are normalized proxies; publish numbers from `examples/benchmark_report.py`.</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" id="tab-export">
+          <div class="panel-head">
+            <h2>Export and reproducibility</h2>
+            <span class="version">copy into the Python/JAX workflow</span>
+          </div>
+          <div class="artifact-grid">
+            <div class="split">
+              <div class="split-head"><h3>TOML case</h3><button class="compact" id="copyTomlSecondary">Copy</button></div>
+              <textarea id="tomlOutput" spellcheck="false"></textarea>
+            </div>
+            <div class="split">
+              <div class="split-head"><h3>CLI commands</h3><button class="compact" id="copyCommandSecondary">Copy</button></div>
+              <textarea id="commandOutput" spellcheck="false"></textarea>
+            </div>
+            <div class="split">
+              <div class="split-head"><h3>Artifact manifest</h3><button class="compact" id="copyManifest">Copy</button></div>
+              <textarea id="manifestOutput" spellcheck="false"></textarea>
+            </div>
+            <div class="split">
+              <div class="split-head"><h3>Research checklist</h3><span class="version">before publication</span></div>
+              <ul class="mini-list">
+                <li><strong>Run physics gates:</strong> verify all selected gates and save JSON outputs.</li>
+                <li><strong>Compare:</strong> record upstream fixture, OFT parity, or literature reproduction status.</li>
+                <li><strong>Benchmark:</strong> attach benchmark threshold report and environment metadata.</li>
+                <li><strong>Archive:</strong> keep TOML, generated figures, command log, and exact package version together.</li>
+              </ul>
             </div>
           </div>
         </section>
@@ -490,6 +819,8 @@
       current: document.getElementById("current"),
       iterations: document.getElementById("iterations"),
       grid: document.getElementById("grid"),
+      meshMode: document.getElementById("meshMode"),
+      gateFocus: document.getElementById("gateFocus"),
     };
 
     const labels = {
@@ -499,27 +830,83 @@
       iterations: document.getElementById("iterationValue"),
       residual: document.getElementById("residualMetric"),
       psi: document.getElementById("psiMetric"),
+      mesh: document.getElementById("meshMetric"),
       coil: document.getElementById("coilMetric"),
-      grid: document.getElementById("gridMetric"),
-      cursor: document.getElementById("cursorLabel"),
+      gradients: document.getElementById("gradientMetric"),
+      gates: document.getElementById("gateMetric"),
       status: document.getElementById("status"),
       command: document.getElementById("command"),
+      meshMode: document.getElementById("meshModeLabel"),
+      gate: document.getElementById("gateLabel"),
     };
 
     const canvases = {
+      overview: document.getElementById("overviewCanvas"),
       flux: document.getElementById("fluxCanvas"),
       residual: document.getElementById("residualCanvas"),
+      mesh: document.getElementById("meshCanvas"),
       profile: document.getElementById("profileCanvas"),
+      coil: document.getElementById("coilCanvas"),
+      validation: document.getElementById("validationCanvas"),
+      diff: document.getElementById("diffCanvas"),
+      benchmark: document.getElementById("benchmarkCanvas"),
+    };
+
+    const outputs = {
+      toml: document.getElementById("tomlOutput"),
+      command: document.getElementById("commandOutput"),
+      manifest: document.getElementById("manifestOutput"),
+    };
+
+    const rows = {
+      capability: document.getElementById("capabilityRows"),
+      mesh: document.getElementById("meshRows"),
+      source: document.getElementById("sourceRows"),
+      coil: document.getElementById("coilRows"),
+      gate: document.getElementById("gateRows"),
+      diff: document.getElementById("diffRows"),
+      benchmark: document.getElementById("benchmarkRows"),
     };
 
     const presets = {
-      baseline: { pressure: 5000, ffp: -0.35, current: 15000, iterations: 80, grid: 65 },
-      pressure: { pressure: 8800, ffp: -0.52, current: 12000, iterations: 130, grid: 65 },
-      coil: { pressure: 3200, ffp: -0.22, current: 27000, iterations: 110, grid: 81 },
-      fast: { pressure: 4200, ffp: -0.28, current: 9000, iterations: 45, grid: 49 },
+      baseline: { pressure: 5000, ffp: -0.35, current: 15000, iterations: 80, grid: 65, meshMode: "rect", gateFocus: "all" },
+      pressure: { pressure: 8800, ffp: -0.52, current: 12000, iterations: 130, grid: 81, meshMode: "tri", gateFocus: "grad" },
+      coil: { pressure: 3300, ffp: -0.22, current: 27000, iterations: 115, grid: 81, meshMode: "regions", gateFocus: "coil" },
+      validation: { pressure: 6100, ffp: -0.42, current: 18000, iterations: 160, grid: 97, meshMode: "tri", gateFocus: "all" },
+      benchmark: { pressure: 4200, ffp: -0.28, current: 9000, iterations: 55, grid: 49, meshMode: "rect", gateFocus: "free" },
     };
 
+    const capabilityRows = [
+      ["Config / CLI", "TOML, validate, run, verify, cases", "implemented"],
+      ["NiceGUI", "workflow dashboard, editor, run capture, reports", "implemented"],
+      ["Static workbench", "tabs, plots, TOML handoff, research overview", "implemented"],
+      ["FEM core", "p=1 kernels, assembly, matrix-free apply", "implemented"],
+      ["Coils", "reduced and circular-loop Green-function gates", "implemented"],
+      ["Upstream parity", "OFT eval_green when local library exists", "availability-gated"],
+      ["Full TokaMaker parity", "fixed/free-boundary production equivalence", "next milestone"],
+    ];
+
+    const gateDefinitions = [
+      ["poisson", "manufactured Poisson convergence", "pass"],
+      ["grad", "manufactured Grad-Shafranov convergence", "pass"],
+      ["coil", "reduced and circular-loop Green functions", "pass"],
+      ["free", "free-boundary/profile coupling", "pass"],
+      ["profile", "nonlinear profile iteration", "pass"],
+      ["oft", "OpenFUSIONToolkit eval_green parity", "availability-gated"],
+      ["eqdsk", "fixed-boundary gEQDSK diagnostics", "bounded evidence"],
+    ];
+
+    const benchmarkBase = [
+      ["seed solve", 1.00, 1.10, "pass"],
+      ["p=1 FEM kernels", 0.72, 1.20, "pass"],
+      ["axisymmetric assembly", 0.96, 1.25, "pass"],
+      ["matrix-free apply", 0.64, 1.20, "pass"],
+      ["coil Green response", 0.82, 1.30, "pass"],
+      ["profile iteration", 1.08, 1.35, "pass"],
+    ];
+
     let state = null;
+    let activeTab = "overview";
     let animation = null;
     let cursorIteration = 80;
 
@@ -532,12 +919,12 @@
 
     function colorMap(t) {
       const stops = [
-        [22, 24, 86],
-        [39, 83, 144],
-        [0, 128, 143],
-        [79, 160, 117],
-        [238, 194, 92],
-        [178, 72, 62],
+        [24, 35, 73],
+        [43, 93, 154],
+        [0, 127, 143],
+        [63, 151, 112],
+        [239, 195, 89],
+        [179, 72, 62],
       ];
       const clamped = Math.max(0, Math.min(1, t));
       const scaled = clamped * (stops.length - 1);
@@ -549,16 +936,27 @@
       return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     }
 
+    function profileShape(x) {
+      const edge = Math.max(0, 1 - x * x);
+      return edge * edge * (1 + 0.18 * x);
+    }
+
     function buildState() {
       const n = Number(controls.grid.value);
       const pressure = Number(controls.pressure.value);
       const ffp = Number(controls.ffp.value);
       const current = Number(controls.current.value);
       const iterations = Number(controls.iterations.value);
+      const meshMode = controls.meshMode.value;
+      const gateFocus = controls.gateFocus.value;
       const psi = new Float64Array(n * n);
       const source = new Float64Array(n * n);
       const midplane = [];
       const vertical = [];
+      const pressureProfile = [];
+      const ffpProfile = [];
+      const currentProfile = [];
+      const green = new Float64Array(n * n);
       let minPsi = Infinity;
       let maxPsi = -Infinity;
       let maxCoil = 0;
@@ -579,14 +977,16 @@
           const edge = Math.max(0, (1 - x * x) * (1 - y * y));
           const upper = Math.exp(-((r - 0.82) ** 2 + (z - 0.42) ** 2) / 0.018);
           const lower = Math.exp(-((r - 0.82) ** 2 + (z + 0.42) ** 2) / 0.018);
-          const coil = currentNorm * 8.0e-5 * (upper + lower - 0.34 * edge);
+          const outer = Math.exp(-((r - 1.33) ** 2 + z ** 2) / 0.055);
+          const coil = currentNorm * 8.0e-5 * (upper + lower + 0.40 * outer - 0.34 * edge);
           const pressureTerm = -5.8e-4 * pressureNorm * edge * (1 + 0.10 * x - 0.04 * y);
           const ffpTerm = -1.9e-4 * ffpNorm * edge * (0.9 + 0.18 * x * y);
           const shaped = 4.0e-5 * edge * Math.sin(Math.PI * (x + 1) / 2) * Math.cos(Math.PI * y / 2);
           const value = pressureTerm + ffpTerm + coil + shaped;
           const index = j * n + i;
           psi[index] = value;
-          source[index] = pressureNorm * edge + 0.34 * ffpNorm * edge + 0.18 * currentNorm * (upper + lower);
+          source[index] = pressureNorm * edge + 0.34 * ffpNorm * edge + 0.18 * currentNorm * (upper + lower + outer);
+          green[index] = currentNorm * (upper + lower + 0.7 * outer);
           minPsi = Math.min(minPsi, value);
           maxPsi = Math.max(maxPsi, value);
           maxCoil = Math.max(maxCoil, Math.abs(coil));
@@ -595,8 +995,13 @@
 
       const mid = Math.floor(n / 2);
       for (let i = 0; i < n; i += 1) {
+        const x = -1 + 2 * i / (n - 1);
+        const shape = profileShape(x);
         midplane.push(psi[mid * n + i]);
         vertical.push(psi[i * n + mid]);
+        pressureProfile.push(pressureNorm * shape);
+        ffpProfile.push(ffpNorm * Math.max(0, 1 - x * x) * (0.82 + 0.12 * x));
+        currentProfile.push(pressureNorm * shape + 0.34 * ffpNorm * Math.max(0, 1 - x * x));
       }
 
       const residual = [];
@@ -606,21 +1011,54 @@
         residual.push(floor + start * Math.exp(-k / (36 + 0.08 * pressureNorm * iterations)));
       }
 
+      const meshMultiplier = meshMode === "rect" ? 2 : meshMode === "tri" ? 4 : 5;
+      const cells = (n - 1) * (n - 1) * meshMultiplier;
+      const nodes = meshMode === "rect" ? n * n : Math.round(n * n * 1.18);
+      const boundary = 4 * (n - 1);
+      const regions = meshMode === "regions" ? 5 : meshMode === "tri" ? 3 : 1;
+      const jacobian = 0.78 + 0.04 * pressureNorm + 0.02 * currentNorm;
+      const gradPressure = -(maxPsi - minPsi) / Math.max(pressure, 1);
+      const gradCurrent = maxCoil / Math.max(current, 1);
+      const gradFfp = -1.9e-4 * Math.sign(ffpNorm || 1);
+      const diffMaxError = Math.abs(gradPressure) * 0.025 + Math.abs(gradCurrent) * 0.02 + 2.0e-8;
+      const gatePassCount = gateDefinitions.filter((gate) => gate[2] === "pass").length;
+
+      const benchmarks = benchmarkBase.map((entry, idx) => {
+        const factor = 1 + 0.018 * (n - 65) / 16 + 0.010 * pressureNorm + idx * 0.006;
+        return [entry[0], Math.max(0.30, entry[1] * factor), entry[2], entry[3]];
+      });
+
       return {
         n,
         pressure,
         ffp,
         current,
         iterations,
+        meshMode,
+        gateFocus,
         psi,
         source,
+        green,
         midplane,
         vertical,
+        pressureProfile,
+        ffpProfile,
+        currentProfile,
         minPsi,
         maxPsi,
         maxCoil,
         residual,
+        mesh: { nodes, cells, boundary, regions, jacobian },
+        gradients: { gradPressure, gradCurrent, gradFfp, diffMaxError },
+        gates: { pass: gatePassCount, total: gateDefinitions.length },
+        benchmarks,
       };
+    }
+
+    function clearCanvas(ctx, canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     function drawAxes(ctx, x, y, w, h, xLabel, yLabel) {
@@ -638,13 +1076,60 @@
       ctx.restore();
     }
 
+    function drawColorbar(ctx, x, y, w, h, minValue, maxValue) {
+      for (let p = 0; p < h; p += 1) {
+        ctx.fillStyle = colorMap(1 - p / h);
+        ctx.fillRect(x, y + p, w, 1);
+      }
+      ctx.strokeStyle = "#c8d1df";
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "#4c5870";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText(fmt(maxValue, 3), x - 4, y - 8);
+      ctx.fillText(fmt(minValue, 3), x - 4, y + h + 18);
+    }
+
+    function traceContour(ctx, data, n, level, x0, y0, plot) {
+      const cell = plot / (n - 1);
+      ctx.strokeStyle = "rgba(255,255,255,0.86)";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      for (let j = 0; j < n - 1; j += 1) {
+        for (let i = 0; i < n - 1; i += 1) {
+          const values = [
+            data[j * n + i],
+            data[j * n + i + 1],
+            data[(j + 1) * n + i + 1],
+            data[(j + 1) * n + i],
+          ];
+          const points = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+          const hits = [];
+          for (let e = 0; e < 4; e += 1) {
+            const a = values[e];
+            const b = values[(e + 1) % 4];
+            if ((level >= Math.min(a, b)) && (level <= Math.max(a, b)) && a !== b) {
+              const t = (level - a) / (b - a);
+              const p0 = points[e];
+              const p1 = points[(e + 1) % 4];
+              hits.push([p0[0] + t * (p1[0] - p0[0]), p0[1] + t * (p1[1] - p0[1])]);
+            }
+          }
+          if (hits.length >= 2) {
+            ctx.moveTo(x0 + hits[0][0] * cell, y0 + plot - hits[0][1] * cell);
+            ctx.lineTo(x0 + hits[1][0] * cell, y0 + plot - hits[1][1] * cell);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+
     function drawFlux() {
       const canvas = canvases.flux;
       const ctx = canvas.getContext("2d");
       const { n, psi, minPsi, maxPsi } = state;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const pad = 62;
-      const plot = Math.min(canvas.width - 2 * pad, canvas.height - 2 * pad);
+      clearCanvas(ctx, canvas);
+      const pad = 66;
+      const plot = Math.min(canvas.width - 2 * pad - 30, canvas.height - 2 * pad);
       const x0 = pad + (canvas.width - 2 * pad - plot) / 2;
       const y0 = pad;
       const cell = plot / n;
@@ -663,95 +1148,19 @@
         traceContour(ctx, psi, n, minPsi + span * level, x0, y0, plot);
       }
       ctx.globalAlpha = 1;
-
       drawAxes(ctx, x0, y0, plot, plot, "R [m]", "Z [m]");
       ctx.fillStyle = "#111827";
       ctx.font = "700 16px system-ui, sans-serif";
-      ctx.fillText("psi contours", x0, y0 - 22);
-      drawColorbar(ctx, canvas.width - 50, y0, 16, plot, minPsi, maxPsi);
-    }
-
-    function traceContour(ctx, data, n, level, x0, y0, plot) {
-      const cell = plot / (n - 1);
-      ctx.strokeStyle = "rgba(255,255,255,0.86)";
-      ctx.lineWidth = 1.1;
-      ctx.beginPath();
-      for (let j = 0; j < n - 1; j += 1) {
-        for (let i = 0; i < n - 1; i += 1) {
-          const values = [
-            data[j * n + i],
-            data[j * n + i + 1],
-            data[(j + 1) * n + i + 1],
-            data[(j + 1) * n + i],
-          ];
-          const points = [
-            [i, j],
-            [i + 1, j],
-            [i + 1, j + 1],
-            [i, j + 1],
-          ];
-          const hits = [];
-          for (let e = 0; e < 4; e += 1) {
-            const a = values[e];
-            const b = values[(e + 1) % 4];
-            if ((level >= Math.min(a, b)) && (level <= Math.max(a, b)) && a !== b) {
-              const t = (level - a) / (b - a);
-              const p0 = points[e];
-              const p1 = points[(e + 1) % 4];
-              hits.push([p0[0] + t * (p1[0] - p0[0]), p0[1] + t * (p1[1] - p0[1])]);
-            }
-          }
-          if (hits.length >= 2) {
-            const xA = x0 + hits[0][0] * cell;
-            const yA = y0 + plot - hits[0][1] * cell;
-            const xB = x0 + hits[1][0] * cell;
-            const yB = y0 + plot - hits[1][1] * cell;
-            ctx.moveTo(xA, yA);
-            ctx.lineTo(xB, yB);
-          }
-        }
-      }
-      ctx.stroke();
-    }
-
-    function drawColorbar(ctx, x, y, w, h, minValue, maxValue) {
-      for (let p = 0; p < h; p += 1) {
-        ctx.fillStyle = colorMap(1 - p / h);
-        ctx.fillRect(x, y + p, w, 1);
-      }
-      ctx.strokeStyle = "#c8d1df";
-      ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = "#4c5870";
-      ctx.font = "12px system-ui, sans-serif";
-      ctx.fillText(fmt(maxValue, 3), x - 4, y - 8);
-      ctx.fillText(fmt(minValue, 3), x - 4, y + h + 18);
-    }
-
-    function drawResidual() {
-      const canvas = canvases.residual;
-      const ctx = canvas.getContext("2d");
-      const residual = state.residual;
-      const currentIndex = Math.max(0, Math.min(residual.length - 1, cursorIteration - 1));
-      drawLinePlot(ctx, canvas, [
-        { values: residual.map(Math.log10), color: "#007f8f", label: "log10 residual" },
-      ], 1, residual.length, "iteration", "log10 residual", currentIndex);
-    }
-
-    function drawProfile() {
-      const canvas = canvases.profile;
-      const ctx = canvas.getContext("2d");
-      drawLinePlot(ctx, canvas, [
-        { values: state.midplane, color: "#007f8f", label: "midplane psi" },
-        { values: state.vertical, color: "#ad6b00", label: "vertical psi" },
-      ], 0.5, 1.5, "normalized chord", "psi", null);
+      ctx.fillText("poloidal flux contours", x0, y0 - 22);
+      drawColorbar(ctx, canvas.width - 54, y0, 16, plot, minPsi, maxPsi);
     }
 
     function drawLinePlot(ctx, canvas, series, xMinLabel, xMaxLabel, xLabel, yLabel, cursorIndex) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const left = 58;
-      const right = 26;
-      const top = 24;
-      const bottom = 54;
+      clearCanvas(ctx, canvas);
+      const left = 60;
+      const right = 28;
+      const top = 28;
+      const bottom = 58;
       const w = canvas.width - left - right;
       const h = canvas.height - top - bottom;
       const allValues = series.flatMap((item) => item.values);
@@ -761,8 +1170,6 @@
       const lo = minY - padY;
       const hi = maxY + padY;
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = "#e5ebf3";
       ctx.lineWidth = 1;
       for (let g = 0; g <= 4; g += 1) {
@@ -779,7 +1186,7 @@
         ctx.lineWidth = 2.4;
         ctx.beginPath();
         item.values.forEach((value, index) => {
-          const x = left + w * index / (item.values.length - 1);
+          const x = left + w * index / Math.max(1, item.values.length - 1);
           const y = top + h * (1 - (value - lo) / (hi - lo));
           if (index === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
@@ -788,8 +1195,9 @@
       }
 
       if (cursorIndex !== null) {
-        const x = left + w * cursorIndex / (series[0].values.length - 1);
-        const y = top + h * (1 - (series[0].values[cursorIndex] - lo) / (hi - lo));
+        const index = Math.max(0, Math.min(series[0].values.length - 1, cursorIndex));
+        const x = left + w * index / Math.max(1, series[0].values.length - 1);
+        const y = top + h * (1 - (series[0].values[index] - lo) / (hi - lo));
         ctx.strokeStyle = "rgba(173,107,0,0.55)";
         ctx.beginPath();
         ctx.moveTo(x, top);
@@ -807,10 +1215,255 @@
       ctx.fillText(String(xMaxLabel), left + w - 38, top + h + 20);
       series.forEach((item, idx) => {
         ctx.fillStyle = item.color;
-        ctx.fillRect(left + idx * 155, 8, 20, 3);
+        ctx.fillRect(left + idx * 155, 10, 20, 3);
         ctx.fillStyle = "#344056";
-        ctx.fillText(item.label, left + 26 + idx * 155, 12);
+        ctx.fillText(item.label, left + 26 + idx * 155, 14);
       });
+    }
+
+    function drawResidual() {
+      const canvas = canvases.residual;
+      const ctx = canvas.getContext("2d");
+      drawLinePlot(ctx, canvas, [
+        { values: state.residual.map(Math.log10), color: "#007f8f", label: "log10 residual" },
+      ], 1, state.residual.length, "iteration", "log10 residual", cursorIteration - 1);
+    }
+
+    function drawProfiles() {
+      const canvas = canvases.profile;
+      const ctx = canvas.getContext("2d");
+      drawLinePlot(ctx, canvas, [
+        { values: state.pressureProfile, color: "#007f8f", label: "pressure" },
+        { values: state.ffpProfile, color: "#ad6b00", label: "FF prime" },
+        { values: state.currentProfile, color: "#2f7d55", label: "source" },
+      ], 0, 1, "normalized flux radius", "normalized source", null);
+    }
+
+    function drawOverview() {
+      const canvas = canvases.overview;
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const nodes = [
+        ["TOML / case manifest", 70, 70, "#2b5d9a"],
+        ["Geometry and mesh", 330, 70, "#007f8f"],
+        ["Profiles and coils", 590, 70, "#ad6b00"],
+        ["JAX solve", 210, 240, "#2f7d55"],
+        ["Validation gates", 470, 240, "#b33a3a"],
+        ["Plots / movies / docs", 330, 395, "#172033"],
+      ];
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#b9c4d3";
+      const links = [[0, 1], [1, 2], [0, 3], [1, 3], [2, 3], [3, 4], [4, 5], [3, 5]];
+      for (const [a, b] of links) {
+        const start = nodes[a];
+        const end = nodes[b];
+        ctx.beginPath();
+        ctx.moveTo(start[1] + 100, start[2] + 32);
+        ctx.lineTo(end[1] + 100, end[2] + 32);
+        ctx.stroke();
+      }
+      for (const node of nodes) {
+        ctx.fillStyle = node[3];
+        ctx.fillRect(node[1], node[2], 200, 64);
+        ctx.strokeStyle = "#ffffff";
+        ctx.strokeRect(node[1] + 1, node[2] + 1, 198, 62);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 15px system-ui, sans-serif";
+        wrapText(ctx, node[0], node[1] + 16, node[2] + 27, 170, 18);
+      }
+      ctx.fillStyle = "#4c5870";
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText(`Current browser case: ${controls.preset.options[controls.preset.selectedIndex].text}`, 38, canvas.height - 28);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(" ");
+      let line = "";
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line, x, y);
+          line = word;
+          y += lineHeight;
+        } else {
+          line = test;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    function drawMesh() {
+      const canvas = canvases.mesh;
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const left = 78;
+      const top = 62;
+      const size = Math.min(canvas.width - 160, canvas.height - 130);
+      const nLines = state.meshMode === "rect" ? 12 : state.meshMode === "tri" ? 16 : 18;
+      drawAxes(ctx, left, top, size, size, "R [m]", "Z [m]");
+      ctx.strokeStyle = "#d9e0ea";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= nLines; i += 1) {
+        const x = left + size * i / nLines;
+        const y = top + size * i / nLines;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, top + size);
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + size, y);
+        ctx.stroke();
+      }
+      if (state.meshMode !== "rect") {
+        ctx.strokeStyle = "rgba(0,127,143,0.42)";
+        for (let i = 0; i < nLines; i += 1) {
+          for (let j = 0; j < nLines; j += 1) {
+            const x = left + size * i / nLines;
+            const y = top + size * j / nLines;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + size / nLines, y + size / nLines);
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.fillStyle = "rgba(0,127,143,0.14)";
+      ctx.strokeStyle = "#007f8f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(left + size * 0.52, top + size * 0.52, size * 0.28, size * 0.37, 0.08, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      if (state.meshMode === "regions") {
+        drawRegion(ctx, left + size * 0.50, top + size * 0.50, size * 0.43, size * 0.47, "#ad6b00", "wall");
+        drawRegion(ctx, left + size * 0.23, top + size * 0.18, size * 0.055, size * 0.055, "#b33a3a", "PF");
+        drawRegion(ctx, left + size * 0.23, top + size * 0.82, size * 0.055, size * 0.055, "#b33a3a", "PF");
+        drawRegion(ctx, left + size * 0.82, top + size * 0.50, size * 0.055, size * 0.055, "#2b5d9a", "CS");
+      }
+      ctx.fillStyle = "#111827";
+      ctx.font = "700 16px system-ui, sans-serif";
+      ctx.fillText("plasma, wall, coil regions and FEM topology", left, top - 24);
+    }
+
+    function drawRegion(ctx, x, y, rx, ry, color, label) {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color.replace(")", ",0.08)").replace("rgb", "rgba");
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.font = "800 12px system-ui, sans-serif";
+      ctx.fillText(label, x - 12, y + 4);
+    }
+
+    function drawCoils() {
+      const canvas = canvases.coil;
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const { n, green } = state;
+      const pad = 66;
+      const plot = Math.min(canvas.width - 2 * pad - 30, canvas.height - 2 * pad);
+      const x0 = pad + (canvas.width - 2 * pad - plot) / 2;
+      const y0 = pad;
+      const max = Math.max(...green);
+      const cell = plot / n;
+      for (let j = 0; j < n; j += 1) {
+        for (let i = 0; i < n; i += 1) {
+          ctx.fillStyle = colorMap(green[j * n + i] / (max || 1));
+          ctx.fillRect(x0 + i * cell, y0 + (n - 1 - j) * cell, Math.ceil(cell), Math.ceil(cell));
+        }
+      }
+      drawAxes(ctx, x0, y0, plot, plot, "R [m]", "Z [m]");
+      const coilPoints = [[0.32, 0.12, "PF"], [0.32, 0.88, "PF"], [0.83, 0.50, "CS"]];
+      for (const [rx, rz, label] of coilPoints) {
+        const x = x0 + rx * plot;
+        const y = y0 + rz * plot;
+        ctx.fillStyle = "#111827";
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 10px system-ui, sans-serif";
+        ctx.fillText(label, x - 7, y + 4);
+      }
+      ctx.fillStyle = "#111827";
+      ctx.font = "700 16px system-ui, sans-serif";
+      ctx.fillText("coil Green-function response proxy", x0, y0 - 24);
+      drawColorbar(ctx, canvas.width - 54, y0, 16, plot, 0, max);
+    }
+
+    function drawValidation() {
+      const canvas = canvases.validation;
+      const ctx = canvas.getContext("2d");
+      const sizes = [4, 8, 16, 32];
+      const grad = sizes.map((s) => 0.11 / (s * s));
+      const poisson = sizes.map((s) => 0.085 / (s * s));
+      const coil = sizes.map((s) => 0.020 / (s ** 1.6));
+      drawLinePlot(ctx, canvas, [
+        { values: grad.map(Math.log10), color: "#007f8f", label: "GS L2" },
+        { values: poisson.map(Math.log10), color: "#2b5d9a", label: "Poisson L2" },
+        { values: coil.map(Math.log10), color: "#ad6b00", label: "coil error" },
+      ], 4, 32, "subdivision", "log10 error", null);
+    }
+
+    function drawDifferentiability() {
+      const canvas = canvases.diff;
+      const ctx = canvas.getContext("2d");
+      const samples = Array.from({ length: 13 }, (_, i) => -6 + i);
+      const reverse = samples.map((x) => Math.log10(Math.abs(state.gradients.gradPressure) + 1e-8) + 0.015 * x * x);
+      const finite = samples.map((x) => reverse[x + 6] + 0.012 * Math.sin(x));
+      drawLinePlot(ctx, canvas, [
+        { values: reverse, color: "#007f8f", label: "JAX grad" },
+        { values: finite, color: "#ad6b00", label: "finite diff" },
+      ], "1e-6", "1e6", "relative scale", "log10 sensitivity", null);
+    }
+
+    function drawBenchmarks() {
+      const canvas = canvases.benchmark;
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx, canvas);
+      const left = 210;
+      const right = 54;
+      const top = 46;
+      const rowH = 54;
+      const width = canvas.width - left - right;
+      ctx.fillStyle = "#111827";
+      ctx.font = "800 16px system-ui, sans-serif";
+      ctx.fillText("normalized runtime ratios", 26, 28);
+      state.benchmarks.forEach((bench, idx) => {
+        const y = top + idx * rowH;
+        const ratio = bench[1];
+        const threshold = bench[2];
+        ctx.fillStyle = "#344056";
+        ctx.font = "800 13px system-ui, sans-serif";
+        ctx.fillText(bench[0], 26, y + 22);
+        ctx.fillStyle = "#edf2f8";
+        ctx.fillRect(left, y, width, 24);
+        ctx.fillStyle = ratio <= threshold ? "#2f7d55" : "#b33a3a";
+        ctx.fillRect(left, y, Math.min(width, width * ratio / 1.6), 24);
+        ctx.strokeStyle = "#ad6b00";
+        ctx.beginPath();
+        ctx.moveTo(left + width * threshold / 1.6, y - 5);
+        ctx.lineTo(left + width * threshold / 1.6, y + 31);
+        ctx.stroke();
+        ctx.fillStyle = "#111827";
+        ctx.font = "800 12px system-ui, sans-serif";
+        ctx.fillText(`${ratio.toFixed(2)}x`, left + width + 10, y + 18);
+      });
+    }
+
+    function renderActiveCanvases() {
+      if (activeTab === "overview") drawOverview();
+      if (activeTab === "equilibrium") {
+        drawFlux();
+        drawResidual();
+      }
+      if (activeTab === "mesh") drawMesh();
+      if (activeTab === "profiles") drawProfiles();
+      if (activeTab === "coils") drawCoils();
+      if (activeTab === "validation") drawValidation();
+      if (activeTab === "differentiability") drawDifferentiability();
+      if (activeTab === "benchmarks") drawBenchmarks();
     }
 
     function updateLabels() {
@@ -820,14 +1473,71 @@
       labels.iterations.textContent = controls.iterations.value;
     }
 
-    function updateMetrics() {
+    function tableRows(element, data) {
+      element.innerHTML = data.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("");
+    }
+
+    function updateMetricsAndTables() {
       const finalResidual = state.residual[state.residual.length - 1];
       labels.residual.textContent = fmt(finalResidual, 3);
       labels.psi.textContent = `[${fmt(state.minPsi, 3)}, ${fmt(state.maxPsi, 3)}]`;
+      labels.mesh.textContent = `${state.mesh.nodes.toLocaleString()} nodes`;
       labels.coil.textContent = fmt(state.maxCoil, 3);
-      labels.grid.textContent = `${state.n} x ${state.n}`;
-      labels.cursor.textContent = `iteration ${cursorIteration}`;
+      labels.gradients.textContent = fmt(state.gradients.diffMaxError, 2);
+      labels.gates.textContent = `${state.gates.pass}/${state.gates.total} pass-ready`;
       labels.command.textContent = "tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png";
+      labels.meshMode.textContent = controls.meshMode.options[controls.meshMode.selectedIndex].text;
+      labels.gate.textContent = controls.gateFocus.options[controls.gateFocus.selectedIndex].text;
+
+      tableRows(rows.capability, capabilityRows.map((row) => [
+        `<strong>${row[0]}</strong>`,
+        row[1],
+        statusCell(row[2]),
+      ]));
+      tableRows(rows.mesh, [
+        ["nodes", "grid/FEM degrees of freedom", state.mesh.nodes.toLocaleString()],
+        ["cells", "triangular or rectangular element count", state.mesh.cells.toLocaleString()],
+        ["boundary markers", "Dirichlet and region boundary inventory", state.mesh.boundary.toLocaleString()],
+        ["regions", "plasma/wall/coil material regions", state.mesh.regions.toLocaleString()],
+        ["min scaled Jacobian", "browser quality proxy", state.mesh.jacobian.toFixed(3)],
+      ]);
+      tableRows(rows.source, [
+        ["pressure scale", "normalized p prime contribution", (state.pressure / 5000).toFixed(3)],
+        ["FF prime scale", "normalized toroidal-field contribution", (state.ffp / -0.35).toFixed(3)],
+        ["current scale", "PF coil source contribution", (state.current / 15000).toFixed(3)],
+        ["profile peak", "max source profile value", fmt(Math.max(...state.currentProfile), 3)],
+      ]);
+      tableRows(rows.coil, [
+        ["PF current", "upper/lower shaping coils", `${state.current.toLocaleString()} A`],
+        ["Green max", "browser coil response proxy", fmt(Math.max(...state.green), 3)],
+        ["circular-loop gate", "elliptic kernel vs quadrature", statusCell("pass")],
+        ["OFT eval_green", "availability-gated code parity", statusCell("availability-gated")],
+      ]);
+      const focus = state.gateFocus;
+      const gateRows = gateDefinitions
+        .filter((gate) => focus === "all" || gate[0] === focus)
+        .map((gate) => [gate[0], gate[1], statusCell(gate[2])]);
+      tableRows(rows.gate, gateRows);
+      tableRows(rows.diff, [
+        ["d psi / d pressure", "reverse-mode proxy", state.gradients.gradPressure.toExponential(3)],
+        ["d psi / d current", "coil-current sensitivity", state.gradients.gradCurrent.toExponential(3)],
+        ["d source / d FF prime", "profile-source sensitivity", state.gradients.gradFfp.toExponential(3)],
+        ["AD vs finite diff", "max relative mismatch proxy", state.gradients.diffMaxError.toExponential(3)],
+      ]);
+      tableRows(rows.benchmark, state.benchmarks.map((bench) => [
+        bench[0],
+        `${bench[1].toFixed(2)}x current / ${bench[2].toFixed(2)}x threshold`,
+        statusCell(bench[1] <= bench[2] ? "pass" : "regression"),
+      ]));
+      outputs.toml.value = tomlText();
+      outputs.command.value = commandText();
+      outputs.manifest.value = manifestText();
+    }
+
+    function statusCell(status) {
+      if (status === "pass" || status === "implemented") return `<span class="ok">${status}</span>`;
+      if (status === "regression") return `<span class="danger">${status}</span>`;
+      return `<span class="warn">${status}</span>`;
     }
 
     function tomlText() {
@@ -838,6 +1548,7 @@ z_min = -0.55
 z_max = 0.55
 nr = ${state.n}
 nz = ${state.n}
+mesh_mode = "${state.meshMode}"
 
 [source]
 profile = "solovev"
@@ -858,79 +1569,151 @@ z = -0.42
 current = ${state.current.toFixed(1)}
 sigma = 0.055
 
+[[coil]]
+name = "CS_outer"
+r = 1.33
+z = 0.0
+current = ${(0.42 * state.current).toFixed(1)}
+sigma = 0.095
+
 [solver]
 iterations = ${state.iterations}
 relaxation = 0.75
 dtype = "float64"
 
+[validation]
+gate = "${state.gateFocus}"
+subdivisions = [4, 8, 16]
+
 [output]
 npz = "outputs/fixed_boundary.npz"
 plot = "outputs/fixed_boundary.png"
+report = "outputs/workbench_report.json"
 `;
     }
 
-    async function copyToml() {
-      const text = tomlText();
+    function commandText() {
+      return `tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
+tokamaker-jax validate fixed_boundary.toml
+tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
+tokamaker-jax verify --gate ${state.gateFocus} --subdivisions 4 8 16 --output outputs/verification.json
+tokamaker-jax cases --json --output outputs/case_manifest.json
+tokamaker-jax upstream-fixtures --output outputs/upstream_fixture_summary.json
+python examples/benchmark_report.py --output outputs/benchmark_report.json`;
+    }
+
+    function manifestText() {
+      return JSON.stringify({
+        artifact_id: "tokamaker-jax-static-workbench-export",
+        case: controls.preset.value,
+        static_preview_only: true,
+        validated_execution_path: "Python CLI or NiceGUI",
+        parameters: {
+          pressure_scale: state.pressure,
+          ffp_scale: state.ffp,
+          pf_current_a: state.current,
+          iterations: state.iterations,
+          grid: [state.n, state.n],
+          mesh_mode: state.meshMode,
+          validation_gate: state.gateFocus,
+        },
+        diagnostics: {
+          residual_proxy: state.residual[state.residual.length - 1],
+          psi_range: [state.minPsi, state.maxPsi],
+          coil_flux_max: state.maxCoil,
+          mesh: state.mesh,
+          gradients: state.gradients,
+        },
+        commands: commandText().split("\\n"),
+      }, null, 2);
+    }
+
+    async function copyText(text, message) {
       try {
         await navigator.clipboard.writeText(text);
-        labels.status.textContent = "TOML copied to clipboard.";
+        labels.status.textContent = message;
       } catch {
         const blob = new Blob([text], { type: "text/plain" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "fixed_boundary.toml";
+        link.download = "tokamaker_jax_workbench_export.txt";
         link.click();
         URL.revokeObjectURL(link.href);
-        labels.status.textContent = "TOML downloaded.";
+        labels.status.textContent = "Download fallback created.";
       }
     }
 
-    function render() {
-      updateLabels();
-      state = buildState();
-      cursorIteration = Math.min(cursorIteration, state.iterations);
-      updateMetrics();
-      drawFlux();
-      drawResidual();
-      drawProfile();
+    function downloadBundle() {
+      const bundle = [
+        "# tokamaker-jax static workbench export",
+        "",
+        "## TOML",
+        tomlText(),
+        "",
+        "## Commands",
+        commandText(),
+        "",
+        "## Manifest",
+        manifestText(),
+      ].join("\\n");
+      const blob = new Blob([bundle], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "tokamaker_jax_workbench_bundle.txt";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      labels.status.textContent = "Research bundle downloaded.";
     }
 
     function setPreset(name) {
       const preset = presets[name];
-      for (const key of ["pressure", "ffp", "current", "iterations", "grid"]) {
+      for (const key of ["pressure", "ffp", "current", "iterations", "grid", "meshMode", "gateFocus"]) {
         controls[key].value = String(preset[key]);
       }
       cursorIteration = Number(controls.iterations.value);
       render();
     }
 
+    function render() {
+      updateLabels();
+      state = buildState();
+      cursorIteration = Math.min(cursorIteration, state.iterations);
+      updateMetricsAndTables();
+      renderActiveCanvases();
+    }
+
     function animate() {
+      const button = document.getElementById("animate");
       if (animation !== null) {
         cancelAnimationFrame(animation);
         animation = null;
-        document.getElementById("animate").textContent = "Animate";
+        button.textContent = "Animate solve";
         return;
       }
       const start = performance.now();
       const maxIter = Number(controls.iterations.value);
-      document.getElementById("animate").textContent = "Pause";
+      button.textContent = "Pause solve";
       function tick(now) {
-        const phase = ((now - start) / 2200) % 1;
+        const phase = ((now - start) / 2400) % 1;
         cursorIteration = Math.max(1, Math.round(1 + phase * (maxIter - 1)));
-        updateMetrics();
+        updateMetricsAndTables();
         drawResidual();
         animation = requestAnimationFrame(tick);
       }
       animation = requestAnimationFrame(tick);
     }
 
+    function stopAnimation() {
+      if (animation !== null) {
+        cancelAnimationFrame(animation);
+        animation = null;
+        document.getElementById("animate").textContent = "Animate solve";
+      }
+    }
+
     for (const input of Object.values(controls)) {
       input.addEventListener("input", () => {
-        if (animation !== null) {
-          cancelAnimationFrame(animation);
-          animation = null;
-          document.getElementById("animate").textContent = "Animate";
-        }
+        stopAnimation();
         if (input === controls.preset) setPreset(input.value);
         else {
           cursorIteration = Number(controls.iterations.value);
@@ -939,8 +1722,28 @@ plot = "outputs/fixed_boundary.png"
       });
     }
 
+    for (const button of document.querySelectorAll(".tab-button")) {
+      button.addEventListener("click", () => {
+        activeTab = button.dataset.tab;
+        document.querySelectorAll(".tab-button").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".tab-panel").forEach((item) => item.classList.toggle("active", item.id === `tab-${activeTab}`));
+        renderActiveCanvases();
+      });
+    }
+
     document.getElementById("animate").addEventListener("click", animate);
-    document.getElementById("copyToml").addEventListener("click", copyToml);
+    document.getElementById("copyToml").addEventListener("click", () => copyText(tomlText(), "TOML copied to clipboard."));
+    document.getElementById("copyTomlSecondary").addEventListener("click", () => copyText(tomlText(), "TOML copied to clipboard."));
+    document.getElementById("copyCommand").addEventListener("click", () => copyText(commandText(), "CLI commands copied to clipboard."));
+    document.getElementById("copyCommandSecondary").addEventListener("click", () => copyText(commandText(), "CLI commands copied to clipboard."));
+    document.getElementById("copyManifest").addEventListener("click", () => copyText(manifestText(), "Manifest copied to clipboard."));
+    document.getElementById("downloadBundle").addEventListener("click", downloadBundle);
+    document.getElementById("reset").addEventListener("click", () => {
+      stopAnimation();
+      controls.preset.value = "baseline";
+      setPreset("baseline");
+      labels.status.textContent = "Baseline case restored.";
+    });
 
     setPreset("baseline");
   </script>

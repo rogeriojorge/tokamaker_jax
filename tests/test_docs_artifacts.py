@@ -29,7 +29,16 @@ def test_static_browser_explorer_is_self_contained_and_linked():
     )
 
     assert "tokamaker_jax_explorer.html" in explorer_docs
-    assert "tokamaker-jax browser equilibrium explorer" in explorer
+    assert "tokamaker-jax research workbench" in explorer
+    assert "research tabs" in explorer
+    assert 'data-tab="equilibrium"' in explorer
+    assert 'data-tab="mesh"' in explorer
+    assert 'data-tab="validation"' in explorer
+    assert 'data-tab="differentiability"' in explorer
+    assert 'data-tab="benchmarks"' in explorer
+    assert 'data-tab="export"' in explorer
+    assert "OpenFUSIONToolkit parity" in explorer
+    assert "Artifact manifest" in explorer
     assert "static HTML" in explorer
     assert "navigator.clipboard.writeText" in explorer
     assert "tokamaker-jax init-example fixed-boundary" in explorer
