@@ -18,6 +18,7 @@ from tokamaker_jax.gui import (
     region_table_rows,
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
+    seed_overview_figure,
     toml_validation_rows,
     upstream_fixture_report_rows,
     validate_toml_text,
@@ -128,6 +129,20 @@ def test_seed_equilibrium_figure_attaches_summary_metadata():
     assert any("residual" in annotation.text for annotation in fig.layout.annotations)
     assert rows[0] == {"metric": "grid", "value": "65 x 65"}
     assert rows[-1]["metric"] == "final residual"
+
+
+def test_seed_overview_figure_has_animation_and_control_metadata():
+    fig = seed_overview_figure(pressure_scale=1.0e3, ffp_scale=-0.1, iterations=20)
+
+    assert "Fixed-boundary seed preview" in fig.layout.title.text
+    assert len(fig.data) == 3
+    assert len(fig.frames) > 2
+    assert fig.layout.meta["pressure_scale"] == 1.0e3
+    assert fig.layout.meta["ffp_scale"] == -0.1
+    assert fig.layout.meta["iterations"] == 20
+    assert fig.layout.meta["animation_frames"] == len(fig.frames)
+    assert fig.layout.updatemenus[0].buttons[0].label == "Play"
+    assert fig.layout.sliders[0].currentvalue.prefix == "iteration "
 
 
 def test_validation_convergence_figure_attaches_rates_metadata():

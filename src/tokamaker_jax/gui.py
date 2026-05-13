@@ -150,6 +150,72 @@ body, .q-page {
   font-size: 0.82rem;
   margin-top: 4px;
 }
+.tm-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(520px, 1.28fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.tm-control-panel,
+.tm-plot-panel {
+  background: #ffffff;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.tm-control-title {
+  color: var(--tm-ink);
+  font-size: 1rem;
+  font-weight: 720;
+  margin-bottom: 4px;
+}
+.tm-control-detail {
+  color: var(--tm-muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.tm-slider-label {
+  color: var(--tm-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+.tm-command {
+  background: #0f172a;
+  border-radius: 8px;
+  color: #e5edf8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  padding: 10px 12px;
+  white-space: normal;
+}
+.tm-mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.tm-mini-metric {
+  background: #f8fafc;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+.tm-mini-label {
+  color: var(--tm-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+.tm-mini-value {
+  color: var(--tm-ink);
+  font-size: 1rem;
+  font-weight: 720;
+  margin-top: 2px;
+}
 .tm-tabs {
   background: var(--tm-panel);
   border: 1px solid var(--tm-border);
@@ -216,6 +282,8 @@ body, .q-page {
   .nicegui-content { padding: 12px; }
   .tm-header-row { padding: 10px 12px; }
   .tm-kpi-row { grid-template-columns: 1fr; }
+  .tm-overview-grid { grid-template-columns: 1fr; }
+  .tm-mini-metrics { grid-template-columns: 1fr; }
 }
 """
 
@@ -294,6 +362,97 @@ def _build_gui(ui: Any) -> None:
     with ui.tab_panels(tabs, value=workflow_tab).classes("w-full tm-panels"):
         with ui.tab_panel(workflow_tab):
             dashboard = overview_dashboard
+            with ui.element("div").classes("tm-overview-grid"):
+                with ui.column().classes("tm-control-panel"):
+                    ui.label("Seed equilibrium workbench").classes("tm-control-title")
+                    ui.label(
+                        "65 x 65 fixed-boundary seed solve; relaxation 0.75; float64 preview."
+                    ).classes("tm-control-detail")
+                    ui.label("Pressure scale").classes("tm-slider-label")
+                    overview_pressure = ui.slider(
+                        min=0.0,
+                        max=10000.0,
+                        value=5000.0,
+                        step=250.0,
+                    ).props("label-always")
+                    overview_pressure_label = ui.label("5000")
+                    ui.label("dF2/dpsi scale").classes("tm-slider-label")
+                    overview_ffp = ui.slider(
+                        min=-1.0,
+                        max=0.5,
+                        value=-0.35,
+                        step=0.05,
+                    ).props("label-always")
+                    overview_ffp_label = ui.label("-0.35")
+                    ui.label("Iterations").classes("tm-slider-label")
+                    overview_iterations = ui.slider(
+                        min=20,
+                        max=240,
+                        value=80,
+                        step=20,
+                    ).props("label-always")
+                    overview_iterations_label = ui.label("80")
+                    ui.label(
+                        "tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png"
+                    ).classes("tm-command")
+                    overview_summary = dashboard["seed_equilibrium"]
+                    overview_metric_row = ui.element("div").classes("tm-mini-metrics")
+
+                    def render_overview_metrics(seed_dashboard: Mapping[str, Any]) -> None:
+                        overview_metric_row.clear()
+                        metrics = seed_dashboard["metrics"]
+                        with overview_metric_row:
+                            _mini_metric(
+                                ui,
+                                "Residual",
+                                _format_number(metrics["residual_final"]),
+                            )
+                            _mini_metric(
+                                ui,
+                                "Psi range",
+                                (
+                                    f"{_format_number(metrics['psi_min'])} to "
+                                    f"{_format_number(metrics['psi_max'])}"
+                                ),
+                            )
+                            _mini_metric(
+                                ui, "Grid", f"{metrics['grid']['nr']} x {metrics['grid']['nz']}"
+                            )
+
+                    render_overview_metrics(overview_summary)
+
+                with ui.column().classes("tm-plot-panel"):
+                    overview_plot = ui.plotly(seed_overview_figure(5000.0, -0.35, 80)).classes(
+                        "w-full h-[520px]"
+                    )
+
+            def sync_overview_labels() -> None:
+                overview_pressure_label.text = _format_number(float(overview_pressure.value))
+                overview_ffp_label.text = _format_number(float(overview_ffp.value))
+                overview_iterations_label.text = str(int(overview_iterations.value))
+                overview_pressure_label.update()
+                overview_ffp_label.update()
+                overview_iterations_label.update()
+
+            def update_overview_preview() -> None:
+                pressure_value = float(overview_pressure.value)
+                ffp_value = float(overview_ffp.value)
+                iteration_value = int(overview_iterations.value)
+                sync_overview_labels()
+                overview_plot.figure = seed_overview_figure(
+                    pressure_value,
+                    ffp_value,
+                    iteration_value,
+                )
+                overview_plot.update()
+                render_overview_metrics(
+                    _seed_equilibrium_dashboard(pressure_value, ffp_value, iteration_value)
+                )
+
+            overview_pressure.on_value_change(lambda _: sync_overview_labels())
+            overview_ffp.on_value_change(lambda _: sync_overview_labels())
+            overview_iterations.on_value_change(lambda _: sync_overview_labels())
+            ui.button("Run preview", on_click=update_overview_preview).props("color=primary")
             ui.label("Workflow state").classes("tm-section-title")
             ui.table(
                 columns=[
@@ -584,6 +743,12 @@ def _kpi_card(ui: Any, label: str, value: str, detail: str) -> None:
         ui.label(detail).classes("tm-kpi-detail")
 
 
+def _mini_metric(ui: Any, label: str, value: str) -> None:
+    with ui.column().classes("tm-mini-metric"):
+        ui.label(label).classes("tm-mini-label")
+        ui.label(value).classes("tm-mini-value")
+
+
 def region_geometry_figure(
     regions: RegionSet | Sequence[Region] | None = None,
     *,
@@ -665,6 +830,167 @@ def seed_equilibrium_figure(
 
     figure, _ = _seed_equilibrium_payload(pressure_scale, ffp_scale, iterations)
     return figure
+
+
+def seed_overview_figure(
+    pressure_scale: float,
+    ffp_scale: float,
+    iterations: int,
+):
+    """Return a first-page Plotly preview with flux and animated residual cursor."""
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    solution, summary = _seed_solution_payload(pressure_scale, ffp_scale, iterations)
+    r, z = solution.grid.mesh(dtype=solution.psi.dtype)
+    residual = np.asarray(solution.residual_history, dtype=float)
+    iteration_axis = np.arange(1, residual.size + 1, dtype=int)
+    frame_indices = _animation_frame_indices(residual.size)
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        column_widths=[0.58, 0.42],
+        subplot_titles=("Flux surface preview", "Residual convergence"),
+    )
+    fig.add_trace(
+        go.Contour(
+            x=np.asarray(r[:, 0]),
+            y=np.asarray(z[0, :]),
+            z=np.asarray(solution.psi).T,
+            contours_coloring="heatmap",
+            colorbar={"title": "psi", "len": 0.82},
+            hovertemplate="R=%{x:.3f} m<br>Z=%{y:.3f} m<br>psi=%{z:.3e}<extra></extra>",
+            name="psi",
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=iteration_axis,
+            y=residual,
+            mode="lines",
+            line={"color": "#007f8f", "width": 2},
+            name="residual",
+            hovertemplate="iteration %{x}<br>residual %{y:.3e}<extra></extra>",
+        ),
+        row=1,
+        col=2,
+    )
+    cursor_index = int(frame_indices[0]) if frame_indices.size else 0
+    fig.add_trace(
+        go.Scatter(
+            x=[int(iteration_axis[cursor_index])],
+            y=[float(residual[cursor_index])],
+            mode="markers",
+            marker={"size": 11, "color": "#ad6b00", "line": {"color": "white", "width": 1}},
+            name="iteration cursor",
+            hovertemplate="iteration %{x}<br>residual %{y:.3e}<extra></extra>",
+        ),
+        row=1,
+        col=2,
+    )
+    fig.frames = [
+        go.Frame(
+            data=[
+                go.Scatter(
+                    x=[int(iteration_axis[index])],
+                    y=[float(residual[index])],
+                    mode="markers",
+                    marker={
+                        "size": 11,
+                        "color": "#ad6b00",
+                        "line": {"color": "white", "width": 1},
+                    },
+                )
+            ],
+            traces=[2],
+            name=str(int(iteration_axis[index])),
+        )
+        for index in frame_indices
+    ]
+    fig.update_xaxes(title_text="R [m]", row=1, col=1)
+    fig.update_yaxes(title_text="Z [m]", scaleanchor="x", scaleratio=1.0, row=1, col=1)
+    fig.update_xaxes(title_text="iteration", row=1, col=2)
+    fig.update_yaxes(title_text="relative residual", type="log", row=1, col=2)
+    fig.update_layout(
+        title=(
+            "Fixed-boundary seed preview "
+            f"(p={_format_number(pressure_scale)}, FF'={_format_number(ffp_scale)})"
+        ),
+        template="plotly_white",
+        margin={"l": 42, "r": 24, "t": 58, "b": 42},
+        legend={"orientation": "h", "y": -0.16},
+        updatemenus=[
+            {
+                "type": "buttons",
+                "direction": "left",
+                "x": 0.62,
+                "y": 1.12,
+                "showactive": False,
+                "buttons": [
+                    {
+                        "label": "Play",
+                        "method": "animate",
+                        "args": [
+                            None,
+                            {
+                                "frame": {"duration": 180, "redraw": False},
+                                "fromcurrent": True,
+                                "transition": {"duration": 80},
+                            },
+                        ],
+                    },
+                    {
+                        "label": "Pause",
+                        "method": "animate",
+                        "args": [
+                            [None],
+                            {
+                                "frame": {"duration": 0, "redraw": False},
+                                "mode": "immediate",
+                                "transition": {"duration": 0},
+                            },
+                        ],
+                    },
+                ],
+            }
+        ],
+        sliders=[
+            {
+                "active": 0,
+                "x": 0.62,
+                "y": -0.08,
+                "len": 0.34,
+                "currentvalue": {"prefix": "iteration "},
+                "steps": [
+                    {
+                        "label": str(int(iteration_axis[index])),
+                        "method": "animate",
+                        "args": [
+                            [str(int(iteration_axis[index]))],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 0, "redraw": False},
+                                "transition": {"duration": 0},
+                            },
+                        ],
+                    }
+                    for index in frame_indices
+                ],
+            }
+        ],
+        meta={
+            "summary": summary,
+            "pressure_scale": float(pressure_scale),
+            "ffp_scale": float(ffp_scale),
+            "iterations": int(iterations),
+            "animation_frames": int(len(frame_indices)),
+        },
+    )
+    return fig
 
 
 def validation_convergence_figure(gate: str = "grad-shafranov"):
@@ -1383,13 +1709,7 @@ def _seed_equilibrium_dashboard(
     ffp_scale: float,
     iterations: int,
 ) -> dict[str, Any]:
-    config = RunConfig(
-        grid=GridConfig(nr=65, nz=65),
-        source=SourceConfig(pressure_scale=pressure_scale, ffp_scale=ffp_scale),
-        solver=SolverConfig(iterations=iterations, relaxation=0.75, dtype="float64"),
-    )
-    solution = solve_from_config(config)
-    summary = equilibrium_metadata_summary(solution)
+    _, summary = _seed_solution_payload(pressure_scale, ffp_scale, iterations)
     residual = summary["residual"]
     initial = residual["initial"]
     final = residual["final"]
@@ -1633,13 +1953,11 @@ def _fixed_boundary_geqdsk_gate_summary(validation) -> dict[str, Any]:
 
 
 @lru_cache(maxsize=16)
-def _seed_equilibrium_payload(
+def _seed_solution_payload(
     pressure_scale: float,
     ffp_scale: float,
     iterations: int,
 ):
-    import plotly.graph_objects as go
-
     config = RunConfig(
         grid=GridConfig(nr=65, nz=65),
         source=SourceConfig(pressure_scale=pressure_scale, ffp_scale=ffp_scale),
@@ -1647,6 +1965,18 @@ def _seed_equilibrium_payload(
     )
     solution = solve_from_config(config)
     summary = equilibrium_metadata_summary(solution)
+    return solution, summary
+
+
+@lru_cache(maxsize=16)
+def _seed_equilibrium_payload(
+    pressure_scale: float,
+    ffp_scale: float,
+    iterations: int,
+):
+    import plotly.graph_objects as go
+
+    solution, summary = _seed_solution_payload(pressure_scale, ffp_scale, iterations)
     r, z = solution.grid.mesh(dtype=solution.psi.dtype)
     fig = go.Figure(
         data=[
@@ -1682,6 +2012,14 @@ def _seed_equilibrium_payload(
         font={"size": 12},
     )
     return fig, summary
+
+
+def _animation_frame_indices(size: int, *, max_frames: int = 12) -> np.ndarray:
+    if size <= 0:
+        return np.asarray([0], dtype=int)
+    if size <= max_frames:
+        return np.arange(size, dtype=int)
+    return np.unique(np.linspace(0, size - 1, max_frames, dtype=int))
 
 
 def _convergence_figure_from_study(

@@ -27,14 +27,19 @@ window. Use `--port` when another local service already occupies port 8080.
 
 The first screen is the workflow dashboard. It shows:
 
-- the current seed-equilibrium residual and grid settings;
+- a seed-equilibrium workbench with pressure, FF', and iteration sliders;
+- an animated flux/residual preview that can be replayed with the Plotly frame
+  controls;
+- the current seed-equilibrium residual, flux range, and grid settings;
 - validation-gate status for Poisson, Grad-Shafranov, coil Green-function, and
   fixed-boundary gEQDSK checks;
 - command lines that reproduce each visible workflow item.
 
 The dashboard is intentionally dense enough for repeated research use. It avoids
 marketing panels and keeps solver status, validation metrics, and provenance in
-the first viewport.
+the first viewport. The `Run preview` button recomputes the reduced
+fixed-boundary solve in the same path used by the CLI example, while slider moves
+update displayed input values before a solve is requested.
 
 ```{image} _static/gui_workflow_dashboard.png
 :alt: tokamaker-jax GUI workflow dashboard

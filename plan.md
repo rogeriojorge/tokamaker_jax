@@ -2799,3 +2799,93 @@ Best next steps:
 
 1. Commit and push the Python 3.10 compatibility fix.
 2. Watch the replacement CI and Docs runs to completion.
+
+### 2026-05-13 13:14 WEST
+
+Started the next GUI-first usability pass after confirming the latest pushed CI
+and Docs runs for `09c9c27` are green.
+
+Implemented so far:
+
+- First-screen workflow dashboard now opens with a seed-equilibrium workbench:
+  pressure, FF' and iteration sliders, exact CLI reproduction command, compact
+  residual/flux/grid metrics, and an animated Plotly flux/residual preview.
+- Added a public `seed_overview_figure` helper so the landing-view plot is
+  testable without launching the GUI.
+- Reused cached seed-solution payloads between the dashboard metrics and the
+  overview plot to avoid duplicate default solves during startup.
+- Updated `docs/gui.md` and refreshed
+  `docs/_static/gui_workflow_dashboard.png` with the in-app browser.
+- Added tests for the overview figure metadata, animation frames, play controls,
+  and slider prefix.
+
+Validation completed so far:
+
+- Latest remote CI/CD before local changes: CI passed; Docs passed.
+- Focused formatting and lint for touched GUI/test files: passed.
+- `python -m pytest tests/test_gui.py tests/test_cli_plotting.py -q`: 24
+  passed.
+- Browser audit opened `http://127.0.0.1:8080/`, confirmed the new workbench,
+  sliders, metrics, command, Plotly controls, and first-viewport screenshot.
+
+Current completion after this partial pass:
+
+- GUI: 100% staged milestone, with improved first-run usability.
+- Docs/examples: 100% staged milestone, pending final docs build after this
+  edit.
+- Test infra: 100% staged milestone, pending full coverage rerun.
+- CI/CD: 100% on latest pushed commit, pending post-change local validation and
+  push.
+- Overall: 100% for the staged repository milestone, pending final verification
+  of this local GUI pass.
+
+Best next steps:
+
+1. Rerun full lint, coverage, docs build, verification gates, GUI HTTP smoke,
+   and browser interaction checks.
+2. Commit and push the GUI-first usability pass.
+3. Watch GitHub Actions CI and Docs to completion.
+
+### 2026-05-13 13:18 WEST
+
+Completed local validation for the GUI-first usability pass.
+
+Results:
+
+- `python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95 -q`: 202 passed,
+  95.32% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed, including
+  Poisson, Grad-Shafranov, coil Green-function, circular-loop, free-boundary
+  profile, profile-iteration, OpenFUSIONToolkit parity, and fixed-boundary
+  gEQDSK gates.
+- `curl http://127.0.0.1:8080/`: returned `200` in 0.17 s on the restarted
+  local GUI server.
+- Browser audit with the in-app browser confirmed the landing dashboard exposes
+  the seed-equilibrium workbench, three sliders, exact CLI command, residual /
+  flux / grid metrics, Plotly preview, workflow table, validation table, and a
+  working `Run preview` action.
+- Refreshed `docs/_static/gui_workflow_dashboard.png` from the verified browser
+  state.
+- `tokamaker-jax cases --runnable-only`: passed and listed the three runnable
+  manifest cases plus the OpenFUSIONToolkit parity validation gate.
+- `git diff --check`: passed.
+- GitHub Actions status on the latest pushed commit remains green: CI and Docs
+  passed for `09c9c27`.
+
+Completion after this pass:
+
+- GUI: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- Performance: 100%.
+- CI/CD: 100% on latest pushed commit, pending CI for this new commit.
+- Overall: 100% for the staged repository milestone.
+
+Best next steps:
+
+1. Commit and push this GUI-first usability pass.
+2. Watch GitHub Actions CI and Docs to completion.
