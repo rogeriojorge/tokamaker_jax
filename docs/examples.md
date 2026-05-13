@@ -60,6 +60,17 @@ tokamaker-jax cases --runnable-only
 :alt: Case manifest status counts
 ```
 
+The upstream fixture inventory summarizes exact OpenFUSIONToolkit/TokaMaker
+mesh files and geometry JSON files when the source checkout is present:
+
+```bash
+tokamaker-jax upstream-fixtures
+```
+
+```{image} _static/upstream_fixture_mesh_sizes.png
+:alt: Upstream mesh fixture size inventory
+```
+
 The current publication summary panel combines convergence, coupling, and
 benchmark artifacts into a single generated figure:
 

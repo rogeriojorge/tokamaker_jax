@@ -30,6 +30,12 @@ from tokamaker_jax.config import (
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.plotting import save_equilibrium_plot
 from tokamaker_jax.solver import EquilibriumSolution, solve_from_config
+from tokamaker_jax.upstream_fixtures import (
+    DEFAULT_OPENFUSIONTOOLKIT_ROOT,
+    summarize_upstream_fixtures,
+    upstream_fixture_report_to_json,
+    upstream_fixture_rows,
+)
 
 
 @dataclass(frozen=True)
@@ -68,6 +74,8 @@ def main(argv: list[str] | None = None) -> int:
     args_list = sys.argv[1:] if argv is None else list(argv)
     if args_list[:1] == ["cases"]:
         return _main_cases(args_list[1:])
+    if args_list[:1] == ["upstream-fixtures"]:
+        return _main_upstream_fixtures(args_list[1:])
     if args_list[:1] == ["validate"]:
         return _main_validate(args_list[1:])
     if args_list[:1] == ["verify"]:
@@ -131,6 +139,49 @@ def _case_manifest_summary_lines(manifest: CaseManifest) -> tuple[str, ...]:
         path = f" [{row['path']}]" if row["path"] else ""
         lines.append(
             f"- {row['case_id']}: {row['status']} / {row['parity_level']}{path} -> {command}"
+        )
+    return tuple(lines)
+
+
+def _main_upstream_fixtures(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="tokamaker-jax upstream-fixtures")
+    parser.add_argument(
+        "--root",
+        default=str(DEFAULT_OPENFUSIONTOOLKIT_ROOT),
+        help="OpenFUSIONToolkit checkout root.",
+    )
+    parser.add_argument("--json", action="store_true", help="Print the fixture report as JSON.")
+    parser.add_argument("--output", "-o", help="Write the fixture report JSON to this path.")
+    args = parser.parse_args(argv)
+
+    report = summarize_upstream_fixtures(root=args.root)
+    text = upstream_fixture_report_to_json(report)
+    if args.output:
+        path = Path(args.output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    if args.json:
+        print(text, end="")
+    else:
+        for line in _upstream_fixture_summary_lines(report):
+            print(line)
+    return 0
+
+
+def _upstream_fixture_summary_lines(report: dict[str, Any]) -> tuple[str, ...]:
+    rows = upstream_fixture_rows(report)
+    lines = [
+        (
+            "upstream TokaMaker fixtures: "
+            f"{report['available_fixture_count']}/{report['fixture_count']} available "
+            f"at {report['checkout_path']}"
+        ),
+        "Claim: mesh/geometry inventory only; no full equilibrium parity claim.",
+    ]
+    for row in rows:
+        lines.append(
+            f"- {row['fixture_id']}: available={row['available']}; "
+            f"mesh={row['mesh']}; geometry={row['geometry']}"
         )
     return tuple(lines)
 

@@ -14,6 +14,7 @@ from tokamaker_jax.gui import (
     region_table_rows,
     seed_equilibrium_figure,
     seed_equilibrium_summary_rows,
+    upstream_fixture_report_rows,
     validation_convergence_figure,
     validation_gate_rows,
     validation_report_rows,
@@ -260,6 +261,44 @@ def test_gui_report_helpers_load_validation_and_benchmark_rows(tmp_path):
             "metadata": '{"nr": 9}',
         }
     ]
+
+
+def test_upstream_fixture_report_rows_show_mesh_inventory():
+    rows = upstream_fixture_report_rows(
+        {
+            "entries": [
+                {
+                    "fixture_id": "iter",
+                    "category": "free-boundary",
+                    "available": True,
+                    "mesh": {
+                        "n_nodes": 4757,
+                        "n_cells": 9400,
+                        "n_regions": 20,
+                        "n_coils": 14,
+                    },
+                    "geometry": {
+                        "coordinate_pair_count": 123,
+                        "coil_count": 14,
+                        "vv_count": 2,
+                    },
+                    "claim": "fixture_inventory_only",
+                }
+            ]
+        }
+    )
+
+    assert rows == [
+        {
+            "fixture_id": "iter",
+            "category": "free-boundary",
+            "available": "yes",
+            "mesh": "4757 nodes, 9400 cells, 20 regions, 14 coils",
+            "geometry": "123 points, 14 coils, 2 vv entries",
+            "claim": "fixture_inventory_only",
+        }
+    ]
+    assert upstream_fixture_report_rows(None)[0]["claim"] == "missing"
 
 
 def test_case_manifest_rows_expose_runnable_and_planned_cases():

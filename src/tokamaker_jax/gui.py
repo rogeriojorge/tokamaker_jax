@@ -22,6 +22,7 @@ from tokamaker_jax.free_boundary import coil_flux_on_grid
 from tokamaker_jax.geometry import Region, RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.plotting import equilibrium_metadata_summary, region_table_data
 from tokamaker_jax.solver import solve_from_config
+from tokamaker_jax.upstream_fixtures import upstream_fixture_rows
 from tokamaker_jax.verification import (
     GradShafranovConvergenceStudy,
     PoissonConvergenceStudy,
@@ -37,6 +38,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_REPORT_ARTIFACTS = {
     "validation": Path("outputs/verify.json"),
     "openfusiontoolkit": Path("docs/_static/openfusiontoolkit_comparison_report.json"),
+    "upstream_fixtures": Path("docs/_static/upstream_fixture_summary.json"),
     "benchmark": Path("docs/_static/benchmark_report.json"),
 }
 
@@ -210,6 +212,18 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
                     {"name": "metadata", "label": "Metadata", "field": "metadata"},
                 ],
                 rows=benchmark_report_rows(artifacts.get("benchmark")),
+            ).classes("w-full")
+            ui.label("Upstream fixture inventory").classes("text-subtitle2")
+            ui.table(
+                columns=[
+                    {"name": "fixture_id", "label": "Fixture", "field": "fixture_id"},
+                    {"name": "available", "label": "Available", "field": "available"},
+                    {"name": "category", "label": "Category", "field": "category"},
+                    {"name": "mesh", "label": "Mesh", "field": "mesh"},
+                    {"name": "geometry", "label": "Geometry", "field": "geometry"},
+                    {"name": "claim", "label": "Claim", "field": "claim"},
+                ],
+                rows=upstream_fixture_report_rows(artifacts.get("upstream_fixtures")),
             ).classes("w-full")
     ui.run(host=host, port=port, reload=reload, show=True)
 
@@ -621,6 +635,23 @@ def benchmark_report_rows(report: Mapping[str, Any] | None) -> list[dict[str, st
             }
         )
     return rows
+
+
+def upstream_fixture_report_rows(report: Mapping[str, Any] | None) -> list[dict[str, str]]:
+    """Return compact rows for stored upstream fixture summaries."""
+
+    if not isinstance(report, Mapping) or not isinstance(report.get("entries"), list):
+        return [
+            {
+                "fixture_id": "upstream-fixtures",
+                "available": "no",
+                "category": "",
+                "mesh": "no stored fixture summary found",
+                "geometry": "",
+                "claim": "missing",
+            }
+        ]
+    return upstream_fixture_rows(dict(report))
 
 
 def seed_equilibrium_summary_rows(summary: dict[str, Any]) -> list[dict[str, str]]:

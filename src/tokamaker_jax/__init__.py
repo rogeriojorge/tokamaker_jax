@@ -131,6 +131,15 @@ from tokamaker_jax.solver import (
     solve_fixed_boundary,
     solve_from_config,
 )
+from tokamaker_jax.upstream_fixtures import (
+    UpstreamFixture,
+    default_upstream_fixtures,
+    summarize_upstream_fixture,
+    summarize_upstream_fixtures,
+    upstream_fixture_report_to_json,
+    upstream_fixture_rows,
+    write_upstream_fixture_summary,
+)
 from tokamaker_jax.verification import (
     CircularLoopGreenFunctionValidation,
     CoilGreenFunctionValidation,
@@ -191,6 +200,7 @@ __all__ = [
     "SolverConfig",
     "TriMesh",
     "TriangleQuadrature",
+    "UpstreamFixture",
     "annulus_region",
     "apply_grad_shafranov_stiffness_matrix",
     "apply_dirichlet_conditions",
@@ -246,6 +256,7 @@ __all__ = [
     "complete_elliptic_integrals_agm",
     "constant_profile_load_oracle",
     "default_case_manifest",
+    "default_upstream_fixtures",
     "evaluate_coil_green_response",
     "gaussian_coil_source",
     "grad_shafranov_weak_source_density",
@@ -294,9 +305,14 @@ __all__ = [
     "solve_profile_iteration_on_rectangle",
     "solve_sine_poisson",
     "solovev_source",
+    "summarize_upstream_fixture",
+    "summarize_upstream_fixtures",
     "triangle_area",
     "triangle_jacobian",
     "triangle_quadrature",
     "unit_square_triangles",
+    "upstream_fixture_report_to_json",
+    "upstream_fixture_rows",
     "write_case_manifest",
+    "write_upstream_fixture_summary",
 ]

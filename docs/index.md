@@ -13,6 +13,7 @@ porting_map
 progress
 validation
 comparisons
+upstream_fixtures
 io_contract
 case_manifest
 literature_reproduction

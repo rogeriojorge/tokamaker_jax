@@ -38,6 +38,10 @@ from tokamaker_jax.plotting import (
     save_region_plot,
 )
 from tokamaker_jax.solver import solve_from_config
+from tokamaker_jax.upstream_fixtures import (
+    summarize_upstream_fixtures,
+    upstream_fixture_report_to_json,
+)
 from tokamaker_jax.verification import (
     rectangular_triangles,
     run_grad_shafranov_convergence_study,
@@ -67,6 +71,7 @@ def main() -> None:
     write_validation_dashboard()
     write_benchmark_summary()
     write_case_manifest_assets()
+    write_upstream_fixture_assets()
     write_upstream_comparison_matrix()
     write_io_artifact_map()
     write_publication_validation_panel()
@@ -374,6 +379,41 @@ def write_case_manifest_assets() -> None:
         ax.text(value + 0.08, index, f"{int(value)}", va="center", fontsize=9)
     ax.set_xlim(0.0, max(counts) + 1.0)
     fig.savefig(ASSET_DIR / "case_manifest_status.png", dpi=180)
+    plt.close(fig)
+
+
+def write_upstream_fixture_assets() -> None:
+    report = summarize_upstream_fixtures()
+    (ASSET_DIR / "upstream_fixture_summary.json").write_text(
+        upstream_fixture_report_to_json(report),
+        encoding="utf-8",
+    )
+
+    entries = report["entries"]
+    labels = [entry["fixture_id"] for entry in entries]
+    cells = np.asarray(
+        [0 if entry["mesh"] is None else entry["mesh"]["n_cells"] for entry in entries],
+        dtype=float,
+    )
+    nodes = np.asarray(
+        [0 if entry["mesh"] is None else entry["mesh"]["n_nodes"] for entry in entries],
+        dtype=float,
+    )
+
+    fig, ax = plt.subplots(figsize=(8.4, 4.8), constrained_layout=True)
+    y = np.arange(len(labels))
+    ax.barh(y - 0.18, cells, height=0.34, color="#2b8cbe", label="triangular cells")
+    ax.barh(y + 0.18, nodes, height=0.34, color="#7bccc4", label="nodes")
+    ax.set_yticks(y, labels)
+    ax.set_xlabel("count")
+    ax.set_title("upstream TokaMaker mesh fixture inventory")
+    ax.legend(loc="upper right")
+    xmax = max(float(np.max(cells)), float(np.max(nodes)), 1.0)
+    ax.set_xlim(0.0, xmax * 1.16)
+    for index, value in enumerate(cells):
+        if value:
+            ax.text(value + xmax * 0.015, index - 0.18, f"{int(value)}", va="center", fontsize=8)
+    fig.savefig(ASSET_DIR / "upstream_fixture_mesh_sizes.png", dpi=180)
     plt.close(fig)
 
 

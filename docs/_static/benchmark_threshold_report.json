@@ -3,36 +3,36 @@
     {
       "lane": "seed",
       "max_median_s": 15.0,
-      "median_s": 0.06436612499237526,
-      "ratio": 0.0042910749994916845,
+      "median_s": 0.07338841698947363,
+      "ratio": 0.004892561132631575,
       "status": "pass"
     },
     {
       "lane": "local_fem",
       "max_median_s": 5.0,
-      "median_s": 0.04675866699835751,
-      "ratio": 0.009351733399671502,
+      "median_s": 0.05052324998541735,
+      "ratio": 0.01010464999708347,
       "status": "pass"
     },
     {
       "lane": "axisymmetric_fem",
       "max_median_s": 15.0,
-      "median_s": 0.17749287499464117,
-      "ratio": 0.011832858332976077,
+      "median_s": 0.20315762498648837,
+      "ratio": 0.013543841665765891,
       "status": "pass"
     },
     {
       "lane": "reduced_coil_green",
       "max_median_s": 10.0,
-      "median_s": 0.021256583990179934,
-      "ratio": 0.0021256583990179934,
+      "median_s": 0.02536216701264493,
+      "ratio": 0.002536216701264493,
       "status": "pass"
     },
     {
       "lane": "circular_loop_elliptic",
       "max_median_s": 10.0,
-      "median_s": 0.03649112500716001,
-      "ratio": 0.0036491125007160007,
+      "median_s": 0.03960049999295734,
+      "ratio": 0.003960049999295734,
       "status": "pass"
     }
   ],

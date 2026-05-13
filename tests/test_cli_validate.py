@@ -143,6 +143,27 @@ def test_main_cases_prints_json(capsys):
     assert "fixed-boundary-seed" not in captured.out
 
 
+def test_main_upstream_fixtures_reports_json_without_requiring_checkout(capsys, tmp_path: Path):
+    output = tmp_path / "upstream_fixtures.json"
+
+    exit_code = main(
+        [
+            "upstream-fixtures",
+            "--root",
+            str(tmp_path / "missing_oft"),
+            "--json",
+            "--output",
+            str(output),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert output.exists()
+    assert '"artifact_id": "upstream-tokamaker-fixture-summary"' in captured.out
+    assert '"checkout_exists": false' in captured.out
+
+
 def test_run_verification_gates_validates_subdivisions():
     with pytest.raises(ValueError, match="at least two"):
         run_verification_gates("poisson", (4,))

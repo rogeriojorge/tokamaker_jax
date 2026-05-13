@@ -2462,3 +2462,113 @@ Best next steps after this commit:
    moving to full free-boundary cases.
 3. Turn the GUI case browser into an editable TOML authoring and one-click
    runner surface.
+
+### 2026-05-13 02:15 WEST
+
+Started the next parity-foundation pass after the staged milestone commit.
+The selected best next step was to promote the manifest's planned upstream
+fixtures into an exact mesh/geometry source inventory.
+
+Implemented lanes in this pass:
+
+- Added `tokamaker_jax.upstream_fixtures`, an availability-gated inventory
+  layer for upstream OpenFUSIONToolkit/TokaMaker fixture files. It records
+  fixture id/title/category, source paths, example availability, SHA-256 hashes,
+  mesh counts, bounds, region-cell counts, region areas, and geometry JSON
+  counts/bounds.
+- Added `tokamaker-jax upstream-fixtures`, with `--root`, `--json`, and
+  `--output`.
+- Added a GUI report table for stored upstream fixture summaries.
+- Added `docs/upstream_fixtures.md` and generated
+  `docs/_static/upstream_fixture_summary.json` plus
+  `docs/_static/upstream_fixture_mesh_sizes.png`.
+- Updated README, examples, comparisons, IO contract, progress, and docs
+  toctree references.
+- Added tests for the fixture summarizer using synthetic HDF5/JSON fixtures,
+  CLI behavior without a local OFT checkout, GUI report rows, and committed
+  docs artifacts.
+
+Results obtained so far:
+
+- Local upstream checkout detected:
+  `/Users/rogeriojorge/local/OpenFUSIONToolkit`.
+- Extracted 8/8 tracked upstream fixtures:
+  NSTX-U, CUTE, DIII-D, Dipole, HBT, ITER, LTX, and MANTA.
+- Key exact mesh counts:
+  NSTX-U 16122 nodes / 32138 cells / 40 regions / 30 coils;
+  CUTE 5796 / 11488 / 31 / 28;
+  DIII-D 8911 / 17660 / 85 / 58;
+  Dipole 8546 / 16912 / 6 / 2;
+  HBT 3736 / 7352 / 35 / 30;
+  ITER 4757 / 9400 / 20 / 14;
+  LTX 3128 / 6114 / 28 / 17;
+  MANTA 8001 / 15766 / 19 / 12.
+
+Tracked lane percentages after this source-fixture pass:
+
+- M1 mesh/geometry: 99%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 99%.
+- Performance: 99%.
+- Overall: 100% staged milestone; this remains a mesh/geometry source-audit
+  increment, not full upstream TokaMaker equilibrium parity.
+
+Best next steps before committing:
+
+1. Run focused tests for upstream fixtures, CLI, GUI, and docs artifacts.
+2. Run full lint, coverage, docs build, CLI fixture command, and verification
+   gates.
+3. Commit, push, and watch CI/docs.
+
+### 2026-05-13 02:45 WEST
+
+Completed validation for the upstream fixture inventory pass.
+
+Validation results:
+
+- `python -m pytest tests/test_upstream_fixtures.py tests/test_cli_validate.py
+  tests/test_gui.py tests/test_docs_artifacts.py`: 41 passed.
+- `python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 158 passed,
+  95.15% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `tokamaker-jax upstream-fixtures --json --output
+  outputs/upstream_fixture_summary.json`: passed and reported 8/8 tracked
+  upstream fixtures available.
+- `tokamaker-jax upstream-fixtures`: passed and printed compact mesh/geometry
+  rows for NSTX-U, CUTE, DIII-D, Dipole, HBT, ITER, LTX, and MANTA.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed.
+- Physics highlights: Poisson L2 rates 1.895 and 1.972; Grad-Shafranov L2
+  rates 1.896 and 1.972; circular-loop closed-form/quadrature relative error
+  3.20e-15; reduced coil Green symmetry/linearity/gradient errors 0.0; profile
+  residual 0.1 -> 0.001; OpenFUSIONToolkit `eval_green` parity passed locally
+  with relative error 6.13e-11.
+- `python -m json.tool docs/_static/upstream_fixture_summary.json`,
+  `python -m json.tool outputs/upstream_fixture_summary.json`, and
+  `git diff --check`: passed.
+
+Open lane completion after validation:
+
+- M1 mesh/geometry: 99%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 99%.
+- Performance: 99%.
+- Overall: 100% for the staged repository milestone; full upstream TokaMaker
+  feature parity remains future work with explicit case gates.
+
+Best next steps after this commit:
+
+1. Add CI-available fixture snapshots so exact upstream mesh/geometry
+   structural parity can run without a local OFT checkout.
+2. Add fixed-boundary equilibrium parity for upstream fixed-boundary examples.
+3. Start the editable TOML GUI runner on top of the existing case browser.

@@ -8,7 +8,14 @@ def test_expanded_docs_are_wired_into_toctree():
     docs_dir = Path(REPO_ROOT / "docs")
     index = (docs_dir / "index.md").read_text(encoding="utf-8")
 
-    for page in ("equations", "design_decisions", "comparisons", "io_contract", "case_manifest"):
+    for page in (
+        "equations",
+        "design_decisions",
+        "comparisons",
+        "upstream_fixtures",
+        "io_contract",
+        "case_manifest",
+    ):
         assert f"\n{page}\n" in index
         assert (docs_dir / f"{page}.md").exists()
 
@@ -39,6 +46,7 @@ def test_publication_and_io_assets_exist():
     for filename in (
         "publication_validation_panel.png",
         "upstream_comparison_matrix.png",
+        "upstream_fixture_mesh_sizes.png",
         "io_artifact_map.png",
         "case_manifest_status.png",
     ):
@@ -56,3 +64,18 @@ def test_case_manifest_docs_and_json_are_consistent():
     assert report["artifact_id"] == "tokamaker-jax-case-manifest"
     assert any(entry["case_id"] == "fixed-boundary-seed" for entry in report["entries"])
     assert any(entry["status"] == "planned_upstream_fixture" for entry in report["entries"])
+
+
+def test_upstream_fixture_docs_and_json_record_exact_mesh_inventory():
+    fixture_docs = (REPO_ROOT / "docs" / "upstream_fixtures.md").read_text(encoding="utf-8")
+    report_path = REPO_ROOT / "docs" / "_static" / "upstream_fixture_summary.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    by_id = {entry["fixture_id"]: entry for entry in report["entries"]}
+
+    assert "fixture inventory, not a full equilibrium parity claim" in fixture_docs
+    assert report["artifact_id"] == "upstream-tokamaker-fixture-summary"
+    assert report["claim"] == "mesh_geometry_inventory_only"
+    assert by_id["iter"]["mesh"]["n_nodes"] == 4757
+    assert by_id["iter"]["mesh"]["n_cells"] == 9400
+    assert by_id["diiid"]["mesh"]["n_regions"] == 85
+    assert by_id["diiid"]["geometry"]["coil_count"] == 20
