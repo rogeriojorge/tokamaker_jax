@@ -3010,10 +3010,17 @@ Validation completed:
   18 passed.
 - `python -m sphinx -W -b html docs docs/_build/html`: passed.
 - `git diff --check`: passed.
+- Remote GitHub Actions for commit `726022b`: CI, Docs, and Pages passed.
+- Enabled GitHub Pages for `rogeriojorge/tokamaker_jax` with
+  `build_type=workflow` after the first Pages run reported that Pages had not
+  yet been enabled for the repository.
+- Published URLs returned HTTP 200:
+  `https://rogeriojorge.github.io/tokamaker_jax/_static/tokamaker_jax_explorer.html`
+  and `https://rogeriojorge.github.io/tokamaker_jax/browser_explorer.html`.
 
 Completion after this pass:
 
 - Static Pages explorer lane: 100%.
-- CI/CD lane: 100% locally, pending remote Pages workflow after push.
+- CI/CD lane: 100%, including remote CI, Docs, and Pages.
 - Docs/examples lane: 100% for this staged milestone.
 - Overall: 100% for the static GitHub Pages addition.
