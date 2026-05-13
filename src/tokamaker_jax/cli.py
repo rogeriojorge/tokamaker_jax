@@ -28,6 +28,7 @@ from tokamaker_jax.config import (
     load_config,
 )
 from tokamaker_jax.domain import RectangularGrid
+from tokamaker_jax.examples import available_examples, write_example
 from tokamaker_jax.plotting import save_equilibrium_plot
 from tokamaker_jax.solver import EquilibriumSolution, solve_from_config
 from tokamaker_jax.upstream_fixed_boundary import (
@@ -84,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         return _main_upstream_fixtures(args_list[1:])
     if args_list[:1] == ["fixed-boundary-evidence"]:
         return _main_fixed_boundary_evidence(args_list[1:])
+    if args_list[:1] == ["init-example"]:
+        return _main_init_example(args_list[1:])
     if args_list[:1] == ["validate"]:
         return _main_validate(args_list[1:])
     if args_list[:1] == ["verify"]:
@@ -119,6 +122,25 @@ def _main_gui(argv: list[str]) -> int:
     from tokamaker_jax.gui import launch_gui
 
     launch_gui(host=args.host, port=args.port, reload=args.reload, show=not args.no_browser)
+    return 0
+
+
+def _main_init_example(argv: list[str]) -> int:
+    examples = available_examples()
+    parser = argparse.ArgumentParser(prog="tokamaker-jax init-example")
+    parser.add_argument("name", nargs="?", default=examples[0], choices=examples)
+    parser.add_argument("--output", "-o", help="Output path for the example TOML file.")
+    parser.add_argument("--force", action="store_true", help="Overwrite an existing output file.")
+    args = parser.parse_args(argv)
+
+    try:
+        path = write_example(args.name, args.output, force=args.force)
+    except FileExistsError as exc:
+        print(f"tokamaker-jax init-example: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"Wrote {args.name} example to {path}")
+    print(f"Run: tokamaker-jax {path} --plot outputs/fixed_boundary.png")
     return 0
 
 

@@ -153,6 +153,23 @@ def test_main_cases_prints_json(capsys):
     assert "fixed-boundary-seed" not in captured.out
 
 
+def test_main_init_example_writes_packaged_example(capsys, tmp_path: Path):
+    output = tmp_path / "fixed_boundary.toml"
+
+    exit_code = main(["init-example", "fixed-boundary", "--output", str(output)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Wrote fixed-boundary example" in captured.out
+    assert output.exists()
+    assert validate_config(output).grid_shape == (65, 65)
+
+    second_exit_code = main(["init-example", "fixed-boundary", "--output", str(output)])
+    second_captured = capsys.readouterr()
+    assert second_exit_code == 1
+    assert "already exists" in second_captured.err
+
+
 def test_main_upstream_fixtures_reports_json_without_requiring_checkout(capsys, tmp_path: Path):
     output = tmp_path / "upstream_fixtures.json"
 

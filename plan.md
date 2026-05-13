@@ -2889,3 +2889,64 @@ Best next steps:
 
 1. Commit and push this GUI-first usability pass.
 2. Watch GitHub Actions CI and Docs to completion.
+
+### 2026-05-13 13:41 WEST
+
+Completed the release-hardening and PyPI publishing pass.
+
+Implemented:
+
+- Reworked `.github/workflows/publish.yml` into a guarded release workflow:
+  release tests/docs, source/wheel build, strict `twine` metadata checks,
+  built-wheel import smoke, artifact handoff, and a separate PyPI Trusted
+  Publishing job using the protected `pypi` environment and OIDC
+  `id-token: write`.
+- Added workflow tests for release-only triggering, trusted-publishing
+  permissions, build/check ordering, artifact handoff, release validation, and
+  release-tag concurrency.
+- Added packaged fixed-boundary example data and `tokamaker-jax init-example`
+  so PyPI users can create a runnable TOML case without cloning the repository.
+- Updated README, getting-started docs, examples docs, release docs, progress
+  docs, and Sphinx index for PyPI install, packaged examples, Trusted
+  Publishing, and post-release verification.
+- Converted README visual asset links to absolute raw GitHub URLs so the PyPI
+  long description can render the figures.
+- Updated `CITATION.cff` release date to `2026-05-13` and added tests that
+  keep package/docs/citation version metadata aligned.
+
+Validation:
+
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95 -q`: 211 passed,
+  95.30% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed, including
+  Poisson, Grad-Shafranov, coil Green-function, circular-loop, free-boundary
+  profile, profile-iteration, OpenFUSIONToolkit parity, and fixed-boundary
+  gEQDSK gates.
+- `python -m build --sdist --wheel`: built
+  `tokamaker_jax-0.1.0a0.tar.gz` and
+  `tokamaker_jax-0.1.0a0-py3-none-any.whl`.
+- `python -m twine check --strict dist/*`: passed for both distributions.
+- Fresh virtualenv wheel smoke: installed the built wheel, ran
+  `tokamaker-jax init-example fixed-boundary`, and validated the exported TOML.
+
+Release readiness notes:
+
+- Current release version is `0.1.0a0`; this is an alpha staged-milestone
+  release, not a full upstream TokaMaker parity claim.
+- PyPI must have a Trusted Publisher for owner/repo
+  `rogeriojorge/tokamaker_jax`, workflow `publish.yml`, environment `pypi`.
+- After this commit is pushed and CI/Docs pass, tag `v0.1.0a0` and publish a
+  GitHub Release from that tag to trigger the PyPI workflow.
+
+Completion after this pass:
+
+- Release/PyPI lane: 100%.
+- GUI: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Performance: 100%.
+- CI/CD: 100% locally, pending remote CI for the release-hardening commit.
+- Overall: 100% for the staged shippable alpha milestone.

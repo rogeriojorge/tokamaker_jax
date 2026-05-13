@@ -12,6 +12,7 @@ design_decisions
 gui
 porting_map
 progress
+release
 validation
 comparisons
 upstream_fixtures

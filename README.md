@@ -19,6 +19,13 @@ pip install -e .
 ```
 
 The default install includes GUI dependencies. Python 3.10 and newer are supported.
+After the package is published on PyPI, the installed-wheel path is:
+
+```bash
+pip install tokamaker-jax
+tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
+tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
+```
 
 Launch the GUI:
 
@@ -37,6 +44,9 @@ Run a TOML case and write a plot:
 ```bash
 tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png
 ```
+
+The `examples/...` paths are available in a repository checkout. For a PyPI-only
+install, create the packaged example first with `tokamaker-jax init-example`.
 
 Run the main validation suite:
 
@@ -61,9 +71,10 @@ tokamaker-jax fixed-boundary-evidence
 Use from Python:
 
 ```python
-from tokamaker_jax import load_config, solve_from_config
+from tokamaker_jax import load_config, solve_from_config, write_example
 
-config = load_config("examples/fixed_boundary.toml")
+case_path = write_example("fixed-boundary", "fixed_boundary.toml", force=True)
+config = load_config(case_path)
 solution = solve_from_config(config)
 print(solution.stats())
 ```
@@ -75,6 +86,9 @@ pip install -e ".[dev,docs]"
 ```
 
 TOML files use `tomllib` on Python 3.11+ and `tomli` on Python 3.10.
+
+Release and PyPI publishing steps are documented in
+[docs/release.md](docs/release.md).
 
 ## Examples
 
@@ -96,33 +110,33 @@ tokamaker-jax verify --gate free-boundary-profile
 
 ## Visual Overview
 
-![GUI workflow dashboard](docs/_static/gui_workflow_dashboard.png)
+![GUI workflow dashboard](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/gui_workflow_dashboard.png)
 
-![Publication validation panel](docs/_static/publication_validation_panel.png)
+![Publication validation panel](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/publication_validation_panel.png)
 
-![Fixed-boundary seed equilibrium](docs/_static/fixed_boundary_seed.png)
+![Fixed-boundary seed equilibrium](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/fixed_boundary_seed.png)
 
-![Validation dashboard](docs/_static/validation_dashboard.png)
+![Validation dashboard](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/validation_dashboard.png)
 
-![Case manifest status](docs/_static/case_manifest_status.png)
+![Case manifest status](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/case_manifest_status.png)
 
-![Upstream mesh fixture inventory](docs/_static/upstream_fixture_mesh_sizes.png)
+![Upstream mesh fixture inventory](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/upstream_fixture_mesh_sizes.png)
 
-![Upstream fixed-boundary gEQDSK flux](docs/_static/fixed_boundary_upstream_geqdsk.png)
+![Upstream fixed-boundary gEQDSK flux](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/fixed_boundary_upstream_geqdsk.png)
 
-![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
+![Axisymmetric manufactured Grad-Shafranov convergence](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/manufactured_grad_shafranov_convergence.png)
 
-![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
+![Closed-form circular-loop elliptic response](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/circular_loop_elliptic_response.png)
 
-![Free-boundary profile coupling](docs/_static/free_boundary_profile_coupling.png)
+![Free-boundary profile coupling](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/free_boundary_profile_coupling.png)
 
-![Coil current sweep](docs/_static/coil_current_sweep.gif)
+![Coil current sweep](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/coil_current_sweep.gif)
 
-![Benchmark summary](docs/_static/benchmark_summary.png)
+![Benchmark summary](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/benchmark_summary.png)
 
-![CPC seed-family reproduction surrogate](docs/_static/cpc_seed_family.png)
+![CPC seed-family reproduction surrogate](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/cpc_seed_family.png)
 
-![Pressure sweep animation](docs/_static/pressure_sweep.gif)
+![Pressure sweep animation](https://raw.githubusercontent.com/rogeriojorge/tokamaker_jax/main/docs/_static/pressure_sweep.gif)
 
 ## Current Scope
 
@@ -134,6 +148,7 @@ tokamaker-jax verify --gate free-boundary-profile
 - OpenFUSIONToolkit/TokaMaker comparison probe that records local upstream availability and runs numeric `eval_green` parity when the original compiled library is available.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
+- Packaged fixed-boundary example export through `tokamaker-jax init-example`.
 - Case manifest browser exposed through the CLI, GUI, docs, and committed JSON artifacts.
 - Availability-gated upstream fixture inventory for exact TokaMaker mesh/geometry files.
 - Source-evidence artifact for upstream fixed-boundary notebooks and the `gNT_example` gEQDSK case.
@@ -141,7 +156,7 @@ tokamaker-jax verify --gate free-boundary-profile
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
 - NiceGUI workflow dashboard summaries, editable TOML validation, saved-case execution, and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
 - Benchmark-history JSON/JSONL helpers for recording hardware/context metadata with timing reports.
-- Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, and publication-ready generated figures.
+- Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, release publishing steps, and publication-ready generated figures.
 - Sphinx and Read the Docs setup.
 - GitHub Actions for linting, testing with coverage, benchmark artifact upload, docs, and release publishing.
 

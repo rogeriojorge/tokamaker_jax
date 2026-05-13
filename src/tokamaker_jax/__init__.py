@@ -69,6 +69,7 @@ from tokamaker_jax.comparison import (
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, load_config
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.eqdsk import Eqdsk, diagnose_eqdsk, parse_eqdsk
+from tokamaker_jax.examples import available_examples, example_text, write_example
 from tokamaker_jax.fem import (
     TriangleQuadrature,
     linear_basis,
@@ -249,6 +250,7 @@ __all__ = [
     "assemble_weighted_stiffness_bcoo",
     "assemble_weighted_stiffness_matrix",
     "axisymmetric_inverse_radius",
+    "available_examples",
     "boundary_nodes_from_coordinates",
     "benchmark_axisymmetric_fem_apply",
     "benchmark_baseline_report",
@@ -290,6 +292,7 @@ __all__ = [
     "default_upstream_fixtures",
     "diagnose_eqdsk",
     "evaluate_coil_green_response",
+    "example_text",
     "fixed_boundary_report_to_json",
     "fixed_boundary_upstream_report",
     "gaussian_coil_source",
@@ -355,6 +358,7 @@ __all__ = [
     "upstream_fixture_rows",
     "write_case_manifest",
     "write_benchmark_history_jsonl",
+    "write_example",
     "write_fixed_boundary_upstream_report",
     "write_upstream_fixture_summary",
 ]

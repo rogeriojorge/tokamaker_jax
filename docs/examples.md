@@ -6,6 +6,14 @@ The first executable example is a fixed-boundary seed solve:
 tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png
 ```
 
+For a wheel-only install without a repository checkout, export the packaged copy
+first:
+
+```bash
+tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
+tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
+```
+
 ```{image} _static/fixed_boundary_seed.png
 :alt: Fixed-boundary seed equilibrium contours
 ```

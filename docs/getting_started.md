@@ -10,6 +10,15 @@ pip install -e .
 
 The default install includes GUI dependencies.
 
+After PyPI publication, a wheel-only install can create a runnable local example
+without cloning the repository:
+
+```bash
+pip install tokamaker-jax
+tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
+tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
+```
+
 For development and docs work:
 
 ```bash

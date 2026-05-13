@@ -8,7 +8,7 @@ authors:
 repository-code: "https://github.com/rogeriojorge/tokamaker_jax"
 license: LGPL-3.0-only
 version: 0.1.0a0
-date-released: "2026-05-12"
+date-released: "2026-05-13"
 references:
   - type: article
     title: "TokaMaker: An open-source time-dependent Grad-Shafranov tool for the design and modeling of axisymmetric fusion devices"
@@ -33,4 +33,3 @@ references:
     volume: 298
     year: 2024
     doi: "10.1016/j.cpc.2024.109111"
-
