@@ -97,7 +97,9 @@ def summarize_upstream_fixture(
 
     return {
         **fixture.to_dict(),
-        "available": bool(mesh_available or geometry_available or any(row["exists"] for row in examples)),
+        "available": bool(
+            mesh_available or geometry_available or any(row["exists"] for row in examples)
+        ),
         "mesh_available": mesh_available,
         "geometry_available": geometry_available,
         "mesh": mesh_summary,
