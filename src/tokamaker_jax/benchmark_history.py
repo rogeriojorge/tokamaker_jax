@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import platform
 from collections.abc import Iterable, Mapping
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -155,7 +155,7 @@ def _environment_metadata(
         "python": platform.python_version(),
         "machine": platform.machine(),
         "processor": platform.processor(),
-        "timestamp": timestamp or datetime.now(UTC).isoformat(timespec="seconds"),
+        "timestamp": timestamp or datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     if environment is not None:
         metadata.update(environment)

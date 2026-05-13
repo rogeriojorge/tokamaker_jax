@@ -2779,3 +2779,23 @@ Best next steps:
 
 1. Commit and push this validated pass.
 2. Watch GitHub Actions CI and Docs to completion.
+
+### 2026-05-13 11:51 WEST
+
+CI follow-up after pushing `dd474a7`:
+
+- Docs run `25794319767`: passed.
+- CI run `25794319818`: Python 3.11, 3.12, and 3.13 passed; Python 3.10
+  failed during collection because `datetime.UTC` is unavailable on Python
+  3.10.
+- Fixed the compatibility issue by replacing `datetime.UTC` with
+  `datetime.timezone.utc` in `tokamaker_jax.benchmark_history`.
+- Local revalidation after the fix:
+  - `python -m ruff check .`: passed.
+  - `python -m pytest --cov=tokamaker_jax --cov-fail-under=95 -q`: 201
+    passed, 95.32% total coverage.
+
+Best next steps:
+
+1. Commit and push the Python 3.10 compatibility fix.
+2. Watch the replacement CI and Docs runs to completion.
