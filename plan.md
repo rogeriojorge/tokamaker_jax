@@ -2950,3 +2950,70 @@ Completion after this pass:
 - Performance: 100%.
 - CI/CD: 100% locally, pending remote CI for the release-hardening commit.
 - Overall: 100% for the staged shippable alpha milestone.
+
+### 2026-05-13 16:24 WEST
+
+Started the static GitHub Pages explorer pass.
+
+Implemented:
+
+- Added `.github/workflows/pages.yml`, using the official GitHub Pages Actions
+  flow: build Sphinx docs, upload `docs/_build/html`, and deploy with
+  `actions/deploy-pages`.
+- Added `docs/_static/tokamaker_jax_explorer.html`, a self-contained
+  browser-side fixed-boundary equilibrium explorer with pressure, FF' scale,
+  PF-coil current, iteration, grid, preset controls, flux contours, residual
+  convergence, profile plots, animation, and TOML export.
+- Added `docs/browser_explorer.md` and linked it from the docs toctree, GUI
+  docs, examples docs, and README.
+- Added tests for the Pages workflow and for the static explorer being
+  self-contained and linked.
+
+Technical scope:
+
+- GitHub Pages cannot host the NiceGUI server directly because NiceGUI needs a
+  Python backend.
+- The static explorer is therefore a reduced client-side preview, while
+  validated physics, JAX differentiation, artifact generation, and parity gates
+  remain in the Python CLI/NiceGUI app.
+
+Validation planned next:
+
+1. Run lint, focused workflow/docs tests, and Sphinx docs.
+2. Serve the built docs locally and verify the explorer in the in-app browser.
+3. Commit, push, and watch CI, Docs, and Pages.
+
+### 2026-05-13 16:49 WEST
+
+Completed the static GitHub Pages explorer pass.
+
+Additional implementation:
+
+- Polished the first-viewport desktop layout after screenshot review: compacted
+  the `psi` range metric and moved line-plot x-axis labels away from tick
+  labels.
+- Captured and committed
+  `docs/_static/tokamaker_jax_explorer_screenshot.png`, then linked it from
+  the browser explorer docs and README visual overview.
+
+Validation completed:
+
+- Static explorer loaded at
+  `http://127.0.0.1:8765/_static/tokamaker_jax_explorer.html` in the in-app
+  browser.
+- DOM verified the controls, metrics, flux/residual/profile panels, equations,
+  TOML command, animation control, and Copy TOML workflow.
+- Browser interactions: `Animate` changed to `Pause`, `Copy TOML` reported a
+  successful clipboard/download path, and browser console errors were empty.
+- `node --check` on the extracted explorer script: passed.
+- `python -m pytest tests/test_ci_workflows.py tests/test_docs_artifacts.py -q`:
+  18 passed.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `git diff --check`: passed.
+
+Completion after this pass:
+
+- Static Pages explorer lane: 100%.
+- CI/CD lane: 100% locally, pending remote Pages workflow after push.
+- Docs/examples lane: 100% for this staged milestone.
+- Overall: 100% for the static GitHub Pages addition.

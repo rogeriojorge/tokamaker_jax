@@ -23,6 +23,10 @@ Use `--no-browser` for remote Linux sessions, CI smoke checks, WSL, containers,
 or any machine where the server should start without opening a local browser
 window. Use `--port` when another local service already occupies port 8080.
 
+For static hosting, use the browser-side explorer instead of the NiceGUI server:
+[](browser_explorer.md). It can be served by GitHub Pages because it is a
+self-contained HTML preview.
+
 ## First Screen
 
 The first screen is the workflow dashboard. It shows:

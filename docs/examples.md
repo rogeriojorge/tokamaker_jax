@@ -14,6 +14,9 @@ tokamaker-jax init-example fixed-boundary --output fixed_boundary.toml
 tokamaker-jax fixed_boundary.toml --plot outputs/fixed_boundary.png
 ```
 
+The same reduced controls are available as a static page in the
+[](browser_explorer.md), suitable for GitHub Pages.
+
 ```{image} _static/fixed_boundary_seed.png
 :alt: Fixed-boundary seed equilibrium contours
 ```

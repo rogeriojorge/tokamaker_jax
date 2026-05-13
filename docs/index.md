@@ -10,6 +10,7 @@ architecture
 equations
 design_decisions
 gui
+browser_explorer
 porting_map
 progress
 release

@@ -16,9 +16,25 @@ def test_expanded_docs_are_wired_into_toctree():
         "fixed_boundary_upstream",
         "io_contract",
         "case_manifest",
+        "browser_explorer",
     ):
         assert f"\n{page}\n" in index
         assert (docs_dir / f"{page}.md").exists()
+
+
+def test_static_browser_explorer_is_self_contained_and_linked():
+    explorer_docs = (REPO_ROOT / "docs" / "browser_explorer.md").read_text(encoding="utf-8")
+    explorer = (REPO_ROOT / "docs" / "_static" / "tokamaker_jax_explorer.html").read_text(
+        encoding="utf-8"
+    )
+
+    assert "tokamaker_jax_explorer.html" in explorer_docs
+    assert "tokamaker-jax browser equilibrium explorer" in explorer
+    assert "static HTML" in explorer
+    assert "navigator.clipboard.writeText" in explorer
+    assert "tokamaker-jax init-example fixed-boundary" in explorer
+    assert "https://" not in explorer
+    assert "<script src=" not in explorer
 
 
 def test_equation_docs_record_core_physics_contracts():
@@ -51,6 +67,7 @@ def test_publication_and_io_assets_exist():
         "fixed_boundary_upstream_geqdsk.png",
         "io_artifact_map.png",
         "case_manifest_status.png",
+        "tokamaker_jax_explorer_screenshot.png",
     ):
         path = static_dir / filename
         assert path.exists()

@@ -18,6 +18,19 @@ def test_ci_workflow_uploads_benchmark_artifacts():
     assert "actions/upload-artifact@v4" in workflow
 
 
+def test_pages_workflow_builds_sphinx_and_deploys_github_pages():
+    workflow = read_workflow("pages.yml")
+
+    assert "pages: write" in workflow
+    assert "id-token: write" in workflow
+    assert "sphinx-build -W -b html docs docs/_build/html" in workflow
+    assert "actions/configure-pages@v5" in workflow
+    assert "actions/upload-pages-artifact@v4" in workflow
+    assert "path: docs/_build/html" in workflow
+    assert "actions/deploy-pages@v4" in workflow
+    assert "name: github-pages" in workflow
+
+
 def test_benchmark_threshold_file_is_tracked():
     path = Path(REPO_ROOT / "docs" / "validation" / "benchmark_thresholds.json")
 
