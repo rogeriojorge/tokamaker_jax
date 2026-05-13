@@ -29,19 +29,20 @@ def test_static_browser_explorer_is_self_contained_and_linked():
     )
 
     assert "tokamaker_jax_explorer.html" in explorer_docs
-    assert "tokamaker-jax research workbench" in explorer
-    assert "research tabs" in explorer
-    assert 'data-tab="equilibrium"' in explorer
-    assert 'data-tab="mesh"' in explorer
-    assert 'data-tab="validation"' in explorer
-    assert 'data-tab="differentiability"' in explorer
-    assert 'data-tab="benchmarks"' in explorer
-    assert 'data-tab="export"' in explorer
-    assert "OpenFUSIONToolkit parity" in explorer
-    assert "Artifact manifest" in explorer
-    assert "static HTML" in explorer
+    assert "Grad-Shafranov Explorer" in explorer
+    assert "J x B = grad(p) -> Delta* psi" in explorer
+    assert "Delta* psi = -mu0 R^2 p'(psi) - F(psi) F'(psi)" in explorer
+    assert "Flux surfaces" in explorer
+    assert "Source terms" in explorer
+    assert "Profiles" in explorer
+    assert "Relaxation" in explorer
+    assert "What to try" in explorer
+    assert "Copy TOML" in explorer
+    assert "benchmark" not in explorer.lower()
+    assert "milestone" not in explorer.lower()
+    assert "research workbench" not in explorer.lower()
     assert "navigator.clipboard.writeText" in explorer
-    assert "tokamaker-jax init-example fixed-boundary" in explorer
+    assert "tokamaker-jax grad_shafranov.toml" in explorer
     assert "https://" not in explorer
     assert "<script src=" not in explorer
 

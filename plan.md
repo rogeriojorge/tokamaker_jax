@@ -3064,3 +3064,42 @@ Completion after this pass:
 - Static research workbench lane: 100% for the current GitHub Pages scope.
 - Docs/tests lane: 100% locally, pending remote CI/Docs/Pages after push.
 - Overall: 100% for the requested richer GitHub Pages research UI.
+
+### 2026-05-13 17:41 WEST
+
+Simplified the GitHub Pages UI into a focused Grad-Shafranov teaching tool.
+
+Implemented:
+
+- Replaced the multi-tab research workbench with a single elegant classroom UI
+  centered on the Grad-Shafranov equation and fixed-boundary flux surfaces.
+- Removed overview, benchmark, milestone, project-status, and broad research
+  dashboard content from the static page.
+- Kept the educational controls that matter for the solve: pressure gradient,
+  FF' source, PF coil current, elongation, triangularity, relaxation steps, and
+  grid size.
+- Added simple secondary views for source terms, profiles, and relaxation
+  history.
+- Kept TOML export so a browser exploration can still be reproduced through
+  the Python/JAX `tokamaker-jax` workflow.
+- Updated browser explorer docs, README wording, GUI/examples references,
+  progress docs, and docs artifact tests to protect the narrower educational
+  scope.
+- Re-captured `docs/_static/tokamaker_jax_explorer_screenshot.png` for the new
+  first viewport.
+
+Validation completed locally:
+
+- `node --check` on the extracted explorer script: passed.
+- `python -m ruff format --check . && python -m ruff check .`: passed.
+- `python -m pytest tests/test_docs_artifacts.py tests/test_ci_workflows.py -q`:
+  18 passed.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- In-app browser loaded the local explorer with no console errors; controls,
+  source/profile/relaxation view switching, animation, and TOML copy were
+  exercised.
+
+Completion after this pass:
+
+- Grad-Shafranov educational explorer lane: 100% locally, pending remote
+  CI/Docs/Pages after push.

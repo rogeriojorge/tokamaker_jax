@@ -1,22 +1,21 @@
-# Browser Research Workbench
+# Grad-Shafranov Explorer
 
-The static browser research workbench is a GitHub Pages companion for the
-tokamaker-jax solver stack:
+The static browser explorer is a GitHub Pages companion for teaching
+axisymmetric MHD equilibrium and the Grad-Shafranov equation:
 
-![Static browser research workbench](_static/tokamaker_jax_explorer_screenshot.png)
+![Grad-Shafranov browser explorer](_static/tokamaker_jax_explorer_screenshot.png)
 
 ```{raw} html
-<p><a class="reference external" href="_static/tokamaker_jax_explorer.html">Open the browser research workbench</a></p>
-<iframe src="_static/tokamaker_jax_explorer.html" title="tokamaker-jax browser research workbench" style="width: 100%; min-height: 980px; border: 1px solid #d7dde8; border-radius: 8px;"></iframe>
+<p><a class="reference external" href="_static/tokamaker_jax_explorer.html">Open the Grad-Shafranov explorer</a></p>
+<iframe src="_static/tokamaker_jax_explorer.html" title="tokamaker-jax Grad-Shafranov explorer" style="width: 100%; min-height: 930px; border: 1px solid #d7dde8; border-radius: 8px;"></iframe>
 ```
 
-It runs entirely in the browser, so it is suitable for GitHub Pages. The tabs
-cover the same research lanes as the Python package: case setup, equilibrium
-preview, region geometry and mesh topology, pressure and FF' profiles, coil
-Green-function response, physics validation gates, differentiability checks,
-benchmark history, and reproducible export. The browser numerics are reduced
-proxies; validated solves, gradients, parity checks, and publication artifacts
-remain in the Python/JAX CLI and NiceGUI dashboard.
+It runs entirely in the browser, so it is suitable for GitHub Pages. The page is
+intentionally simple: pressure, FF prime, coil current, elongation, and
+triangularity controls update a reduced fixed-boundary Grad-Shafranov solve,
+flux-surface plot, source-term plot, profile plot, and relaxation curve. The
+browser numerics are educational proxies; validated runs remain in the
+Python/JAX CLI and NiceGUI dashboard.
 
 Use the CLI for validated runs:
 
