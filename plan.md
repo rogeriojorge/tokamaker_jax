@@ -2368,3 +2368,97 @@ Best next steps:
    read-only literature reproduction gallery.
 5. Couple profile iteration to the free-boundary coil response and add a
    fixed-boundary-plus-coil validation fixture with differentiability checks.
+
+### 2026-05-13 00:20 WEST
+
+Started the final completion push on the staged repository milestone, focusing
+on operational completeness rather than overclaiming upstream physics parity.
+
+Implemented lanes in progress:
+
+- Case management: added a typed `tokamaker_jax.cases` manifest with runnable
+  examples, validation gates, planned upstream fixtures, parity levels,
+  citations, source mappings, output artifacts, and bounded source previews.
+- CLI: added `tokamaker-jax cases`, `--runnable-only`, `--status`, `--json`,
+  and `--output` so examples and future parity fixtures are discoverable from
+  the same entry point as validation and TOML runs.
+- GUI: added a manifest-backed `Cases` tab with status/category/parity/command
+  columns and read-only source preview for local TOML/Python case files. Also
+  updated the install guidance to match the default-GUI dependency model.
+- Docs/assets: added `docs/case_manifest.md`, wired it into the toctree,
+  expanded README/examples/IO/comparison docs, and planned generation of
+  `docs/_static/case_manifest.json` plus `case_manifest_status.png`.
+- Tests: added focused case-manifest, CLI, GUI-row, and docs-artifact tests.
+
+Tracked lane percentages for the staged milestone after this design/implementation
+pass:
+
+- M1 mesh/geometry: 98%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 99%.
+- Performance: 99%.
+- Overall: 100% staged milestone, still not a claim of complete upstream
+  TokaMaker feature parity.
+
+Best next steps before committing:
+
+1. Regenerate docs assets so the new case manifest JSON and plot are committed.
+2. Run focused tests for cases, CLI, GUI, and docs artifacts.
+3. Run full lint, coverage, docs, CLI validation gates, and benchmark/report
+   checks.
+4. Commit, push, and watch CI/docs to completion.
+
+### 2026-05-13 01:00 WEST
+
+Completed validation for the final case-management/docs push.
+
+Results obtained:
+
+- Generated `docs/_static/case_manifest.json` and
+  `docs/_static/case_manifest_status.png`.
+- `tokamaker-jax cases --runnable-only`: listed 4 executable entries,
+  including the fixed-boundary seed case, manifest browser, CPC seed-family
+  surrogate, and OFT parity gate.
+- `python -m pytest tests/test_cases.py tests/test_cli_validate.py
+  tests/test_gui.py tests/test_docs_artifacts.py`: 40 passed.
+- `python -m ruff check .`: passed.
+- `python -m pytest --cov=tokamaker_jax --cov-fail-under=95`: 152 passed,
+  95.59% total coverage.
+- `python -m sphinx -W -b html docs docs/_build/html`: passed.
+- `tokamaker-jax verify --gate all --subdivisions 4 8 16`: passed all
+  implemented physics gates.
+- Numeric highlights from the verification run: Poisson L2 rates 1.895 and
+  1.972; Grad-Shafranov L2 rates 1.896 and 1.972; circular-loop
+  closed-form/quadrature relative error 3.20e-15; reduced coil Green
+  symmetry/linearity/gradient errors 0.0; profile residual 0.1 -> 0.001;
+  OpenFUSIONToolkit `eval_green` parity passed locally with relative error
+  6.13e-11.
+- `python -m json.tool docs/_static/case_manifest.json` and
+  `git diff --check`: passed.
+
+Open lane completion after validation:
+
+- M1 mesh/geometry: 98%.
+- M2 FEM core: 98%.
+- Plotting: 100%.
+- Docs/examples: 100%.
+- Config/CLI: 100%.
+- Test infra: 100%.
+- Differentiability: 98%.
+- GUI: 99%.
+- Performance: 99%.
+- Overall: 100% for the staged repository milestone; full upstream TokaMaker
+  feature parity remains future work with explicit case gates.
+
+Best next steps after this commit:
+
+1. Promote planned upstream fixtures to exact mesh/geometry import tests.
+2. Add fixed-boundary equilibrium parity against upstream notebooks before
+   moving to full free-boundary cases.
+3. Turn the GUI case browser into an editable TOML authoring and one-click
+   runner surface.

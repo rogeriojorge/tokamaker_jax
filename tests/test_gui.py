@@ -6,6 +6,7 @@ import tokamaker_jax.geometry as geometry
 from tokamaker_jax.geometry import RegionSet, annulus_region, rectangle_region
 from tokamaker_jax.gui import (
     benchmark_report_rows,
+    case_manifest_rows,
     coil_green_response_figure,
     load_gui_report_artifacts,
     load_json_report,
@@ -259,6 +260,16 @@ def test_gui_report_helpers_load_validation_and_benchmark_rows(tmp_path):
             "metadata": '{"nr": 9}',
         }
     ]
+
+
+def test_case_manifest_rows_expose_runnable_and_planned_cases():
+    rows = case_manifest_rows()
+    by_id = {row["case_id"]: row for row in rows}
+
+    assert by_id["fixed-boundary-seed"]["status"] == "runnable"
+    assert "tokamaker-jax examples/fixed_boundary.toml" in by_id["fixed-boundary-seed"]["command"]
+    assert by_id["iter-baseline-upstream"]["command"] == "planned"
+    assert by_id["openfusiontoolkit-green-parity"]["parity_level"] == "kernel_parity"
 
 
 def test_benchmark_report_rows_reports_missing_artifact():

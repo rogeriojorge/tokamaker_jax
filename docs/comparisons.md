@@ -33,6 +33,8 @@ Current `tokamaker-jax` status:
 
 The committed comparison report is
 `docs/_static/openfusiontoolkit_comparison_report.json`.
+The case-by-case upstream fixture inventory is in [](case_manifest.md) and
+`docs/_static/case_manifest.json`.
 
 ## FreeGS and FreeGSNKE
 

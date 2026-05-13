@@ -38,6 +38,13 @@ Run the main validation suite:
 tokamaker-jax verify --gate all --subdivisions 4 8 16
 ```
 
+List runnable examples and planned upstream parity fixtures:
+
+```bash
+tokamaker-jax cases --runnable-only
+tokamaker-jax cases --json --output outputs/case_manifest.json
+```
+
 Use from Python:
 
 ```python
@@ -82,6 +89,8 @@ tokamaker-jax verify --gate free-boundary-profile
 
 ![Validation dashboard](docs/_static/validation_dashboard.png)
 
+![Case manifest status](docs/_static/case_manifest_status.png)
+
 ![Axisymmetric manufactured Grad-Shafranov convergence](docs/_static/manufactured_grad_shafranov_convergence.png)
 
 ![Closed-form circular-loop elliptic response](docs/_static/circular_loop_elliptic_response.png)
@@ -106,6 +115,7 @@ tokamaker-jax verify --gate free-boundary-profile
 - OpenFUSIONToolkit/TokaMaker comparison probe that records local upstream availability and runs numeric `eval_green` parity when the original compiled library is available.
 - TOML configuration loader with Python 3.10 compatibility.
 - CLI that launches the GUI by default and runs TOML files when supplied.
+- Case manifest browser exposed through the CLI, GUI, docs, and committed JSON artifacts.
 - Matplotlib plotting utilities, generated validation figures, CPC seed-family reproduction surrogate, and JSON figure recipes.
 - NiceGUI workflow dashboard summaries and stored-report tables for solver, validation, plotting, benchmark, and reproduction lanes.
 - Expanded documentation with equations, derivations, design decisions, input/output artifact contracts, upstream/literature comparison levels, and publication-ready generated figures.

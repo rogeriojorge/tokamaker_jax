@@ -13,6 +13,12 @@ from typing import Any
 
 import numpy as np
 
+from tokamaker_jax.cases import (
+    CaseManifest,
+    case_manifest_to_json,
+    case_table_rows,
+    default_case_manifest,
+)
 from tokamaker_jax.config import (
     CoilConfig,
     GridConfig,
@@ -60,6 +66,8 @@ def main(argv: list[str] | None = None) -> int:
     """
 
     args_list = sys.argv[1:] if argv is None else list(argv)
+    if args_list[:1] == ["cases"]:
+        return _main_cases(args_list[1:])
     if args_list[:1] == ["validate"]:
         return _main_validate(args_list[1:])
     if args_list[:1] == ["verify"]:
@@ -78,6 +86,53 @@ def main(argv: list[str] | None = None) -> int:
     solution = run_config(args.config, output=args.output, plot=args.plot)
     print(json.dumps(solution.stats(), indent=2, sort_keys=True))
     return 0
+
+
+def _main_cases(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="tokamaker-jax cases")
+    parser.add_argument("--json", action="store_true", help="Print the manifest as JSON.")
+    parser.add_argument("--output", "-o", help="Write the selected manifest JSON to this path.")
+    parser.add_argument(
+        "--runnable-only",
+        action="store_true",
+        help="Only include cases with commands intended to run today.",
+    )
+    parser.add_argument(
+        "--status",
+        help="Filter to one status such as runnable, validation_gate, or planned_upstream_fixture.",
+    )
+    args = parser.parse_args(argv)
+
+    manifest = default_case_manifest().filter(
+        status=args.status,
+        runnable_only=args.runnable_only,
+    )
+    if args.output:
+        path = Path(args.output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(case_manifest_to_json(manifest), encoding="utf-8")
+    if args.json:
+        print(case_manifest_to_json(manifest), end="")
+    else:
+        for line in _case_manifest_summary_lines(manifest):
+            print(line)
+    return 0
+
+
+def _case_manifest_summary_lines(manifest: CaseManifest) -> tuple[str, ...]:
+    rows = case_table_rows(manifest)
+    counts = ", ".join(f"{status}={count}" for status, count in manifest.status_counts().items())
+    lines = [
+        f"tokamaker-jax cases: {len(rows)} entries ({counts})",
+        "Use --json for the full manifest, or --runnable-only to show executable cases.",
+    ]
+    for row in rows:
+        command = row["command"] or row["validation_gate"] or "planned"
+        path = f" [{row['path']}]" if row["path"] else ""
+        lines.append(
+            f"- {row['case_id']}: {row['status']} / {row['parity_level']}{path} -> {command}"
+        )
+    return tuple(lines)
 
 
 def _main_verify(argv: list[str]) -> int:

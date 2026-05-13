@@ -18,6 +18,7 @@ from tokamaker_jax.benchmarks import (
     benchmark_report_to_json,
     benchmark_threshold_report,
 )
+from tokamaker_jax.cases import default_case_manifest, write_case_manifest
 from tokamaker_jax.cli import run_verification_gates
 from tokamaker_jax.comparison import run_openfusiontoolkit_green_comparison
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
@@ -65,6 +66,7 @@ def main() -> None:
     write_free_boundary_profile_coupling()
     write_validation_dashboard()
     write_benchmark_summary()
+    write_case_manifest_assets()
     write_upstream_comparison_matrix()
     write_io_artifact_map()
     write_publication_validation_panel()
@@ -345,6 +347,33 @@ def write_benchmark_summary() -> None:
         ax.text(value + max(medians_ms) * 0.015, index, f"{value:.2f}", va="center", fontsize=9)
     ax.set_xlim(0.0, max(medians_ms) * 1.25 + 1.0e-6)
     fig.savefig(ASSET_DIR / "benchmark_summary.png", dpi=180)
+    plt.close(fig)
+
+
+def write_case_manifest_assets() -> None:
+    manifest = default_case_manifest()
+    write_case_manifest(ASSET_DIR / "case_manifest.json", manifest=manifest)
+
+    statuses = manifest.status_counts()
+    labels = list(statuses)
+    counts = np.asarray([statuses[label] for label in labels], dtype=float)
+    colors = {
+        "runnable": "#2ca25f",
+        "validation_gate": "#3182bd",
+        "schema_preview": "#756bb1",
+        "planned_upstream_fixture": "#fdae6b",
+    }
+
+    fig, ax = plt.subplots(figsize=(7.2, 4.2), constrained_layout=True)
+    y = np.arange(len(labels))
+    ax.barh(y, counts, color=[colors.get(label, "#9e9ac8") for label in labels])
+    ax.set_yticks(y, [label.replace("_", " ") for label in labels])
+    ax.set_xlabel("case count")
+    ax.set_title("case manifest: runnable cases and parity targets")
+    for index, value in enumerate(counts):
+        ax.text(value + 0.08, index, f"{int(value)}", va="center", fontsize=9)
+    ax.set_xlim(0.0, max(counts) + 1.0)
+    fig.savefig(ASSET_DIR / "case_manifest_status.png", dpi=180)
     plt.close(fig)
 
 

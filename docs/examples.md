@@ -50,6 +50,16 @@ commands used by the test suite:
 :alt: Benchmark summary
 ```
 
+The case manifest lists runnable examples and planned upstream parity fixtures:
+
+```bash
+tokamaker-jax cases --runnable-only
+```
+
+```{image} _static/case_manifest_status.png
+:alt: Case manifest status counts
+```
+
 The current publication summary panel combines convergence, coupling, and
 benchmark artifacts into a single generated figure:
 

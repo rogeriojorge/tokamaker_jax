@@ -120,6 +120,29 @@ def test_main_verify_runs_free_boundary_profile_gate(capsys):
     assert "coil_linearity_relative_error" in captured.out
 
 
+def test_main_cases_lists_manifest_and_writes_json(capsys, tmp_path: Path):
+    output = tmp_path / "cases.json"
+
+    exit_code = main(["cases", "--runnable-only", "--output", str(output)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "tokamaker-jax cases" in captured.out
+    assert "fixed-boundary-seed" in captured.out
+    assert output.exists()
+    assert "planned_upstream_fixture" not in output.read_text(encoding="utf-8")
+
+
+def test_main_cases_prints_json(capsys):
+    exit_code = main(["cases", "--status", "validation_gate", "--json"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert '"artifact_id": "tokamaker-jax-case-manifest"' in captured.out
+    assert "openfusiontoolkit-green-parity" in captured.out
+    assert "fixed-boundary-seed" not in captured.out
+
+
 def test_run_verification_gates_validates_subdivisions():
     with pytest.raises(ValueError, match="at least two"):
         run_verification_gates("poisson", (4,))

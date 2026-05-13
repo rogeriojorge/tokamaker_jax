@@ -10,6 +10,12 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 
+from tokamaker_jax.cases import (
+    CaseManifest,
+    case_source_preview,
+    case_table_rows,
+    default_case_manifest,
+)
 from tokamaker_jax.config import CoilConfig, GridConfig, RunConfig, SolverConfig, SourceConfig
 from tokamaker_jax.domain import RectangularGrid
 from tokamaker_jax.free_boundary import coil_flux_on_grid
@@ -45,7 +51,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
     try:
         from nicegui import ui
     except ImportError as exc:  # pragma: no cover - optional dependency path
-        raise SystemExit('Install GUI dependencies with: pip install "tokamaker-jax[gui]"') from exc
+        raise SystemExit("Install GUI dependencies with: pip install tokamaker-jax") from exc
 
     ui.page_title("tokamaker-jax")
     ui.label("tokamaker-jax").classes("text-h4")
@@ -57,6 +63,7 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
         geometry_tab = ui.tab("Region geometry")
         validation_tab = ui.tab("Validation")
         coil_tab = ui.tab("Coil response")
+        cases_tab = ui.tab("Cases")
         reports_tab = ui.tab("Reports")
 
     with ui.tab_panels(tabs, value=workflow_tab).classes("w-full"):
@@ -139,6 +146,48 @@ def launch_gui(host: str = "127.0.0.1", port: int = 8080, reload: bool = False) 
             ui.plotly(validation_convergence_figure("grad-shafranov")).classes("w-full h-[620px]")
         with ui.tab_panel(coil_tab):
             ui.plotly(coil_green_response_figure()).classes("w-full h-[620px]")
+        with ui.tab_panel(cases_tab):
+            manifest = default_case_manifest()
+            ui.label("Runnable cases and upstream parity targets").classes("text-subtitle2")
+            ui.table(
+                columns=[
+                    {"name": "case_id", "label": "Case", "field": "case_id"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "category", "label": "Category", "field": "category"},
+                    {"name": "parity_level", "label": "Parity level", "field": "parity_level"},
+                    {"name": "command", "label": "Command", "field": "command"},
+                    {"name": "validation_gate", "label": "Gate", "field": "validation_gate"},
+                ],
+                rows=case_manifest_rows(manifest),
+            ).classes("w-full")
+
+            preview_options = [entry.case_id for entry in manifest.entries if entry.path]
+            initial_case = preview_options[0]
+            preview = case_source_preview(initial_case, manifest=manifest, root=_PROJECT_ROOT)
+            selector = ui.select(
+                preview_options,
+                value=initial_case,
+                label="Case file",
+            ).classes("w-96")
+            source_box = (
+                ui.textarea(
+                    "Source preview",
+                    value=str(preview["source"]),
+                )
+                .classes("w-full font-mono")
+                .props("readonly autogrow")
+            )
+            command_label = ui.label(_case_preview_label(initial_case, manifest))
+
+            def update_preview() -> None:
+                case_id = str(selector.value)
+                preview = case_source_preview(case_id, manifest=manifest, root=_PROJECT_ROOT)
+                source_box.value = str(preview["source"])
+                source_box.update()
+                command_label.text = _case_preview_label(case_id, manifest)
+                command_label.update()
+
+            selector.on_value_change(lambda _: update_preview())
         with ui.tab_panel(reports_tab):
             artifacts = load_gui_report_artifacts()
             ui.label("Validation reports").classes("text-subtitle2")
@@ -459,6 +508,28 @@ def workflow_next_step_rows(dashboard: dict[str, Any]) -> list[dict[str, str]]:
         }
         for step in dashboard["next_steps"]
     ]
+
+
+def case_manifest_rows(manifest: CaseManifest | None = None) -> list[dict[str, str]]:
+    """Return compact GUI table rows for runnable and planned cases."""
+
+    rows = []
+    for row in case_table_rows(default_case_manifest() if manifest is None else manifest):
+        rows.append(
+            {
+                **row,
+                "command": row["command"] or "planned",
+                "validation_gate": row["validation_gate"] or "",
+                "outputs": row["outputs"] or "",
+            }
+        )
+    return rows
+
+
+def _case_preview_label(case_id: str, manifest: CaseManifest) -> str:
+    entry = manifest.by_id(case_id)
+    command = entry.command or entry.validation_gate or "planned"
+    return f"{entry.title}: {entry.status}; {entry.parity_level}; {command}"
 
 
 def load_json_report(path: str | Path) -> dict[str, Any]:

@@ -14,6 +14,7 @@ progress
 validation
 comparisons
 io_contract
+case_manifest
 literature_reproduction
 examples
 api

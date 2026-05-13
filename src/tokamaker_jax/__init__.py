@@ -40,6 +40,15 @@ from tokamaker_jax.benchmarks import (
     benchmark_seed_equilibrium,
     benchmark_threshold_report,
 )
+from tokamaker_jax.cases import (
+    CaseManifest,
+    CaseManifestEntry,
+    case_manifest_to_json,
+    case_source_preview,
+    case_table_rows,
+    default_case_manifest,
+    write_case_manifest,
+)
 from tokamaker_jax.comparison import (
     OpenFUSIONToolkitComparison,
     OpenFUSIONToolkitProbe,
@@ -152,6 +161,8 @@ __all__ = [
     "BenchmarkResult",
     "BENCHMARK_REPORT_SCHEMA_VERSION",
     "BENCHMARK_THRESHOLD_SCHEMA_VERSION",
+    "CaseManifest",
+    "CaseManifestEntry",
     "CoilConfig",
     "CoilGreenFunctionResponse",
     "CoilGreenFunctionValidation",
@@ -212,6 +223,9 @@ __all__ = [
     "benchmark_report_to_json",
     "benchmark_seed_equilibrium",
     "benchmark_threshold_report",
+    "case_manifest_to_json",
+    "case_source_preview",
+    "case_table_rows",
     "circular_loop_coil_flux",
     "circular_loop_coil_flux_gradient",
     "circular_loop_elliptic_coil_flux",
@@ -231,6 +245,7 @@ __all__ = [
     "coil_response_matrix",
     "complete_elliptic_integrals_agm",
     "constant_profile_load_oracle",
+    "default_case_manifest",
     "evaluate_coil_green_response",
     "gaussian_coil_source",
     "grad_shafranov_weak_source_density",
@@ -283,4 +298,5 @@ __all__ = [
     "triangle_jacobian",
     "triangle_quadrature",
     "unit_square_triangles",
+    "write_case_manifest",
 ]

@@ -1,0 +1,278 @@
+{
+  "artifact_id": "tokamaker-jax-case-manifest",
+  "category_counts": {
+    "control": 1,
+    "fixed-boundary": 1,
+    "free-boundary": 3,
+    "kernel-parity": 1,
+    "literature-surrogate": 1,
+    "reconstruction": 1,
+    "time-dependent": 1,
+    "workflow": 1
+  },
+  "entries": [
+    {
+      "case_id": "fixed-boundary-seed",
+      "category": "fixed-boundary",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": "tokamaker-jax examples/fixed_boundary.toml --plot outputs/fixed_boundary.png",
+      "description": "Rectangular-grid seed Grad-Shafranov solve used by the README, CLI, GUI seed view, and docs figures.",
+      "notes": [
+        "Current solver is a seed rectangular-grid path, not full upstream equilibrium parity."
+      ],
+      "outputs": [
+        "outputs/fixed_boundary.png",
+        "docs/_static/fixed_boundary_seed.png",
+        "docs/_static/manufactured_grad_shafranov_convergence.png"
+      ],
+      "parity_level": "manufactured_validation",
+      "path": "examples/fixed_boundary.toml",
+      "path_exists": true,
+      "runnable": true,
+      "status": "runnable",
+      "title": "Fixed-boundary seed equilibrium",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex1.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/fixed_boundary/fixed_boundary_ex2.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/fixed_boundary/gNT_example"
+      ],
+      "validation_gate": "tokamaker-jax verify --gate grad-shafranov --subdivisions 4 8 16"
+    },
+    {
+      "case_id": "case-manifest-browser",
+      "category": "workflow",
+      "citations": [],
+      "command": "tokamaker-jax cases",
+      "description": "Single manifest used by the GUI, CLI, docs, and tests to show runnable cases and planned parity fixtures.",
+      "notes": [
+        "This is an operational workflow artifact, not a physics parity claim."
+      ],
+      "outputs": [
+        "docs/_static/case_manifest.json",
+        "docs/_static/case_manifest_status.png"
+      ],
+      "parity_level": "workflow_fixture",
+      "path": null,
+      "path_exists": false,
+      "runnable": true,
+      "status": "runnable",
+      "title": "GUI/CLI case manifest browser",
+      "upstream_sources": [],
+      "validation_gate": "tokamaker-jax cases --json"
+    },
+    {
+      "case_id": "cpc-seed-family",
+      "category": "literature-surrogate",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": "python examples/reproduce_cpc_seed_family.py outputs/literature/cpc_seed_family",
+      "description": "Citation-linked seed-family artifact exercising the literature reproduction report/plot workflow while exact published case inputs remain a future gate.",
+      "notes": [
+        "Marked as surrogate until exact source data and numeric figure tolerances are checked in."
+      ],
+      "outputs": [
+        "docs/_static/cpc_seed_family.png",
+        "docs/_static/cpc_seed_family_report.json"
+      ],
+      "parity_level": "surrogate_fixture",
+      "path": "examples/reproduce_cpc_seed_family.py",
+      "path_exists": true,
+      "runnable": true,
+      "status": "runnable",
+      "title": "TokaMaker CPC seed-family surrogate",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker"
+      ],
+      "validation_gate": "python -m pytest tests/test_literature_reproduction.py"
+    },
+    {
+      "case_id": "openfusiontoolkit-green-parity",
+      "category": "kernel-parity",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": "tokamaker-jax verify --gate oft-parity",
+      "description": "Availability-gated numeric comparison between the JAX circular-loop elliptic kernel and local OpenFUSIONToolkit/TokaMaker eval_green.",
+      "notes": [
+        "Runs as skipped_unavailable when the local OFT shared library has not been built."
+      ],
+      "outputs": [
+        "docs/_static/openfusiontoolkit_comparison_report.json"
+      ],
+      "parity_level": "kernel_parity",
+      "path": null,
+      "path_exists": false,
+      "runnable": true,
+      "status": "validation_gate",
+      "title": "OpenFUSIONToolkit circular-loop eval_green parity",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/python/OpenFUSIONToolkit/TokaMaker/util.py",
+        "OpenFUSIONToolkit/src/examples/TokaMaker"
+      ],
+      "validation_gate": "tokamaker-jax verify --gate oft-parity"
+    },
+    {
+      "case_id": "free-boundary-target-schema",
+      "category": "free-boundary",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Human-readable TOML shape for the future full free-boundary workflow with constraints and targets.",
+      "notes": [
+        "Preview only; not accepted by the current solver loader."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": "examples/free_boundary_target.toml",
+      "path_exists": true,
+      "runnable": false,
+      "status": "schema_preview",
+      "title": "Free-boundary target TOML schema preview",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/ITER/ITER_baseline_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/DIIID/DIIID_baseline_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/HBT/HBT_eq_ex.ipynb"
+      ],
+      "validation_gate": null
+    },
+    {
+      "case_id": "iter-baseline-upstream",
+      "category": "free-boundary",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Planned full-code parity fixture for ITER baseline and H-mode examples, including mesh, coils, profiles, constraints, and plots.",
+      "notes": [
+        "Target acceptance level: workflow_parity after numeric tolerances exist."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": null,
+      "path_exists": false,
+      "runnable": false,
+      "status": "planned_upstream_fixture",
+      "title": "ITER baseline upstream fixture",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/ITER/ITER_baseline_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/ITER/ITER_Hmode_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/ITER/ITER_geom.json",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/ITER/ITER_mesh.h5"
+      ],
+      "validation_gate": null
+    },
+    {
+      "case_id": "diiid-baseline-upstream",
+      "category": "reconstruction",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Planned parity fixture for a DIII-D baseline case with mesh, geometry, and g-file input.",
+      "notes": [
+        "Target acceptance level: equilibrium_parity then workflow_parity."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": null,
+      "path_exists": false,
+      "runnable": false,
+      "status": "planned_upstream_fixture",
+      "title": "DIII-D baseline upstream fixture",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/DIIID/DIIID_baseline_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/DIIID/DIIID_geom.json",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/DIIID/DIIID_mesh.h5",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/DIIID/g192185.02440"
+      ],
+      "validation_gate": null
+    },
+    {
+      "case_id": "hbt-equilibrium-upstream",
+      "category": "free-boundary",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Planned HBT fixture covering vacuum-coil and equilibrium notebooks from upstream TokaMaker.",
+      "notes": [
+        "Use after coil/passive-structure data models are implemented."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": null,
+      "path_exists": false,
+      "runnable": false,
+      "status": "planned_upstream_fixture",
+      "title": "HBT equilibrium upstream fixture",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/HBT/HBT_eq_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/HBT/HBT_vac_coils.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/HBT/HBT_geom.json",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/HBT/HBT_mesh.h5"
+      ],
+      "validation_gate": null
+    },
+    {
+      "case_id": "cute-vde-upstream",
+      "category": "time-dependent",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Planned fixture for time-dependent and vertical displacement workflow parity.",
+      "notes": [
+        "Requires passive structures and time stepping before numeric parity can be claimed."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": null,
+      "path_exists": false,
+      "runnable": false,
+      "status": "planned_upstream_fixture",
+      "title": "CUTE VDE upstream fixture",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/CUTE/CUTE_VDE_ex.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/CUTE/CUTE_geom.json",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/CUTE/CUTE_mesh.h5"
+      ],
+      "validation_gate": null
+    },
+    {
+      "case_id": "nstxu-isoflux-controller-upstream",
+      "category": "control",
+      "citations": [
+        "Hansen et al. 2024, doi:10.1016/j.cpc.2024.109111"
+      ],
+      "command": null,
+      "description": "Planned advanced-workflow fixture for controller and isoflux target parity.",
+      "notes": [
+        "Requires reconstruction/control APIs and fixture tolerances."
+      ],
+      "outputs": [],
+      "parity_level": "source_audit",
+      "path": null,
+      "path_exists": false,
+      "runnable": false,
+      "status": "planned_upstream_fixture",
+      "title": "NSTX-U isoflux controller upstream fixture",
+      "upstream_sources": [
+        "OpenFUSIONToolkit/src/examples/TokaMaker/AdvancedWorkflows/IsofluxController/NSTXU_shape_control_simulator.ipynb",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/AdvancedWorkflows/IsofluxController/NSTXU_geom.json",
+        "OpenFUSIONToolkit/src/examples/TokaMaker/AdvancedWorkflows/IsofluxController/NSTXU_mesh.h5"
+      ],
+      "validation_gate": null
+    }
+  ],
+  "schema_version": 1,
+  "status_counts": {
+    "planned_upstream_fixture": 5,
+    "runnable": 3,
+    "schema_preview": 1,
+    "validation_gate": 1
+  }
+}
